@@ -82,13 +82,14 @@ input:focus, select:focus {
   animation: slideIn 0.3s ease-out;
 }
 
-/* ★★★ ここから追加 ★★★ */
 /* 
-  TeamMemberEditor.tsx の StatSlider に className="hide-stat-slider-real-value" を追加し、
-  StatSlider.tsx 内部の realValue を表示する div に className="stat-slider__real-value-display" を追加した場合、
-  以下のCSSでその数値を非表示にします (レイアウト上のスペースは維持されます)。
+  TeamMemberEditor.tsx の StatSlider に className="hide-stat-slider-real-value" を渡した場合、
+  StatSlider.tsx 内部の関連要素を非表示にするためのクラス（直接適用されるわけではないが、
+  JavaScript側でこのクラス名を見て条件分岐するために使う想定だった）。
+  今回はJavaScript側で直接レンダリングを制御するため、このCSSルールは必須ではなくなります。
 */
+/* 
 .hide-stat-slider-real-value .stat-slider__real-value-display {
-  visibility: hidden;
+  visibility: hidden; 
 }
-/* ★★★ ここまで追加 ★★★ */
+*/
