@@ -1,8 +1,9 @@
 import { Move, PokemonType, MoveCategory, MoveUiOption } from '../types'; // ★ Ensure correct import
 export const moves: Move[] = [
  {
-    id: 1000, // IDは既存のものと重複しないように適宜調整してください
+    id: "terablast",
     name: "テラバースト",
+    nameEn: "Tera Blast",
     type: "normal" as PokemonType, // 基本タイプはノーマル
     category: "special",          // デフォルトカテゴリは特殊
     power: 80,
@@ -11,14 +12,7 @@ export const moves: Move[] = [
     isTeraBlast: true, // ★ テラバースト専用フラグ
   },
   {
-    id: 0,
-    name: "しんそく",
-    type: "normal" as PokemonType,
-    category: "physical",
-    power: 80,
-  },
-  {
-    id: 25,
+    id: "blizzard",
     name: "ふぶき",   
     nameEn: "Blizzard",
     type: "ice" as PokemonType,
@@ -40,50 +34,9 @@ export const moves: Move[] = [
     pp: 10,
     dynamicEffectId: 'expandingForceEffect' // 追加
   },
-  {
-    id: 21,
-    name: "あくのはどう",
-    nameEn: "Dark Pulse",
-    type: "dark" as PokemonType,
-    category: "special",
-    power: 80,
-    accuracy: 100,
-    pp: 15,
-  },
-  {
-    id: 37,
-    name: "かみなりのキバ",
-    nameEn: "Thunder Fang",
-    type: "electric" as PokemonType,
-    category: "physical",
-    power: 65,
-    accuracy: 95,
-    pp: 15,
-    isBiting:true,
-  },
-  {
-    id: 38,
-    name: "こおりのキバ",
-    nameEn: "Ice Fang",
-    type: "ice" as PokemonType,
-    category: "physical",
-    power: 65,
-    accuracy: 95,
-    pp: 15,
-    isBiting:true,
-  },
-  {
-    id: 39,
-    name: "Fire Fang",
-    type: "fire" as PokemonType,
-    category: "physical",
-    power: 65,
-    accuracy: 95,
-    pp: 15,
-    isBiting:true,
-  },
+
 {
-  id: 1006,
+  id: "populationbomb",
   name: "ねずみざん",
   nameEn: "Population Bomb",
   type: "normal" as PokemonType,
@@ -95,7 +48,7 @@ export const moves: Move[] = [
   contact: true,
 },  
 {
-  id: 1007,
+  id: "bodypress",
   name: "ボディプレス",
   nameEn: "Body Press",
   type: "fighting" as PokemonType,
@@ -104,32 +57,8 @@ export const moves: Move[] = [
   accuracy: 90,
   contact: true,
 },  
-  {
-  id: 1008,
-  name: "ふんか",
-  nameEn: "Eruption",
-  type: "fire" as PokemonType,
-  category: "special",
-  power: 150,
-  basePowerCallback: true,
-  accuracy: 100,
-  pp: 5,
-  accuracy: 100,
-  isSpread: true,
-}, 
-  {
-  id: 1009,
-  name: "しおふき",
-  nameEn: "Water Spout",
-  type: "water" as PokemonType,
-  category: "special",
-  power: 150,
-  accuracy: 100,
-  pp: 5,
-  isSpread: true,
-}, 
     {
-  id: 1009,
+  id: "hammerarm",
   name: "アームハンマー",
   nameEn: "Hammer Arm",
   type: "fighting" as PokemonType,
@@ -141,7 +70,7 @@ export const moves: Move[] = [
   isPunch: true,
 }, 
       {
-  id: 1010,
+  id: "foulplay",
   name: "イカサマ",
   nameEn: "Foul Play",
   type: "dark" as PokemonType,
@@ -613,16 +542,6 @@ export const moves: Move[] = [
   pp: 30
 },
 {
-  id: "baddybad",
-  name: "わるわるゾーン",
-  nameEn: "Baddy Bad",
-  type: "dark",
-  category: "special",
-  power: 80,
-  accuracy: 95,
-  pp: 15
-},
-{
   id: "banefulbunker",
   name: "トーチカ",
   nameEn: "Baneful Bunker",
@@ -883,16 +802,7 @@ export const moves: Move[] = [
   pp: 5,
   hasSecondaryEffect: true
 },
-{
-  id: "bodypress",
-  name: "ボディプレス",
-  nameEn: "Body Press",
-  type: "fighting",
-  category: "physical",
-  power: 80,
-  accuracy: 100,
-  pp: 10
-},
+
 {
   id: "bodyslam",
   name: "のしかかり",
@@ -979,16 +889,6 @@ export const moves: Move[] = [
   accuracy: 85,
   pp: 5,
   hasSecondaryEffect: true
-},
-{
-  id: "bouncybubble",
-  name: "ふわふわフォール",
-  nameEn: "Bouncy Bubble",
-  type: "water",
-  category: "special",
-  power: 60,
-  accuracy: 100,
-  pp: 20
 },
 {
   id: "branchpoke",
@@ -1173,17 +1073,6 @@ export const moves: Move[] = [
   power: 130,
   accuracy: 100,
   pp: 5
-},
-{
-  id: "buzzybuzz",
-  name: "びりびりエレキ",
-  nameEn: "Buzzy Buzz",
-  type: "electric",
-  category: "special",
-  power: 60,
-  accuracy: 100,
-  pp: 20,
-  hasSecondaryEffect: true
 },
 {
   id: "calmmind",
@@ -2991,16 +2880,6 @@ export const moves: Move[] = [
   pp: 20
 },
 {
-  id: "foulplay",
-  name: "イカサマ",
-  nameEn: "Foul Play",
-  type: "dark",
-  category: "physical",
-  power: 95,
-  accuracy: 100,
-  pp: 15
-},
-{
   id: "freezedry",
   name: "フリーズドライ",
   nameEn: "Freeze-Dry",
@@ -3410,16 +3289,6 @@ export const moves: Move[] = [
   category: "status",
   power: 0,
   accuracy: true,
-  pp: 10
-},
-{
-  id: "hammerarm",
-  name: "アームハンマー",
-  nameEn: "Hammer Arm",
-  type: "fighting",
-  category: "physical",
-  power: 100,
-  accuracy: 90,
   pp: 10
 },
 {
@@ -8138,16 +8007,6 @@ export const moves: Move[] = [
   pp: 10
 },
 {
-  id: "terablast",
-  name: "テラバースト",
-  nameEn: "Tera Blast",
-  type: "normal",
-  category: "special",
-  power: 80,
-  accuracy: 100,
-  pp: 10
-},
-{
   id: "terastarstorm",
   name: "テラクラスター",
   nameEn: "Tera Starstorm",
@@ -8610,16 +8469,6 @@ export const moves: Move[] = [
   power: 180,
   accuracy: 95,
   pp: 5
-},
-{
-  id: "veeveevolley",
-  name: "ブイブイブレイク", // LGPE技
-  nameEn: "Veevee Volley",
-  type: "normal",
-  category: "physical",
-  power: 0,
-  accuracy: true,
-  pp: 20
 },
 {
   id: "venomdrench",

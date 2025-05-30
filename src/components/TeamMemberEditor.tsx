@@ -390,24 +390,7 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
           </div>
         </div>
         
-        <div className="mb-2.5"> {/* マージン増 */}
-          <h3 className="text-sm font-semibold mb-1 text-white">個体値</h3>
-          <div className="space-y-0.5"> {/* 各行の間隔を少し追加 */}
-            {statKeys.map(stat => (
-              // ★ グリッド列定義とgap調整、ラベルのフォントサイズ調整
-              <div key={stat} className="grid grid-cols-[auto_52px] items-center gap-x-1 py-0.5"> {/* IV入力幅調整、gapとpy増 */}
-                <label className="text-gray-300 text-[10px] font-medium whitespace-nowrap pr-1">{baseStatLabels[stat]}</label> {/* フォントサイズアップ、padding調整 */}
-                <input
-                  type="number"
-                  value={editedMember.ivs[stat]}
-                  onChange={(e) => handleIvChange(stat, parseInt(e.target.value, 10) || 0)}
-                  className="w-full px-1 py-0 h-5 bg-gray-700 border border-gray-600 rounded text-white text-[10px] text-center focus:ring-blue-500 focus:border-blue-500 tabular-nums" // 高さ、フォントサイズ調整
-                  min="0" max="31"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
+
 
         <div className="mt-3 flex justify-end space-x-1.5 sticky bottom-0 bg-gray-800 py-1.5 -mx-2 sm:-mx-3 px-2 sm:px-3 border-t border-gray-700"> {/* マージン、space、padding調整 */}
           <button

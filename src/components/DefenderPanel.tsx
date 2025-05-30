@@ -3,7 +3,9 @@ import { Pokemon, StatCalculation, NatureModifier, Item, Ability, PokemonType, D
 import PokemonSelect from './PokemonSelect';
 import ItemSelect from './ItemSelect';
 import AbilitySelect from './AbilitySelect';
-import StandardDefensiveStatInputs from './defenderSpecific/StandardDefensiveStatInputs';
+// import StandardDefensiveStatInputs from './defenderSpecific/StandardDefensiveStatInputs'; // この行を削除
+import StatSlider from './StatSlider'; // StatSliderをインポート
+import RankSelector from './RankSelector'; // RankSelectorをインポート
 
 const ALL_POKEMON_TYPES = ["normal", "fire", "water", "grass", "electric", "ice", "fighting", "poison", "ground", "flying", "psychic", "bug", "rock", "ghost", "dragon", "dark", "steel", "fairy"] as const;
 const LEVEL = 50;
@@ -551,17 +553,190 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
 
       <div className="bg-gray-800 rounded-lg p-4 mb-4">
         <div className="flex items-center justify-between mb-4"><h3 className="text-lg font-semibold text-white">能力値設定</h3></div>
-        <StandardDefensiveStatInputs
-          selectedPokemon={selectedPokemon}
-          hpStat={hpStat} defenseStat={defenseStat} specialDefenseStat={specialDefenseStat}
-          hpInputValue={hpInputValue} defenseInputValue={defenseInputValue} specialDefenseInputValue={specialDefenseInputValue}
-          onHpEvChange={handleHpEvChangeDirect} onDefenseEvChange={handleDefenseEvChangeDirect} onSpecialDefenseEvChange={handleSpecialDefenseEvChangeDirect}
-          onDefenseNatureChange={handleDefenseNatureChangeDirect} onSpecialDefenseNatureChange={handleSpecialDefenseNatureChangeDirect}
-          onDefenseRankChange={handleDefenseRankChangeDirect} onSpecialDefenseRankChange={handleSpecialDefenseRankChangeDirect}
-          onHpInputChange={handleHpInputChange} onDefenseInputChange={handleDefenseInputChange} onSpecialDefenseInputChange={handleSpecialDefenseInputChange}
-          onHpInputBlur={handleHpInputBlur} onDefenseInputBlur={handleDefenseInputBlur} onSpecialDefenseInputBlur={handleSpecialDefenseInputBlur}
-          hpBaseValueForDisplay={hpBaseValueForDisplay} defenseBaseValueForDisplay={defenseBaseValueForDisplay} specialDefenseBaseValueForDisplay={specialDefenseBaseValueForDisplay}
-        />
+        {/* StandardDefensiveStatInputs の呼び出しを削除し、以下に展開 */}
+        <div className="space-y-6">
+          {/* HPセクション */}
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-white font-medium">HP</label>
+              <input
+                type="number"
+                value={hpInputValue}
+                onChange={handleHpInputChange}
+                onBlur={handleHpInputBlur}
+                className="w-24 bg-gray-700 text-white text-center p-1 rounded-md text-lg"
+                disabled={!selectedPokemon}
+              />
+            </div>
+            <StatSlider
+              value={hpStat.ev}
+              onChange={handleHpEvChangeDirect}
+              max={252}
+              step={4}
+              currentStat={hpBaseValueForDisplay} // HPの実数値
+              baseStat={selectedPokemon?.baseStats.hp} // HPの種族値
+              disabled={!selectedPokemon}
+            />
+            <div className="flex justify-end items-start mt-2"> {/* HPには性格補正がないため右寄せ */}
+              <div className="text-right">
+                <span className="text-sm text-gray-400">努力値: {hpStat.ev}</span>
+                <div className="flex gap-1 mt-1 justify-end">
+                    <button
+                        onClick={() => handleHpEvChangeDirect(0)}
+                        className="w-12 py-1 text-xs rounded-md bg-gray-600 hover:bg-gray-500 transition-colors"
+                        disabled={!selectedPokemon}
+                    >
+                        0
+                    </button>
+                    <button
+                        onClick={() => handleHpEvChangeDirect(252)}
+                        className="w-12 py-1 text-xs rounded-md bg-gray-600 hover:bg-gray-500 transition-colors"
+                        disabled={!selectedPokemon}
+                    >
+                        252
+                    </button>
+                </div>
+              </div>
+            </div>
+            {/* HPにはランクセレクターなし */}
+          </div>
+
+          {/* ぼうぎょセクション */}
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-white font-medium">ぼうぎょ</label>
+              <input
+                type="number"
+                value={defenseInputValue}
+                onChange={handleDefenseInputChange}
+                onBlur={handleDefenseInputBlur}
+                className="w-24 bg-gray-700 text-white text-center p-1 rounded-md text-lg"
+                disabled={!selectedPokemon}
+              />
+            </div>
+            <StatSlider
+              value={defenseStat.ev}
+              onChange={handleDefenseEvChangeDirect}
+              max={252}
+              step={4}
+              currentStat={defenseBaseValueForDisplay}
+              baseStat={selectedPokemon?.baseStats.defense}
+              disabled={!selectedPokemon}
+            />
+            <div className="flex justify-between items-start mt-2">
+              <div>
+                <label className="text-sm text-gray-400">性格補正</label>
+                <div className="flex gap-1 mt-1">
+                  {[0.9, 1.0, 1.1].map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => handleDefenseNatureChangeDirect(n as NatureModifier)}
+                      className={`px-3 py-1 text-xs rounded-md transition-colors ${defenseStat.nature === n ? 'bg-blue-600 text-white font-semibold' : 'bg-gray-600 hover:bg-gray-500'}`}
+                      disabled={!selectedPokemon}
+                    >
+                      x{n.toFixed(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-sm text-gray-400">努力値: {defenseStat.ev}</span>
+                <div className="flex gap-1 mt-1 justify-end">
+                    <button
+                        onClick={() => handleDefenseEvChangeDirect(0)}
+                        className="w-12 py-1 text-xs rounded-md bg-gray-600 hover:bg-gray-500 transition-colors"
+                        disabled={!selectedPokemon}
+                    >
+                        0
+                    </button>
+                    <button
+                        onClick={() => handleDefenseEvChangeDirect(252)}
+                        className="w-12 py-1 text-xs rounded-md bg-gray-600 hover:bg-gray-500 transition-colors"
+                        disabled={!selectedPokemon}
+                    >
+                        252
+                    </button>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4">
+              <RankSelector
+                value={defenseStat.rank}
+                onChange={handleDefenseRankChangeDirect}
+                label="ぼうぎょランク"
+                disabled={!selectedPokemon}
+              />
+            </div>
+          </div>
+
+          {/* とくぼうセクション */}
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-white font-medium">とくぼう</label>
+              <input
+                type="number"
+                value={specialDefenseInputValue}
+                onChange={handleSpecialDefenseInputChange}
+                onBlur={handleSpecialDefenseInputBlur}
+                className="w-24 bg-gray-700 text-white text-center p-1 rounded-md text-lg"
+                disabled={!selectedPokemon}
+              />
+            </div>
+            <StatSlider
+              value={specialDefenseStat.ev}
+              onChange={handleSpecialDefenseEvChangeDirect}
+              max={252}
+              step={4}
+              currentStat={specialDefenseBaseValueForDisplay}
+              baseStat={selectedPokemon?.baseStats.specialDefense}
+              disabled={!selectedPokemon}
+            />
+            <div className="flex justify-between items-start mt-2">
+              <div>
+                <label className="text-sm text-gray-400">性格補正</label>
+                <div className="flex gap-1 mt-1">
+                  {[0.9, 1.0, 1.1].map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => handleSpecialDefenseNatureChangeDirect(n as NatureModifier)}
+                      className={`px-3 py-1 text-xs rounded-md transition-colors ${specialDefenseStat.nature === n ? 'bg-blue-600 text-white font-semibold' : 'bg-gray-600 hover:bg-gray-500'}`}
+                      disabled={!selectedPokemon}
+                    >
+                      x{n.toFixed(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-sm text-gray-400">努力値: {specialDefenseStat.ev}</span>
+                <div className="flex gap-1 mt-1 justify-end">
+                    <button
+                        onClick={() => handleSpecialDefenseEvChangeDirect(0)}
+                        className="w-12 py-1 text-xs rounded-md bg-gray-600 hover:bg-gray-500 transition-colors"
+                        disabled={!selectedPokemon}
+                    >
+                        0
+                    </button>
+                    <button
+                        onClick={() => handleSpecialDefenseEvChangeDirect(252)}
+                        className="w-12 py-1 text-xs rounded-md bg-gray-600 hover:bg-gray-500 transition-colors"
+                        disabled={!selectedPokemon}
+                    >
+                        252
+                    </button>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4">
+              <RankSelector
+                value={specialDefenseStat.rank}
+                onChange={handleSpecialDefenseRankChangeDirect}
+                label="とくぼうランク"
+                disabled={!selectedPokemon}
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="bg-gray-800 rounded-lg p-4 mb-4">

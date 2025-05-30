@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import { Pokemon, Move, StatCalculation, NatureModifier, PokemonType, Item, Ability, TeraBurstEffectiveType, MoveCategory, ProtosynthesisBoostTarget, AttackerState } from '../types'; // パスをプロジェクトに合わせて調整
+import { Pokemon, Move, StatCalculation, NatureModifier, PokemonType, Item, Ability, TeraBurstEffectiveType, MoveCategory, ProtosynthesisBoostTarget, AttackerState } from '../types'; 
 import PokemonSelect from './PokemonSelect';
 import MoveSelect from './MoveSelect';
 import StatSlider from './StatSlider';
@@ -8,7 +8,8 @@ import AbilitySelect from './AbilitySelect';
 import TeraBlastOptions from '../calculation/TeraBlastOptions'; // パスをプロジェクトに合わせて調整
 import { Plus, X } from 'lucide-react';
 
-import StandardOffensiveStatInputs from './moveSpecific/StandardOffensiveStatInputs';
+// StandardOffensiveStatInputs は直接展開するため、インポートを削除
+// import StandardOffensiveStatInputs from './moveSpecific/StandardOffensiveStatInputs';
 import BodyPressDefenseInputs from './moveSpecific/BodyPressDefenseInputs';
 import HpDependentPowerInputs from './moveSpecific/HpDependentPowerInputs';
 import FoulPlayDisplay from './moveSpecific/FoulPlayDisplay';
@@ -661,6 +662,146 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
       let hpDependentInputsToShow = null;
       let defenderAttackControlsToShow = null;
 
+      // ▼▼▼ StandardOffensiveStatInputs の内容を展開してボタンを追加 ▼▼▼
+      const standardStatInputsJsx = (
+        <div className="space-y-6">
+          {/* こうげきセクション */}
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-white font-medium">こうげき</label>
+              <input
+                type="number"
+                value={attacker.attackInputValue}
+                onChange={(e) => handleAttackInputChange(e, index)}
+                onBlur={() => handleAttackInputBlur(index)}
+                className="w-24 bg-gray-700 text-white text-center p-1 rounded-md text-lg"
+                disabled={!attacker.isEnabled || !attacker.pokemon}
+              />
+            </div>
+            <StatSlider
+              value={attacker.attackStat.ev}
+              onChange={(ev) => handleAttackEvChange(ev, index)}
+              max={252}
+              step={4}
+              currentStat={attackBaseValueForDisplay}
+              disabled={!attacker.isEnabled || !attacker.pokemon}
+            />
+            <div className="flex justify-between items-start mt-2">
+              <div>
+                <label className="text-sm text-gray-400">性格補正</label>
+                <div className="flex gap-1 mt-1">
+                  {[0.9, 1.0, 1.1].map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => handleAttackNatureChange(n as NatureModifier, index)}
+                      className={`px-3 py-1 text-xs rounded-md transition-colors ${attacker.attackStat.nature === n ? 'bg-blue-600 text-white font-semibold' : 'bg-gray-600 hover:bg-gray-500'}`}
+                      disabled={!attacker.isEnabled || !attacker.pokemon}
+                    >
+                      x{n.toFixed(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-sm text-gray-400">努力値: {attacker.attackStat.ev}</span>
+                <div className="flex gap-1 mt-1 justify-end">
+                    <button
+                        onClick={() => handleAttackEvChange(0, index)}
+                        className="w-12 py-1 text-xs rounded-md bg-gray-600 hover:bg-gray-500 transition-colors"
+                        disabled={!attacker.isEnabled || !attacker.pokemon}
+                    >
+                        0
+                    </button>
+                    <button
+                        onClick={() => handleAttackEvChange(252, index)}
+                        className="w-12 py-1 text-xs rounded-md bg-gray-600 hover:bg-gray-500 transition-colors"
+                        disabled={!attacker.isEnabled || !attacker.pokemon}
+                    >
+                        252
+                    </button>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4">
+              <RankSelector
+                value={attacker.attackStat.rank}
+                onChange={(rank) => handleAttackRankChange(rank, index)}
+                label="こうげきランク"
+                disabled={!attacker.isEnabled || !attacker.pokemon}
+              />
+            </div>
+          </div>
+  
+          {/* とくこうセクション */}
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-white font-medium">とくこう</label>
+              <input
+                type="number"
+                value={attacker.specialAttackInputValue}
+                onChange={(e) => handleSpecialAttackInputChange(e, index)}
+                onBlur={() => handleSpecialAttackInputBlur(index)}
+                className="w-24 bg-gray-700 text-white text-center p-1 rounded-md text-lg"
+                disabled={!attacker.isEnabled || !attacker.pokemon}
+              />
+            </div>
+            <StatSlider
+              value={attacker.specialAttackStat.ev}
+              onChange={(ev) => handleSpecialAttackEvChange(ev, index)}
+              max={252}
+              step={4}
+              currentStat={specialAttackBaseValueForDisplay}
+              disabled={!attacker.isEnabled || !attacker.pokemon}
+            />
+            <div className="flex justify-between items-start mt-2">
+              <div>
+                <label className="text-sm text-gray-400">性格補正</label>
+                <div className="flex gap-1 mt-1">
+                  {[0.9, 1.0, 1.1].map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => handleSpecialAttackNatureChange(n as NatureModifier, index)}
+                      className={`px-3 py-1 text-xs rounded-md transition-colors ${attacker.specialAttackStat.nature === n ? 'bg-blue-600 text-white font-semibold' : 'bg-gray-600 hover:bg-gray-500'}`}
+                      disabled={!attacker.isEnabled || !attacker.pokemon}
+                    >
+                      x{n.toFixed(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-sm text-gray-400">努力値: {attacker.specialAttackStat.ev}</span>
+                <div className="flex gap-1 mt-1 justify-end">
+                    <button
+                        onClick={() => handleSpecialAttackEvChange(0, index)}
+                        className="w-12 py-1 text-xs rounded-md bg-gray-600 hover:bg-gray-500 transition-colors"
+                        disabled={!attacker.isEnabled || !attacker.pokemon}
+                    >
+                        0
+                    </button>
+                    <button
+                        onClick={() => handleSpecialAttackEvChange(252, index)}
+                        className="w-12 py-1 text-xs rounded-md bg-gray-600 hover:bg-gray-500 transition-colors"
+                        disabled={!attacker.isEnabled || !attacker.pokemon}
+                    >
+                        252
+                    </button>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4">
+              <RankSelector
+                value={attacker.specialAttackStat.rank}
+                onChange={(rank) => handleSpecialAttackRankChange(rank, index)}
+                label="とくこうランク"
+                disabled={!attacker.isEnabled || !attacker.pokemon}
+              />
+            </div>
+          </div>
+        </div>
+      );
+      // ▲▲▲ ここまでが展開した内容 ▲▲▲
+
       if (moveName === "イカサマ") {
         statInputsSection = <FoulPlayDisplay />;
         hpEvSliderToShow = null;
@@ -719,24 +860,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                 </div>
             );
         }
-        statInputsSection = (
-          <StandardOffensiveStatInputs
-            attacker={attacker}
-            index={index}
-            attackBaseValueForDisplay={attackBaseValueForDisplay}
-            specialAttackBaseValueForDisplay={specialAttackBaseValueForDisplay}
-            onAttackInputChange={handleAttackInputChange}
-            onAttackInputBlur={handleAttackInputBlur}
-            onAttackEvChange={(ev) => handleAttackEvChange(ev, index)}
-            onAttackNatureChange={(nature) => handleAttackNatureChange(nature, index)}
-            onAttackRankChange={(rank) => handleAttackRankChange(rank, index)}
-            onSpecialAttackInputChange={handleSpecialAttackInputChange}
-            onSpecialAttackInputBlur={handleSpecialAttackInputBlur}
-            onSpecialAttackEvChange={(ev) => handleSpecialAttackEvChange(ev, index)}
-            onSpecialAttackNatureChange={(nature) => handleSpecialAttackNatureChange(nature, index)}
-            onSpecialAttackRankChange={(rank) => handleSpecialAttackRankChange(rank, index)}
-          />
-        );
+        statInputsSection = standardStatInputsJsx; // 展開したJSXを使用
       } else if (moveName === "ボディプレス") {
         statInputsSection = (
           <BodyPressDefenseInputs
@@ -751,24 +875,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
           />
         );
       } else { // 通常の技
-        statInputsSection = (
-          <StandardOffensiveStatInputs
-            attacker={attacker}
-            index={index}
-            attackBaseValueForDisplay={attackBaseValueForDisplay}
-            specialAttackBaseValueForDisplay={specialAttackBaseValueForDisplay}
-            onAttackInputChange={handleAttackInputChange}
-            onAttackInputBlur={handleAttackInputBlur}
-            onAttackEvChange={(ev) => handleAttackEvChange(ev, index)}
-            onAttackNatureChange={(nature) => handleAttackNatureChange(nature, index)}
-            onAttackRankChange={(rank) => handleAttackRankChange(rank, index)}
-            onSpecialAttackInputChange={handleSpecialAttackInputChange}
-            onSpecialAttackInputBlur={handleSpecialAttackInputBlur}
-            onSpecialAttackEvChange={(ev) => handleSpecialAttackEvChange(ev, index)}
-            onSpecialAttackNatureChange={(nature) => handleSpecialAttackNatureChange(nature, index)}
-            onSpecialAttackRankChange={(rank) => handleSpecialAttackRankChange(rank, index)}
-          />
-        );
+        statInputsSection = standardStatInputsJsx; // 展開したJSXを使用
       }
 
     return (

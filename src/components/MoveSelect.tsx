@@ -65,8 +65,6 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
   const pcDropdownRef = useRef<HTMLDivElement>(null);
   const mobileViewRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  // listRef はPCとモバイルで共有されるが、同時に表示されることはないため問題ないと判断。
-  // 必要であれば、それぞれのリストに個別のrefを設定することも可能。
   const listRef = useRef<HTMLUListElement>(null);
 
 
@@ -86,32 +84,28 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
     const searchTermHiragana = toHiragana(searchTermLower);
 
     return moves
-      .filter(move => move.category !== 'status') // ステータス技を除外
+      .filter(move => move.category !== 'status') 
       .filter(move => {
-        if (!searchTermLower) return true; // 入力がない場合は全て表示
+        if (!searchTermLower) return true; 
 
         const moveNameJp = move.name;
         const moveNameJpLower = moveNameJp.toLowerCase();
         const moveNameJpHiragana = toHiragana(moveNameJp);
-        const moveNameEnLower = (move as any).nameEn?.toLowerCase() || ''; // 英語名での検索 (あれば)
-        const typeOriginalJp = getTypeNameJp(move.type); // 日本語タイプ名
+        const moveNameEnLower = (move as any).nameEn?.toLowerCase() || ''; 
+        const typeOriginalJp = getTypeNameJp(move.type); 
         const typeNameJpLower = typeOriginalJp.toLowerCase();
         const typeNameJpHiragana = toHiragana(typeOriginalJp);
-        const moveTypeRawLower = move.type.toLowerCase(); // 元のタイプ名（英語など）
+        const moveTypeRawLower = move.type.toLowerCase(); 
 
-        // 日本語名（カタカナ、ひらがな）での検索
         if (moveNameJpLower.includes(searchTermLower) || moveNameJpHiragana.includes(searchTermHiragana)) return true;
-        // 英語名での検索
         if (moveNameEnLower && moveNameEnLower.includes(searchTermLower)) return true;
-        // タイプ名（日本語、ひらがな、元の文字列）での検索
         if (typeNameJpLower.includes(searchTermLower) || typeNameJpHiragana.includes(searchTermHiragana)) return true;
         if (moveTypeRawLower.includes(searchTermLower)) return true;
 
-        // テラバーストの特殊検索
         if (move.isTeraBlast) {
           const teraburstJpLower = "テラバースト".toLowerCase();
           const teraburstJpHiragana = toHiragana("テラバースト");
-          const teraburstEnLower = "terablast".toLowerCase(); // 英語名も考慮
+          const teraburstEnLower = "terablast".toLowerCase(); 
           if (teraburstJpLower.includes(searchTermLower) || teraburstJpHiragana.includes(searchTermHiragana) || teraburstEnLower.includes(searchTermLower)) {
             return true;
           }
@@ -120,15 +114,13 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
       });
   }, [moves, inputValue]);
 
-  // PC: ドロップダウン外クリックで閉じる
   useEffect(() => {
     if (!isOpen || disabled) return;
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
       if (pcDropdownRef.current && !pcDropdownRef.current.contains(target) &&
           inputRef.current && !inputRef.current.contains(target)) {
-        // window.innerWidth のチェックは、スマホではこのロジックを適用しないため
-        if (typeof window !== 'undefined' && window.innerWidth >= 640) { // 'sm' breakpoint
+        if (typeof window !== 'undefined' && window.innerWidth >= 640) { 
           setIsOpen(false);
           if (selected) setInputValue(selected.name); else setInputValue('');
         }
@@ -138,22 +130,18 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen, selected, disabled]);
   
-  // 開いた時のフォーカス処理とハイライトリセット
   useEffect(() => {
     if (isOpen && !disabled) {
-        // スマホの場合、キーボード表示のために少し遅延させる (100ms)
-        // PCの場合は即時フォーカス
         const focusDelay = (typeof window !== 'undefined' && window.innerWidth < 640) ? 100 : 0;
         setTimeout(() => {
             inputRef.current?.focus();
         }, focusDelay);
-        setHighlightedIndex(filteredMoves.length > 0 ? 0 : -1); // リストが開いたらハイライトをリセット
+        setHighlightedIndex(filteredMoves.length > 0 ? 0 : -1); 
     } else {
-        setHighlightedIndex(-1); // 閉じたらハイライト解除
+        setHighlightedIndex(-1); 
     }
-  }, [isOpen, disabled, filteredMoves]); // filteredMovesの変更でもハイライトをリセット
+  }, [isOpen, disabled, filteredMoves]); 
 
-  // ハイライトされたアイテムへスクロール
   useEffect(() => {
     if (isOpen && highlightedIndex >= 0 && listRef.current && filteredMoves[highlightedIndex]) {
       const optionId = getOptionId(filteredMoves[highlightedIndex].id);
@@ -165,45 +153,40 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
-    if (!isOpen && !disabled) { // 入力時にリストが閉じていれば開く
+    if (!isOpen && !disabled) { 
       setIsOpen(true);
     }
     if (e.target.value === '') {
-      onChange(null); // 入力が空になったら選択もクリア
+      onChange(null); 
     }
-    setHighlightedIndex(filteredMoves.length > 0 ? 0 : -1); // 入力変更でハイライトリセット
+    setHighlightedIndex(filteredMoves.length > 0 ? 0 : -1); 
   };
 
   const handleMoveSelect = (move: Move) => {
     onChange(move);
     setInputValue(move.name);
-    setIsOpen(false); // ★技選択時にリスト/モーダルを閉じる
+    setIsOpen(false); 
 
-    // スマホの場合、キーボードが残ることがあるため、明示的にフォーカスを外してキーボードを隠す
-    if (typeof window !== 'undefined' && window.innerWidth < 640) { // Tailwind 'sm' breakpoint (640px)
-      // setTimeoutでblurを少し遅らせることで、Reactの更新サイクルとの競合を避ける
+    if (typeof window !== 'undefined' && window.innerWidth < 640) { 
       setTimeout(() => {
         if (inputRef.current) {
           inputRef.current.blur();
         }
       }, 0);
     }
-    // PCの場合、inputにフォーカスが残っていても、isOpenがfalseなのでリストは閉じている。
-    // ユーザーが再度文字入力すれば handleInputChange でリストが開くので自然な挙動。
   };
 
   const clearInputAndSearch = () => {
     onChange(null);
     setInputValue('');
     if (inputRef.current) {
-      inputRef.current.focus(); // クリア後はフォーカスして再検索を促す
+      inputRef.current.focus(); 
     }
-    if (!isOpen && !disabled) { // フォーカスと同時にリストも開く
+    if (!isOpen && !disabled) { 
       setIsOpen(true);
     }
   };
 
-  // 入力フィールドでのキーボード操作
   const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (disabled) return;
     switch (event.key) {
@@ -211,20 +194,20 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
         event.preventDefault();
         if (isOpen && highlightedIndex >= 0 && highlightedIndex < filteredMoves.length) {
           handleMoveSelect(filteredMoves[highlightedIndex]);
-        } else if (isOpen && filteredMoves.length === 1) { // 候補が1つの場合はそれを選択
+        } else if (isOpen && filteredMoves.length === 1) { 
           handleMoveSelect(filteredMoves[0]);
-        } else if (!isOpen && inputValue && filteredMoves.length > 0) { // リストが閉じていて入力があり、候補もある場合
-          setIsOpen(true); // リストを開いて、再度Enterで選択できるようにする
+        } else if (!isOpen && inputValue && filteredMoves.length > 0) { 
+          setIsOpen(true); 
         }
         break;
       case 'ArrowDown':
         event.preventDefault();
         if (filteredMoves.length > 0) {
           if (!isOpen) {
-            setIsOpen(true); // リストが閉じていたら開く
+            setIsOpen(true); 
           } else {
             setHighlightedIndex(prev => (prev + 1) % filteredMoves.length);
-            listRef.current?.focus(); // リストにフォーカスを移す
+            listRef.current?.focus(); 
           }
         }
         break;
@@ -232,10 +215,10 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
         event.preventDefault();
         if (filteredMoves.length > 0) {
           if (!isOpen) {
-            setIsOpen(true); // リストが閉じていたら開く
+            setIsOpen(true); 
           } else {
             setHighlightedIndex(prev => (prev - 1 + filteredMoves.length) % filteredMoves.length);
-            listRef.current?.focus(); // リストにフォーカスを移す
+            listRef.current?.focus(); 
           }
         }
         break;
@@ -245,19 +228,18 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
           setIsOpen(false);
           if (selected) setInputValue(selected.name); else setInputValue('');
         }
-        inputRef.current?.blur(); // Escape時は入力フィールドのフォーカスも外す
+        inputRef.current?.blur(); 
         break;
       default:
         break;
     }
   };
   
-  // リストでのキーボード操作
   const handleListKeyDown = (event: React.KeyboardEvent<HTMLUListElement>) => {
     if (disabled) return;
     switch (event.key) {
       case 'Enter':
-      case ' ': // Spaceキーでも選択
+      case ' ': 
         event.preventDefault();
         if (highlightedIndex >= 0 && highlightedIndex < filteredMoves.length) {
           handleMoveSelect(filteredMoves[highlightedIndex]);
@@ -279,25 +261,19 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
         event.preventDefault();
         setIsOpen(false);
         if (selected) setInputValue(selected.name); else setInputValue('');
-        inputRef.current?.focus(); // リストからEscape時は入力フィールドにフォーカスを戻す
+        inputRef.current?.focus(); 
         break;
       case 'Tab':
-        setIsOpen(false); // Tabでフォーカスが移動する際はリストを閉じる
-        // Tabキーのデフォルト動作（次のフォーカス可能な要素へ移動）に任せる
+        setIsOpen(false); 
         break;
       default:
-        // リスト上で文字キーが押された場合、入力フィールドにフォーカスを戻す
         if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
             inputRef.current?.focus();
-            // この後、handleInputChangeが発火し、入力された文字がinputに追加されることを期待。
-            // OSやブラウザによっては、即座に文字がinputに入らない場合があるため、
-            // 必要であれば event.key を inputValue に追加する処理をここに入れることも検討。
         }
         break;
     }
   };
 
-  // 技アイテムのレンダリング
   const renderMoveItems = () => (
     <>
       {filteredMoves.length > 0 ? (
@@ -309,7 +285,6 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
               ${highlightedIndex === index ? 'bg-gray-700 text-white' : 'text-white hover:bg-gray-700'}`}
             onClick={() => handleMoveSelect(move)}
             onMouseEnter={() => {
-              // スマホではマウスエンターは通常発生しないが、PC向けに残す
               if (typeof window !== 'undefined' && window.innerWidth >= 640) {
                 setHighlightedIndex(index);
               }
@@ -343,7 +318,6 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
     </>
   );
   
-  // 検索入力コンポーネントのレンダリング
   const renderSearchInputComponent = () => (
     <div className="relative">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -352,28 +326,36 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
         <input
             id={`move-select-input-${label}`}
             ref={inputRef}
-            type="text" // iOSで余計な候補が出ないように type="search" も検討可
+            type="text" 
             className={`w-full bg-gray-800 border border-gray-700 rounded-md shadow-sm pl-10 pr-10 py-2.5 text-left sm:text-sm text-white
             ${disabled ? 'cursor-not-allowed bg-gray-700 placeholder-gray-500' : 'focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400'}`}
             value={inputValue}
             onChange={handleInputChange}
             onFocus={() => {
-              // ユーザーの明示的なフォーカス時のみリストを開く
+              // ユーザーの明示的なフォーカス時（かつリストが閉じてる場合）のみリストを開く
               if (!disabled && !isOpen) {
+                // ★★★ ここからが修正点 ★★★
+                // スマホの場合、フォーカス時に前回検索した技名が残っていると次の検索がしづらいため、
+                // 入力値をクリアして新しい検索を開始できるようにする。
+                if (typeof window !== 'undefined' && window.innerWidth < 640) { // Tailwind 'sm' breakpoint (640px)
+                  setInputValue('');
+                }
+                // ★★★ ここまでが修正点 ★★★
                 setIsOpen(true);
               }
+              // isOpenが既にtrueの場合（例：モーダル内のinputがプログラムでフォーカスされた時）は、
+              // inputValueをクリアしたり、setIsOpen(true)を再度呼ぶ必要はない。
             }}
             onKeyDown={handleInputKeyDown}
             placeholder="わざを検索または選択..."
             disabled={disabled}
             autoComplete="off"
-            autoCapitalize="none" // 余計な自動大文字化をオフ
-            autoCorrect="off" // 余計な自動修正をオフ
-            spellCheck="false" // スペルチェックをオフ
+            autoCapitalize="none" 
+            autoCorrect="off" 
+            spellCheck="false" 
             aria-autocomplete="list"
             aria-controls={isOpen ? `move-select-listbox-${label}` : undefined}
             aria-expanded={isOpen}
-            // highlightedIndex が -1 の場合は aria-activedescendant を設定しない
             aria-activedescendant={isOpen && highlightedIndex >= 0 && filteredMoves[highlightedIndex] ? getOptionId(filteredMoves[highlightedIndex].id) : undefined}
         />
         {inputValue && !disabled && (
@@ -391,7 +373,6 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
 
   return (
     <div className={`w-full ${disabled ? 'opacity-70' : ''}`}>
-      {/* Label and Tera/Stellar toggles */}
       <div className="flex items-center justify-between mb-1 sm:mb-2">
         <label htmlFor={`move-select-input-${label}`} className="block text-sm font-medium text-white">{label}</label>
         <div className="flex items-center space-x-3 sm:space-x-4">
@@ -424,13 +405,11 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
         </div>
       </div>
       
-      {/* Input field and dropdown/modal trigger area */}
       <div className="relative">
         {renderSearchInputComponent()}
 
         {isOpen && !disabled && (
           <>
-            {/* Mobile: Fullscreen Search Interface */}
             <div
               ref={mobileViewRef}
               className={`
@@ -438,16 +417,14 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
                 sm:hidden 
               `}
             >
-              {/* Mobile Header */}
               <div className="flex justify-between items-center p-3 border-b border-gray-700 bg-gray-800 shadow-md">
                 <button
                   type="button"
                   onClick={() => {
                     setIsOpen(false);
                     if (selected) setInputValue(selected.name); else setInputValue('');
-                    // モーダルを閉じる際は入力フィールドのフォーカスも外す（キーボードを隠すため）
                     if (inputRef.current) {
-                       setTimeout(() => inputRef.current?.blur(), 0); // 少し遅延させてblur
+                       setTimeout(() => inputRef.current?.blur(), 0); 
                     }
                   }}
                   className="p-1 rounded-md text-gray-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
@@ -456,19 +433,17 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
                   <X className="h-6 w-6" />
                 </button>
                 <h2 className="text-lg font-semibold text-white">{label}</h2>
-                <div className="w-8"></div> {/* Spacer to balance the close button */}
+                <div className="w-8"></div> 
               </div>
 
-              {/* Mobile Search Input Area (re-render input inside modal for mobile) */}
               <div className="p-3 border-b border-gray-700 bg-gray-800">
-                {renderSearchInputComponent()} {/* Input is part of the modal here */}
+                {renderSearchInputComponent()} 
               </div>
 
-              {/* Mobile Scrollable List Area */}
               <ul
-                ref={listRef} // listRefをモバイルとPCで共有
-                id={`move-select-listbox-${label}-mobile`} // IDはユニークに
-                tabIndex={-1} // プログラムによるフォーカス用 
+                ref={listRef} 
+                id={`move-select-listbox-${label}-mobile`} 
+                tabIndex={-1} 
                 role="listbox"
                 aria-label={`${label}の候補（モバイル）`}
                 aria-activedescendant={highlightedIndex >= 0 && filteredMoves[highlightedIndex] ? getOptionId(filteredMoves[highlightedIndex].id) : undefined}
@@ -479,7 +454,6 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
               </ul>
             </div>
 
-            {/* PC: Dropdown Interface */}
             <div
               ref={pcDropdownRef}
               className={`
@@ -488,16 +462,15 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
                 overflow-hidden 
               `}
             >
-              {/* PCでは検索入力はモーダル内に再レンダリングしない */}
               <ul
-                ref={listRef} // listRefをモバイルとPCで共有
-                id={`move-select-listbox-${label}-pc`} // IDはユニークに
-                tabIndex={-1} // プログラムによるフォーカス用
+                ref={listRef} 
+                id={`move-select-listbox-${label}-pc`} 
+                tabIndex={-1} 
                 role="listbox"
                 aria-label={`${label}の候補（PC）`}
                 aria-activedescendant={highlightedIndex >= 0 && filteredMoves[highlightedIndex] ? getOptionId(filteredMoves[highlightedIndex].id) : undefined}
                 onKeyDown={handleListKeyDown}
-                className="p-2 overflow-y-auto flex-grow space-y-1" // flex-growを追加してリストがスペースを埋めるように
+                className="p-2 overflow-y-auto flex-grow space-y-1" 
               >
                 {renderMoveItems()}
               </ul>
@@ -506,7 +479,6 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
         )}
       </div>
 
-      {/* Selected move details */}
       {selected && (
         <div className="mt-2 sm:mt-3 text-xs sm:text-sm text-gray-300 space-y-0.5 sm:space-y-1">
           <p>
