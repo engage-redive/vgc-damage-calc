@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Pokemon } from '../types'; // Make sure Pokemon type might include nameEn: string;
+import { Pokemon } from '../types';
 import { ChevronDown, Search, X } from 'lucide-react';
 
-// Helper function to convert Katakana to Hiragana
 const toHiragana = (str: string): string => {
   return str.replace(/[\u30a1-\u30f6]/g, (match) => {
     const charCode = match.charCodeAt(0) - 0x60;
@@ -29,41 +28,75 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
-  // Refs for different UI parts
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const pcDropdownRef = useRef<HTMLDivElement>(null); // Ref for PC dropdown
-  const mobileViewRef = useRef<HTMLDivElement>(null); // Ref for Mobile fullscreen view
-  const listRef = useRef<HTMLUListElement>(null); // Shared list ref
-  const searchInputRef = useRef<HTMLInputElement>(null); // Shared search input ref
+  const pcDropdownRef = useRef<HTMLDivElement>(null);
+  const mobileViewRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const baseId = useMemo(() => `${idPrefix}-${label.toLowerCase().replace(/\s+/g, '-')}`, [idPrefix, label]);
   const buttonId = `${baseId}-button`;
   const listboxId = `${baseId}-listbox`;
-  const searchId = `${baseId}-search`; // Common ID for search input, context will differentiate
-  const getOptionId = useCallback((pokemonId: string | number) => `${baseId}-option-${pokemonId}`, [baseId]);
+  const searchId = `${baseId}-search`;
+
+  // ------------------- ▼▼▼ 変更箇所 1 ▼▼▼ -------------------
+  // getOptionId: ポケモンの名前を元にユニークなIDを生成
+  //名前に含まれる可能性のある空白や括弧をDOM IDに適した形に変換
+  const getOptionId = useCallback((pokemonName: string) => {
+    const sanitizedName = pokemonName
+      .toLowerCase()
+      .replace(/\s+/g, '-') // 空白をハイフンに
+      .replace(/[()（）]/g, '') // 括弧を除去
+      .replace(/[^a-z0-9ぁ-んァ-ンー\-]/gi, ''); // 英数字、ひらがな、カタカナ、ハイフン以外を除去 (より安全に)
+    return `${baseId}-option-${sanitizedName}`;
+  }, [baseId]);
+  // ------------------- ▲▲▲ 変更箇所 1 ▲▲▲ -------------------
+  
+  // ------------------- ▼▼▼ 変更箇所 2 ▼▼▼ -------------------
+  // uniquePokemonList: 重複排除の基準を p.id から p.name に変更
+  const uniquePokemonList = useMemo(() => {
+    if (!pokemon || pokemon.length === 0) return [];
+    const seenNames = new Set<string>(); // id ではなく name で管理
+    const result: Pokemon[] = [];
+    for (const p of pokemon) {
+      // p.name が存在し、かつまだ seenNames にない場合のみ追加
+      if (p && typeof p.name !== 'undefined' && !seenNames.has(p.name)) {
+        seenNames.add(p.name);
+        result.push(p);
+      }
+    }
+    return result;
+  }, [pokemon]);
+  // ------------------- ▲▲▲ 変更箇所 2 ▲▲▲ -------------------
   
   const filteredPokemon = useMemo(() => {
-    if (!searchTerm) return pokemon;
+    if (!searchTerm) return uniquePokemonList;
+
     const termLower = searchTerm.toLowerCase();
-    const termHiragana = toHiragana(termLower);
-    return pokemon.filter(p => {
+    const termAsHiragana = toHiragana(searchTerm);
+
+    return uniquePokemonList.filter(p => {
       const nameLower = p.name.toLowerCase();
       const nameHiragana = toHiragana(p.name);
       const nameEnLower = (p as any).nameEn?.toLowerCase() || '';
-      return nameLower.includes(termLower) || 
-             (nameEnLower && nameEnLower.includes(termLower)) || 
-             nameHiragana.includes(termHiragana);
+      
+      if ((p as any).nameEn) {
+        if (nameEnLower.includes(termLower)) {
+          return true;
+        }
+      }
+      if (nameHiragana.startsWith(termAsHiragana)) {
+        return true;
+      }
+      return false;
     });
-  }, [pokemon, searchTerm]);
+  }, [uniquePokemonList, searchTerm]);
 
-  // Handle clicks outside for PC dropdown
   useEffect(() => {
     if (!isOpen) return;
     const handleClickOutside = (event: MouseEvent) => {
-      // Only apply to PC dropdown. Mobile fullscreen is handled by its own close button.
       if (pcDropdownRef.current && !pcDropdownRef.current.contains(event.target as Node) &&
           buttonRef.current && !buttonRef.current.contains(event.target as Node)) {
-        // Check if the window width indicates PC view (Tailwind's sm breakpoint is usually 640px)
         if (window.innerWidth >= 640) { 
           setIsOpen(false);
         }
@@ -75,37 +108,36 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
     };
   }, [isOpen]);
 
-  // Focus search input and set highlighted index when dropdown/modal opens
   useEffect(() => {
     if (isOpen) {
-      // setTimeout is a common trick to ensure focus works after DOM updates & virtual keyboard appears
       setTimeout(() => {
         searchInputRef.current?.focus();
       }, 50); 
       
       if (selected) {
-        const selectedIndex = filteredPokemon.findIndex(p => p.id === selected.id);
+        // ------------------- ▼▼▼ 変更箇所 3 (findIndexの比較対象) ▼▼▼ -------------------
+        const selectedIndex = filteredPokemon.findIndex(p => p.name === selected.name); // id から name に変更
+        // ------------------- ▲▲▲ 変更箇所 3 ▲▲▲ -------------------
         setHighlightedIndex(selectedIndex !== -1 ? selectedIndex : (filteredPokemon.length > 0 ? 0 : -1));
       } else {
         setHighlightedIndex(filteredPokemon.length > 0 ? 0 : -1);
       }
     } else {
       setHighlightedIndex(-1);
-      // setSearchTerm(''); // Optionally clear search term on close
     }
   }, [isOpen, selected, filteredPokemon]);
   
-  // Reset highlighted index when search term changes while open
   useEffect(() => {
     if (isOpen) {
         setHighlightedIndex(filteredPokemon.length > 0 ? 0 : -1);
     }
   }, [searchTerm, isOpen, filteredPokemon]);
 
-  // Scroll to highlighted item
   useEffect(() => {
-    if (isOpen && highlightedIndex >= 0 && listRef.current && filteredPokemon[highlightedIndex]) {
-      const optionId = getOptionId(filteredPokemon[highlightedIndex].id);
+    // ------------------- ▼▼▼ 変更箇所 4 (getOptionId の引数) ▼▼▼ -------------------
+    if (isOpen && highlightedIndex >= 0 && listRef.current && filteredPokemon.length > 0 && filteredPokemon[highlightedIndex]) {
+      const optionId = getOptionId(filteredPokemon[highlightedIndex].name); // .id から .name に変更
+      // ------------------- ▲▲▲ 変更箇所 4 ▲▲▲ -------------------
       const listItem = listRef.current.querySelector(`#${CSS.escape(optionId)}`) as HTMLLIElement | undefined;
       listItem?.scrollIntoView({ block: 'nearest' });
     }
@@ -118,10 +150,7 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
     buttonRef.current?.focus();
   };
 
-  // Keyboard navigation for the main button and list (when list itself is focused)
   const handleKeyDown = (event: React.KeyboardEvent) => {
-    // This handler is primarily for when the button or the list (if focusable) has focus.
-    // Search input has its own specific keydown handler.
     switch (event.key) {
       case 'Enter':
       case ' ':
@@ -171,9 +200,6 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
         break;
       case 'Tab':
         if (isOpen) {
-          // On PC, Tab should cycle within the dropdown or close it.
-          // For mobile, this behavior might need adjustment if it's a full-screen modal.
-          // For now, let it close.
           setIsOpen(false);
         }
         break;
@@ -182,7 +208,6 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
     }
   };
 
-  // Keyboard navigation specifically for the search input field
   const handleSearchInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
      switch (event.key) {
       case 'Enter':
@@ -195,14 +220,14 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
         event.preventDefault();
         if (filteredPokemon.length > 0) {
           setHighlightedIndex(prev => (prev + 1) % filteredPokemon.length);
-          listRef.current?.focus(); // Transfer focus to list for further arrow key nav within list items
+          listRef.current?.focus();
         }
         break;
       case 'ArrowUp':
         event.preventDefault();
         if (filteredPokemon.length > 0) {
           setHighlightedIndex(prev => (prev - 1 + filteredPokemon.length) % filteredPokemon.length);
-          listRef.current?.focus(); // Transfer focus to list
+          listRef.current?.focus();
         }
         break;
       case 'Escape':
@@ -218,19 +243,21 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
   const renderListItems = () => (
     <>
       {filteredPokemon.length > 0 ? filteredPokemon.map((p, index) => (
+        // ------------------- ▼▼▼ 変更箇所 5 (key と id, aria-selected) ▼▼▼ -------------------
         <li
-          key={p.id}
-          id={getOptionId(p.id)}
+          key={p.name} // key を p.name に変更
+          id={getOptionId(p.name)} // id を p.name ベースに
           className={`cursor-pointer select-none relative rounded-md transition-colors 
-            py-3 sm:py-2 pl-4 sm:pl-3 pr-9  // Adjusted padding for touch / mouse
+            py-3 sm:py-2 pl-4 sm:pl-3 pr-9
             ${highlightedIndex === index ? 'bg-gray-700 text-white' : 'text-gray-200 hover:bg-gray-700 hover:text-white'}`}
           role="option"
-          aria-selected={selected?.id === p.id || highlightedIndex === index}
+          aria-selected={(selected?.name === p.name) || highlightedIndex === index} // selected の比較も name ベースに
           onClick={() => handleSelectPokemon(p)}
-          onMouseEnter={() => setHighlightedIndex(index)} // Primarily for PC
+          onMouseEnter={() => setHighlightedIndex(index)}
         >
+        {/* ------------------- ▲▲▲ 変更箇所 5 ▲▲▲ ------------------- */}
           <div className="flex items-center">
-            <span className={`font-medium block truncate ${selected?.id === p.id ? 'font-semibold' : 'font-normal'}`}>
+            <span className={`font-medium block truncate ${(selected?.name === p.name) ? 'font-semibold' : 'font-normal'}`}> {/* selected の比較も name ベースに */}
               {p.name}
             </span>
             {(p as any).types && Array.isArray((p as any).types) && (
@@ -293,7 +320,9 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
           aria-expanded={isOpen}
           aria-labelledby={`${baseId}-label ${buttonId}`}
           aria-controls={isOpen ? listboxId : undefined}
-          aria-activedescendant={isOpen && highlightedIndex >= 0 && filteredPokemon[highlightedIndex] ? getOptionId(filteredPokemon[highlightedIndex].id) : undefined}
+          // ------------------- ▼▼▼ 変更箇所 6 (aria-activedescendant の引数) ▼▼▼ -------------------
+          aria-activedescendant={isOpen && highlightedIndex >= 0 && filteredPokemon.length > 0 && filteredPokemon[highlightedIndex] ? getOptionId(filteredPokemon[highlightedIndex].name) : undefined}
+          // ------------------- ▲▲▲ 変更箇所 6 ▲▲▲ -------------------
         >
           <span className="block truncate">
             {selected ? selected.name : 'Select Pokémon'}
@@ -305,15 +334,11 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
 
         {isOpen && (
           <>
-            {/* Mobile: Fullscreen Search Interface (sm:hidden) */}
+            {/* Mobile: Fullscreen Search Interface */}
             <div
               ref={mobileViewRef}
-              className={`
-                fixed inset-0 z-50 flex flex-col bg-gray-900  /* Higher z-index, darker bg */
-                sm:hidden 
-              `}
+              className="fixed inset-0 z-50 flex flex-col bg-gray-900 sm:hidden"
             >
-              {/* Mobile Header */}
               <div className="flex justify-between items-center p-3 border-b border-gray-700 bg-gray-800 shadow-md">
                 <button
                   type="button"
@@ -324,50 +349,44 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
                   <X className="h-6 w-6" />
                 </button>
                 <h2 className="text-lg font-semibold text-white">{label}</h2>
-                <div className="w-8"></div> {/* Spacer to balance the close button, adjust size as needed */}
+                <div className="w-8"></div>
               </div>
-
-              {/* Mobile Search Input Area (fixed at the top under header) */}
               <div className="p-3 border-b border-gray-700 bg-gray-800">
                 {renderSearchInput()}
               </div>
-
-              {/* Mobile Scrollable List Area */}
               <ul
                 ref={listRef}
-                id={listboxId} // ID for aria-controls
-                tabIndex={-1} // Make list focusable for keyboard nav from search input
+                id={listboxId}
+                tabIndex={-1}
                 role="listbox"
-                aria-labelledby={`${baseId}-label`} // Main label for the listbox
-                aria-activedescendant={highlightedIndex >= 0 && filteredPokemon[highlightedIndex] ? getOptionId(filteredPokemon[highlightedIndex].id) : undefined}
-                onKeyDown={handleKeyDown} // Allow list itself to handle some keys if focused
-                className="flex-grow overflow-y-auto p-2 space-y-1" // space-y for item spacing
+                aria-labelledby={`${baseId}-label`}
+                // ------------------- ▼▼▼ 変更箇所 7 (aria-activedescendant の引数) ▼▼▼ -------------------
+                aria-activedescendant={highlightedIndex >= 0 && filteredPokemon.length > 0 && filteredPokemon[highlightedIndex] ? getOptionId(filteredPokemon[highlightedIndex].name) : undefined}
+                // ------------------- ▲▲▲ 変更箇所 7 ▲▲▲ -------------------
+                onKeyDown={handleKeyDown}
+                className="flex-grow overflow-y-auto p-2 space-y-1"
               >
                 {renderListItems()}
               </ul>
             </div>
 
-            {/* PC: Dropdown Interface (hidden sm:flex) */}
+            {/* PC: Dropdown Interface */}
             <div
               ref={pcDropdownRef}
-              className={`
-                absolute z-40 mt-1 w-full bg-gray-800 shadow-lg max-h-80 rounded-md ring-1 ring-black ring-opacity-5 flex flex-col
-                hidden sm:flex 
-                overflow-hidden 
-              `}
+              className="absolute z-40 mt-1 w-full bg-gray-800 shadow-lg max-h-80 rounded-md ring-1 ring-black ring-opacity-5 flex-col hidden sm:flex overflow-hidden"
             >
-              {/* PC Search Input Area (sticky within dropdown) */}
               <div className="sticky top-0 z-10 bg-gray-800 p-2 border-b border-gray-700">
                 {renderSearchInput()}
               </div>
-              {/* PC Scrollable List Area */}
               <ul
-                ref={listRef} // Note: This ref is re-assigned. React handles this by detaching/attaching.
-                id={listboxId} // ID for aria-controls
+                ref={listRef} 
+                id={listboxId}
                 tabIndex={-1}
                 role="listbox"
                 aria-labelledby={`${baseId}-label`}
-                aria-activedescendant={highlightedIndex >= 0 && filteredPokemon[highlightedIndex] ? getOptionId(filteredPokemon[highlightedIndex].id) : undefined}
+                // ------------------- ▼▼▼ 変更箇所 8 (aria-activedescendant の引数) ▼▼▼ -------------------
+                aria-activedescendant={highlightedIndex >= 0 && filteredPokemon.length > 0 && filteredPokemon[highlightedIndex] ? getOptionId(filteredPokemon[highlightedIndex].name) : undefined}
+                // ------------------- ▲▲▲ 変更箇所 8 ▲▲▲ -------------------
                 onKeyDown={handleKeyDown}
                 className="p-2 overflow-y-auto flex-grow space-y-1"
               >

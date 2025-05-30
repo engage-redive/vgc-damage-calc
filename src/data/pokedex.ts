@@ -2,23 +2,6 @@ import { Pokemon } from '../types';
 
 export const pokedex: Pokemon[] = [
   {
-    id: 149,
-    name: "カイリュー",
-    nameEn: "Dragonite",
-    types: ["dragon", "flying"],
-    baseStats: {
-      hp: 91,
-      attack: 134,
-      defense: 95,
-      specialAttack: 100,
-      specialDefense: 100,
-      speed: 80
-    },
-    abilities: ["Inner Focus", "Multiscale"],
-    height: 2.2,
-    weight: 210.0
-  },
-  {
     "id": 1,
     "name": "フシギダネ",
     "nameEn": "Bulbasaur",
@@ -324,74 +307,7 @@ export const pokedex: Pokemon[] = [
     "height": 1.5,
     "weight": 39.5
   },
-  {
-    "id": 19,
-    "name": "コラッタ",
-    "nameEn": "Rattata",
-    "types": ["normal"],
-    "baseStats": {
-      "hp": 30,
-      "attack": 56,
-      "defense": 35,
-      "specialAttack": 25,
-      "specialDefense": 35,
-      "speed": 72
-    },
-    "abilities": ["Run Away", "Guts", "Hustle"],
-    "height": 0.3,
-    "weight": 3.5
-  },
-  {
-    "id": 19,
-    "name": "コラッタ (アローラのすがた)",
-    "nameEn": "Rattata-Alola",
-    "types": ["dark", "normal"],
-    "baseStats": {
-      "hp": 30,
-      "attack": 56,
-      "defense": 35,
-      "specialAttack": 25,
-      "specialDefense": 35,
-      "speed": 72
-    },
-    "abilities": ["Gluttony", "Hustle", "Thick Fat"],
-    "height": 0.3,
-    "weight": 3.8
-  },
-  {
-    "id": 20,
-    "name": "ラッタ",
-    "nameEn": "Raticate",
-    "types": ["normal"],
-    "baseStats": {
-      "hp": 55,
-      "attack": 81,
-      "defense": 60,
-      "specialAttack": 50,
-      "specialDefense": 70,
-      "speed": 97
-    },
-    "abilities": ["Run Away", "Guts", "Hustle"],
-    "height": 0.7,
-    "weight": 18.5
-  },
-  {
-    "id": 20,
-    "name": "ラッタ (アローラのすがた)",
-    "nameEn": "Raticate-Alola",
-    "types": ["dark", "normal"],
-    "baseStats": {
-      "hp": 75,
-      "attack": 71,
-      "defense": 70,
-      "specialAttack": 40,
-      "specialDefense": 80,
-      "speed": 77
-    },
-    "abilities": ["Gluttony", "Hustle", "Thick Fat"],
-    "height": 0.7,
-    "weight": 25.5
-  },
+
   {
     "id": 21,
     "name": "オニスズメ",
@@ -17642,41 +17558,6 @@ export const pokedex: Pokemon[] = [
     "height": 0.3,
     "weight": 0.3
   },
-  {
-  id: 987,
-  name: "ハバタクカミ",
-  nameEn: "Flutter Mane",
-  types: ["ghost", "fairy"],
-  baseStats: {
-    hp: 55,
-    attack: 55,
-    defense: 55,
-    specialAttack: 135,
-    specialDefense: 135,
-    speed: 135
-  },
-  abilities: ["Protosynthesis"],
-  height: 1.4,
-  weight: 4.0
-},
-{
-  id: 1004,
-  name: "イーユイ",
-  nameEn: "Chi-Yu",
-  types: ["dark", "fire"],
-  baseStats: {
-    hp: 55,
-    attack: 80,
-    defense: 80,
-    specialAttack: 135,
-    specialDefense: 120,
-    speed: 100
-  },
-  abilities: ["Beads of Ruin"],
-  height: 0.4,
-  weight: 4.9
-},
-  
   {
     "id": "901-b",
     "name": "ガチグマ (アカツキ)",
