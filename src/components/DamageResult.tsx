@@ -462,7 +462,7 @@ const DamageResult: React.FC<DamageResultProps> = ({
                       <ul className="space-y-1 text-sm text-gray-300">
                         <li>
                           <img 
-                            src={`/src/icon/${attackerDetails.pokemonId.toString().padStart(3, '0')}.png`} 
+                            src={`/icon/${attackerDetails.pokemonId.toString().padStart(3, '0')}.png`} 
                             alt={attackerDetails.pokemonName} 
                             className="w-12 h-12 inline-block mr-2 mb-1 border border-gray-700 rounded" 
                           />
@@ -484,7 +484,7 @@ const DamageResult: React.FC<DamageResultProps> = ({
                       <ul className="space-y-1 text-sm text-gray-300">
                         <li>
                           <img 
-                              src={`/src/icon/${defenderDetails.pokemonId.toString().padStart(3, '0')}.png`} 
+                              src={`/icon/${defenderDetails.pokemonId.toString().padStart(3, '0')}.png`} 
                               alt={defenderDetails.pokemonName} 
                               className="w-12 h-12 inline-block mr-2 mb-1 border border-gray-700 rounded"
                             />

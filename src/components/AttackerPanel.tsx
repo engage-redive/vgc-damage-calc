@@ -790,7 +790,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
         <div className={`${!attacker.isEnabled ? 'pointer-events-none' : ''}`}>
            {attacker.pokemon && (
              <div className="flex items-center gap-3 mb-3">
-               <img src={`/src/icon/${attacker.pokemon.id.toString().padStart(3, '0')}.png`} alt={attacker.pokemon.name} className="w-8 h-8 object-contain" /> {/* object-contain を追加 */}
+               <img src={`/icon/${attacker.pokemon.id.toString().padStart(3, '0')}.png`} alt={attacker.pokemon.name} className="w-8 h-8 object-contain" /> {/* object-contain を追加 */}
                <div className="flex flex-col">
                  <div className="flex gap-1">
                    {attacker.pokemon.types.map((type, typeIndex) => (

@@ -98,7 +98,7 @@ const TeamMemberCard: React.FC<TeamMemberCardProps> = ({ member, onClick }) => {
       <div className="flex mb-2">
         <div className="mr-3 flex-shrink-0 relative">
           <img
-            src={`/src/icon/${member.pokemon.id.toString().padStart(3, '0')}.png`}
+            src={`/icon/${member.pokemon.id.toString().padStart(3, '0')}.png`}
             alt={member.pokemon.name}
             className="w-16 h-16"
           />

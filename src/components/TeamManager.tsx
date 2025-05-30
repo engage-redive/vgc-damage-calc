@@ -463,7 +463,7 @@ const TeamManager: React.FC<TeamManagerProps> = ({
                 {team.members.slice(0, 6).map((member, index) => (
                   <div key={member.id || index} className="relative aspect-square bg-gray-700 rounded overflow-hidden">
                     <img
-                      src={`/src/icon/${member.pokemon.id.toString().padStart(3, '0')}.png`}
+                      src={`/icon/${member.pokemon.id.toString().padStart(3, '0')}.png`}
                       alt={member.pokemon.name}
                       className="w-full h-full object-contain"
                     />

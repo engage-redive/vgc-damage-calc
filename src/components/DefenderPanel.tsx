@@ -342,7 +342,7 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
 
         {selectedPokemon && (
           <div className="flex items-center gap-3 mb-3">
-            <img src={`/src/icon/${selectedPokemon.id.toString().padStart(3, '0')}.png`} alt={selectedPokemon.name} className="w-8 h-8" />
+            <img src={`/icon/${selectedPokemon.id.toString().padStart(3, '0')}.png`} alt={selectedPokemon.name} className="w-8 h-8" />
             <div className="flex flex-col"> {/* タイプと種族値を縦に並べるコンテナ */}
               <div className="flex gap-1"> {/* タイプ表示 */}
                 {selectedPokemon.types.map((type, typeIndex) => (
@@ -509,7 +509,7 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
           <div className="text-sm text-white mb-2">{selectedPokemon.name}</div>
 
           <div className="flex items-center gap-3 mb-3">
-            <img src={`/src/icon/${selectedPokemon.id.toString().padStart(3, '0')}.png`} alt={selectedPokemon.name} className="w-8 h-8" />
+            <img src={`/icon/${selectedPokemon.id.toString().padStart(3, '0')}.png`} alt={selectedPokemon.name} className="w-8 h-8" />
             <div className="flex flex-col">
               <div className="flex gap-1">
                 {currentTypes[0] && (
