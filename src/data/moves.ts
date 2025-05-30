@@ -12,18 +12,6 @@ export const moves: Move[] = [
     isTeraBlast: true, // ★ テラバースト専用フラグ
   },
   {
-    id: "blizzard",
-    name: "ふぶき",   
-    nameEn: "Blizzard",
-    type: "ice" as PokemonType,
-    category: "special",
-    power: 110,
-    accuracy: 70,
-    pp: 5,
-    isSpread: true,
-    hasSecondaryEffect:true,
-  },
-  {
     id: "expandingforce",
     name: "ワイドフォース",
     nameEn: "Expanding Force",
@@ -34,19 +22,6 @@ export const moves: Move[] = [
     pp: 10,
     dynamicEffectId: 'expandingForceEffect' // 追加
   },
-
-{
-  id: "populationbomb",
-  name: "ねずみざん",
-  nameEn: "Population Bomb",
-  type: "normal" as PokemonType,
-  category: "physical",
-  power: 20,
-  accuracy: 90,
-  pp: 15,
-  multihit: 10,
-  contact: true,
-},  
 {
   id: "bodypress",
   name: "ボディプレス",
@@ -80,18 +55,6 @@ export const moves: Move[] = [
   pp: 15,
   contact: true,
 }, 
-{
-  id: "heatwave",
-  name: "ねっぷう",
-  nameEn: "Heat Wave",
-  type: "fire" as PokemonType,
-  category: "special",
-  power: 95,
-  accuracy: 90,
-  pp: 10,
-  isSpread: true,
-  hasSecondaryEffect: true
-},
  {
   id: "lightning_drive",
   name: "イナズマドライブ",
@@ -5618,7 +5581,9 @@ export const moves: Move[] = [
   category: "physical",
   power: 20,
   accuracy: 90,
-  pp: 10
+  pp: 10,
+  multihit: 10,
+  contact: true,
 },
 {
   id: "pounce",
