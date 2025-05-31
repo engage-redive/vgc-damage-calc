@@ -5,18 +5,24 @@ import MoveSelect from './MoveSelect';
 import StatSlider from './StatSlider';
 import ItemSelect from './ItemSelect';
 import AbilitySelect from './AbilitySelect';
-import TeraBlastOptions from '../calculation/TeraBlastOptions'; // パスをプロジェクトに合わせて調整
+import TeraBlastOptions from '../calculation/TeraBlastOptions';
 import { Plus, X } from 'lucide-react';
-
-// StandardOffensiveStatInputs は直接展開するため、インポートを削除
-// import StandardOffensiveStatInputs from './moveSpecific/StandardOffensiveStatInputs';
 import BodyPressDefenseInputs from './moveSpecific/BodyPressDefenseInputs';
 import HpDependentPowerInputs from './moveSpecific/HpDependentPowerInputs';
 import FoulPlayDisplay from './moveSpecific/FoulPlayDisplay';
 import RankSelector from './RankSelector';
-import HitCountSelect from '../calculation/HitCountSelect'; // パスをプロジェクトに合わせて調整
+import HitCountSelect from '../calculation/HitCountSelect';
 
-// 日本語のタイプ名と色の定義 (共通化のため、本来は utils などに定義してインポート)
+// Default stat calculation object to prevent undefined errors
+const DEFAULT_STAT_CALCULATION: StatCalculation = {
+  base: 0,
+  iv: 31,
+  ev: 0,
+  nature: 1.0,
+  rank: 0,
+  final: 0
+};
+
 const TYPE_NAME_JP: Record<string, string> = {
   normal: 'ノーマル', fire: 'ほのお', water: 'みず', electric: 'でんき', grass: 'くさ', ice: 'こおり',
   fighting: 'かくとう', poison: 'どく', ground: 'じめん', flying: 'ひこう', psychic: 'エスパー', bug: 'むし',
@@ -40,7 +46,6 @@ const getTypeColor = (type: PokemonType | string): string => {
   const typeKey = (typeof type === 'string' ? type.toLowerCase() : type.toString().toLowerCase()) as keyof typeof TYPE_COLORS;
   return TYPE_COLORS[typeKey] || '#777777';
 };
-
 
 const calculateHp = (base: number, iv: number, ev: number, level: number): number => {
   if (base <= 0) return 0;
@@ -80,27 +85,24 @@ const calculateFinalStatForTeraBlast = (
     return final;
 };
 
-// findClosestEvForBaseValue: 指定された目標実数値（ランク補正なし、性格補正あり）に最も近くなる努力値を見つける
 const findClosestEvForBaseValue = (
-  targetBaseValue: number, // 目標とするステータスの実数値 (ランク補正なし、性格補正あり)
-  pokemonSpeciesStat: number, // ポケモンの種族値
-  nature: NatureModifier, // 性格補正 (0.9, 1.0, 1.1)
-  level: number = 50, // ポケモンのレベル
-  iv: number = 31 // 個体値
+  targetBaseValue: number,
+  pokemonSpeciesStat: number,
+  nature: NatureModifier,
+  level: number = 50,
+  iv: number = 31
 ): number => {
   if (pokemonSpeciesStat <= 0) return 0;
   if (targetBaseValue <= 0) return 0;
 
-  // 努力値0の時のステータス値
   const statAt0Ev = calculateBaseStatValue(pokemonSpeciesStat, iv, 0, level, nature);
   if (targetBaseValue <= statAt0Ev) {
-    return 0; // 目標値が努力値0の時のステータス以下なら努力値は0
+    return 0;
   }
 
-  // 努力値252の時のステータス値
   const statAt252Ev = calculateBaseStatValue(pokemonSpeciesStat, iv, 252, level, nature);
   if (targetBaseValue >= statAt252Ev) {
-    return 252; // 目標値が努力値252の時のステータス以上なら努力値は252
+    return 252;
   }
   
   let closestEv = 0;
@@ -114,12 +116,11 @@ const findClosestEvForBaseValue = (
       smallestDiff = diff;
       closestEv = ev;
     } else if (diff === smallestDiff) {
-      closestEv = Math.min(closestEv, ev); // 差が同じ場合はより低い努力値を選択
+      closestEv = Math.min(closestEv, ev);
     }
   }
   return closestEv;
 };
-
 
 interface AttackerPanelProps {
   pokemon: Pokemon[];
@@ -153,28 +154,44 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
     const initialActualMaxHp = defaultPokemon ? calculateHp(defaultHpBase, 31, initialHpEv, 50) : 1;
 
     const defaultAttackStat: StatCalculation = {
-        base: defaultAttackStatBase, iv: 31, ev: 0, nature: 1.0, rank: 0,
+        base: defaultAttackStatBase,
+        iv: 31,
+        ev: 0,
+        nature: 1.0,
+        rank: 0,
         final: calculateBaseStatValue(defaultAttackStatBase, 31, 0, 50, 1.0)
     };
     const defaultSpecialAttackStat: StatCalculation = {
-        base: defaultSpAttackStatBase, iv: 31, ev: 0, nature: 1.0, rank: 0,
+        base: defaultSpAttackStatBase,
+        iv: 31,
+        ev: 0,
+        nature: 1.0,
+        rank: 0,
         final: calculateBaseStatValue(defaultSpAttackStatBase, 31, 0, 50, 1.0)
     };
     const defaultDefenseStat: StatCalculation = {
-        base: defaultDefenseStatBase, iv: 31, ev: 0, nature: 1.0, rank: 0,
+        base: defaultDefenseStatBase,
+        iv: 31,
+        ev: 0,
+        nature: 1.0,
+        rank: 0,
         final: calculateBaseStatValue(defaultDefenseStatBase, 31, 0, 50, 1.0)
     };
     const defaultSpeedStat: StatCalculation = {
-        base: defaultSpeedStatBase, iv: 31, ev: 0, nature: 1.0, rank: 0,
+        base: defaultSpeedStatBase,
+        iv: 31,
+        ev: 0,
+        nature: 1.0,
+        rank: 0,
         final: calculateBaseStatValue(defaultSpeedStatBase, 31, 0, 50, 1.0)
     };
-
 
     return {
       pokemon: defaultPokemon,
       move: null,
       effectiveMove: null,
-      item: null, ability: null,
+      item: null,
+      ability: null,
       attackStat: defaultAttackStat,
       specialAttackStat: defaultSpecialAttackStat,
       defenseStat: defaultDefenseStat,
@@ -186,10 +203,15 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
       hpEv: initialHpEv,
       actualMaxHp: initialActualMaxHp,
       currentHp: initialActualMaxHp,
-      teraType: null, isStellar: false, isBurned: false,
-      hasHelpingHand: false, hasFlowerGift: false, isEnabled: true,
+      teraType: null,
+      isStellar: false,
+      isBurned: false,
+      hasHelpingHand: false,
+      hasFlowerGift: false,
+      isEnabled: true,
       teraBlastUserSelectedCategory: 'auto',
-      teraBlastDeterminedType: null, teraBlastDeterminedCategory: null,
+      teraBlastDeterminedType: null,
+      teraBlastDeterminedCategory: null,
       selectedHitCount: null,
       protosynthesisBoostedStat: null,
       protosynthesisManualTrigger: false,
@@ -220,8 +242,8 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
         else if (attacker.teraBlastUserSelectedCategory === 'special') determinedCategory = 'special';
         else {
           if (attacker.pokemon) {
-            const finalAttackForCompare = calculateFinalStatForTeraBlast(attacker.pokemon.baseStats.attack, attacker.attackStat);
-            const finalSpecialAttackForCompare = calculateFinalStatForTeraBlast(attacker.pokemon.baseStats.specialAttack, attacker.specialAttackStat);
+            const finalAttackForCompare = calculateFinalStatForTeraBlast(attacker.pokemon.baseStats.attack, attacker.attackStat || DEFAULT_STAT_CALCULATION);
+            const finalSpecialAttackForCompare = calculateFinalStatForTeraBlast(attacker.pokemon.baseStats.specialAttack, attacker.specialAttackStat || DEFAULT_STAT_CALCULATION);
             determinedCategory = finalAttackForCompare > finalSpecialAttackForCompare ? 'physical' : 'special';
           } else {
             determinedCategory = attacker.move.category as MoveCategory;
@@ -243,7 +265,6 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
     }
   }, [attackers, onSetAttackers]);
 
-
   const updateAttackerState = useCallback((index: number, updates: Partial<AttackerState>) => {
     const newAttackers = [...attackers];
     const currentAttacker = newAttackers[index];
@@ -263,26 +284,40 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
         const baseSpeed = newPokemon?.baseStats.speed || 0;
         const baseHp = newPokemon?.baseStats.hp || 0;
 
-
         const newActualMaxHp = newPokemon ? calculateHp(baseHp, 31, tempAttacker.hpEv, 50) : 1;
         tempAttacker.actualMaxHp = newActualMaxHp;
         tempAttacker.currentHp = newActualMaxHp;
 
-
         tempAttacker.attackStat = {
-            base: baseAttack, iv: 31, ev: 0, nature: 1.0, rank: 0,
+            base: baseAttack,
+            iv: 31,
+            ev: 0,
+            nature: 1.0,
+            rank: 0,
             final: calculateBaseStatValue(baseAttack, 31, 0, 50, 1.0)
         };
         tempAttacker.specialAttackStat = {
-            base: baseSpAttack, iv: 31, ev: 0, nature: 1.0, rank: 0,
+            base: baseSpAttack,
+            iv: 31,
+            ev: 0,
+            nature: 1.0,
+            rank: 0,
             final: calculateBaseStatValue(baseSpAttack, 31, 0, 50, 1.0)
         };
         tempAttacker.defenseStat = {
-            base: baseDefense, iv: 31, ev: 0, nature: 1.0, rank: 0,
+            base: baseDefense,
+            iv: 31,
+            ev: 0,
+            nature: 1.0,
+            rank: 0,
             final: calculateBaseStatValue(baseDefense, 31, 0, 50, 1.0)
         };
         tempAttacker.speedStat = {
-            base: baseSpeed, iv: 31, ev: 0, nature: 1.0, rank: 0,
+            base: baseSpeed,
+            iv: 31,
+            ev: 0,
+            nature: 1.0,
+            rank: 0,
             final: calculateBaseStatValue(baseSpeed, 31, 0, 50, 1.0)
         };
 
@@ -318,7 +353,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
         }
 
         if (updates.attackStat && tempAttacker.pokemon) {
-            tempAttacker.attackStat = { ...currentAttacker.attackStat, ...updates.attackStat };
+            tempAttacker.attackStat = { ...currentAttacker.attackStat || DEFAULT_STAT_CALCULATION, ...updates.attackStat };
             tempAttacker.attackStat.final = calculateFinalStatWithRank(
                 tempAttacker.pokemon.baseStats.attack,
                 tempAttacker.attackStat.iv,
@@ -327,13 +362,12 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                 tempAttacker.attackStat.nature,
                 tempAttacker.attackStat.rank
             );
-            // 他のUI（スライダー等）からの変更の場合、inputValueも同期する
-             if (updates.attackInputValue === undefined) { // inputValueが直接更新されていない場合
+            if (updates.attackInputValue === undefined) {
                 tempAttacker.attackInputValue = tempAttacker.attackStat.final.toString();
-             }
+            }
         }
         if (updates.specialAttackStat && tempAttacker.pokemon) {
-            tempAttacker.specialAttackStat = { ...currentAttacker.specialAttackStat, ...updates.specialAttackStat };
+            tempAttacker.specialAttackStat = { ...currentAttacker.specialAttackStat || DEFAULT_STAT_CALCULATION, ...updates.specialAttackStat };
             tempAttacker.specialAttackStat.final = calculateFinalStatWithRank(
                 tempAttacker.pokemon.baseStats.specialAttack,
                 tempAttacker.specialAttackStat.iv,
@@ -347,7 +381,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
             }
         }
         if (updates.defenseStat && tempAttacker.pokemon) {
-            tempAttacker.defenseStat = { ...currentAttacker.defenseStat, ...updates.defenseStat };
+            tempAttacker.defenseStat = { ...currentAttacker.defenseStat || DEFAULT_STAT_CALCULATION, ...updates.defenseStat };
             tempAttacker.defenseStat.final = calculateFinalStatWithRank(
                 tempAttacker.pokemon.baseStats.defense,
                 tempAttacker.defenseStat.iv,
@@ -361,7 +395,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
             }
         }
         if (updates.speedStat && tempAttacker.pokemon) {
-            tempAttacker.speedStat = { ...currentAttacker.speedStat, ...updates.speedStat };
+            tempAttacker.speedStat = { ...currentAttacker.speedStat || DEFAULT_STAT_CALCULATION, ...updates.speedStat };
             tempAttacker.speedStat.final = calculateFinalStatWithRank(
                 tempAttacker.pokemon.baseStats.speed,
                 tempAttacker.speedStat.iv,
@@ -464,7 +498,6 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
     updateAttackerState(attackerIndex, { quarkDriveManualTrigger: isActive });
   };
 
-
   const handleCurrentHpChange = (newCurrentHp: number, index: number) => {
     updateAttackerState(index, { currentHp: newCurrentHp });
   };
@@ -477,35 +510,33 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
   const handleAttackEvChange = (ev: number, index: number) => {
     let validEv = Math.floor(ev / 4) * 4;
     validEv = Math.max(0, Math.min(validEv, 252));
-    updateAttackerState(index, { attackStat: { ...attackers[index].attackStat, ev: validEv } });
+    updateAttackerState(index, { attackStat: { ...attackers[index].attackStat || DEFAULT_STAT_CALCULATION, ev: validEv } });
   };
   const handleSpecialAttackEvChange = (ev: number, index: number) => {
     let validEv = Math.floor(ev / 4) * 4;
     validEv = Math.max(0, Math.min(validEv, 252));
-    updateAttackerState(index, { specialAttackStat: { ...attackers[index].specialAttackStat, ev: validEv } });
+    updateAttackerState(index, { specialAttackStat: { ...attackers[index].specialAttackStat || DEFAULT_STAT_CALCULATION, ev: validEv } });
   };
   const handleDefenseEvChange = (ev: number, index: number) => {
     let validEv = Math.floor(ev / 4) * 4;
     validEv = Math.max(0, Math.min(validEv, 252));
-    updateAttackerState(index, { defenseStat: { ...attackers[index].defenseStat, ev: validEv } });
+    updateAttackerState(index, { defenseStat: { ...attackers[index].defenseStat || DEFAULT_STAT_CALCULATION, ev: validEv } });
   };
   const handleSpeedEvChange = (ev: number, index: number) => {
     let validEv = Math.floor(ev / 4) * 4;
     validEv = Math.max(0, Math.min(validEv, 252));
-    updateAttackerState(index, { speedStat: { ...attackers[index].speedStat, ev: validEv } });
+    updateAttackerState(index, { speedStat: { ...attackers[index].speedStat || DEFAULT_STAT_CALCULATION, ev: validEv } });
   };
 
+  const handleAttackNatureChange = (nature: NatureModifier, index: number) => updateAttackerState(index, { attackStat: { ...attackers[index].attackStat || DEFAULT_STAT_CALCULATION, nature } });
+  const handleSpecialAttackNatureChange = (nature: NatureModifier, index: number) => updateAttackerState(index, { specialAttackStat: { ...attackers[index].specialAttackStat || DEFAULT_STAT_CALCULATION, nature } });
+  const handleDefenseNatureChange = (nature: NatureModifier, index: number) => updateAttackerState(index, { defenseStat: { ...attackers[index].defenseStat || DEFAULT_STAT_CALCULATION, nature } });
+  const handleSpeedNatureChange = (nature: NatureModifier, index: number) => updateAttackerState(index, { speedStat: { ...attackers[index].speedStat || DEFAULT_STAT_CALCULATION, nature } });
 
-  const handleAttackNatureChange = (nature: NatureModifier, index: number) => updateAttackerState(index, { attackStat: { ...attackers[index].attackStat, nature } });
-  const handleSpecialAttackNatureChange = (nature: NatureModifier, index: number) => updateAttackerState(index, { specialAttackStat: { ...attackers[index].specialAttackStat, nature } });
-  const handleDefenseNatureChange = (nature: NatureModifier, index: number) => updateAttackerState(index, { defenseStat: { ...attackers[index].defenseStat, nature } });
-  const handleSpeedNatureChange = (nature: NatureModifier, index: number) => updateAttackerState(index, { speedStat: { ...attackers[index].speedStat, nature } });
-
-  const handleAttackRankChange = (rank: number, index: number) => updateAttackerState(index, { attackStat: { ...attackers[index].attackStat, rank } });
-  const handleSpecialAttackRankChange = (rank: number, index: number) => updateAttackerState(index, { specialAttackStat: { ...attackers[index].specialAttackStat, rank } });
-  const handleDefenseRankChange = (rank: number, index: number) => updateAttackerState(index, { defenseStat: { ...attackers[index].defenseStat, rank } });
-  const handleSpeedRankChange = (rank: number, index: number) => updateAttackerState(index, { speedStat: { ...attackers[index].speedStat, rank } });
-
+  const handleAttackRankChange = (rank: number, index: number) => updateAttackerState(index, { attackStat: { ...attackers[index].attackStat || DEFAULT_STAT_CALCULATION, rank } });
+  const handleSpecialAttackRankChange = (rank: number, index: number) => updateAttackerState(index, { specialAttackStat: { ...attackers[index].specialAttackStat || DEFAULT_STAT_CALCULATION, rank } });
+  const handleDefenseRankChange = (rank: number, index: number) => updateAttackerState(index, { defenseStat: { ...attackers[index].defenseStat || DEFAULT_STAT_CALCULATION, rank } });
+  const handleSpeedRankChange = (rank: number, index: number) => updateAttackerState(index, { speedStat: { ...attackers[index].speedStat || DEFAULT_STAT_CALCULATION, rank } });
 
   const handleToggleTera = (attackerIndex: number) => {
     const attacker = attackers[attackerIndex];
@@ -545,12 +576,10 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
     updateAttackerState(attackerIndex, { isStellar: newIsStellar, teraType: newTeraType });
   };
 
-
   const handleBurnChange = (burned: boolean, index: number) => updateAttackerState(index, { isBurned: burned });
   const handleHelpingHandChange = (helped: boolean, index: number) => updateAttackerState(index, { hasHelpingHand: helped });
   const handleTeraBlastCategorySelect = (category: 'physical' | 'special' | 'auto', index: number) => updateAttackerState(index, { teraBlastUserSelectedCategory: category });
 
-  // --- Stat Input Change Handlers (Update inputValue only) ---
   const handleAttackInputChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const newValue = e.target.value;
     updateAttackerState(index, { attackInputValue: newValue });
@@ -571,21 +600,19 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
     updateAttackerState(index, { speedInputValue: newValue });
   };
 
-  // --- Stat Input Blur Handlers (Recalculate EV and final stat, then update inputValue) ---
   const handleStatInputBlur = (
     index: number,
     statType: 'attack' | 'specialAttack' | 'defense' | 'speed'
   ) => {
     const attacker = attackers[index];
     if (!attacker.pokemon) {
-      // ポケモンが選択されていない場合、関連するinputValueをリセット
-      const currentStat = attacker[`${statType}Stat` as keyof AttackerState] as StatCalculation;
+      const currentStat = attacker[`${statType}Stat` as keyof AttackerState] as StatCalculation || DEFAULT_STAT_CALCULATION;
       const resetValue = currentStat && currentStat.final > 0 ? currentStat.final.toString() : "";
       updateAttackerState(index, { [`${statType}InputValue`]: resetValue } as Partial<AttackerState>);
       return;
     }
 
-    const stat = attacker[`${statType}Stat` as keyof AttackerState] as StatCalculation;
+    const stat = attacker[`${statType}Stat` as keyof AttackerState] as StatCalculation || DEFAULT_STAT_CALCULATION;
     const inputValueStr = attacker[`${statType}InputValue` as keyof AttackerState] as string;
     const baseStat = attacker.pokemon.baseStats[statType];
 
@@ -593,7 +620,6 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
     let newEv = stat.ev;
 
     if (!isNaN(targetFinalValue) && targetFinalValue >= 0) {
-      // ランク補正を考慮して、ランク補正なしの目標値を計算
       const rankMultiplier = stat.rank !== 0 ? (stat.rank > 0 ? (2 + stat.rank) / 2 : 2 / (2 - stat.rank)) : 1;
       const targetBaseStatValue = Math.floor(targetFinalValue / rankMultiplier);
       
@@ -601,7 +627,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
         targetBaseStatValue,
         baseStat,
         stat.nature,
-        50, // level
+        50,
         stat.iv
       );
     }
@@ -610,7 +636,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
       baseStat,
       stat.iv,
       newEv,
-      50, // level
+      50,
       stat.nature,
       stat.rank
     );
@@ -625,7 +651,6 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
   const handleSpecialAttackInputBlur = (index: number) => handleStatInputBlur(index, 'specialAttack');
   const handleDefenseInputBlur = (index: number) => handleStatInputBlur(index, 'defense');
   const handleSpeedInputBlur = (index: number) => handleStatInputBlur(index, 'speed');
-
 
   const renderAttackerSection = (attacker: AttackerState, index: number) => {
       const attackBaseValueForDisplay = attacker.attackStat && attacker.pokemon ? calculateBaseStatValue(
@@ -691,7 +716,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
               />
             </div>
             <StatSlider
-              value={attacker.attackStat.ev}
+              value={attacker.attackStat?.ev || 0}
               onChange={(ev) => handleAttackEvChange(ev, index)}
               max={252}
               step={4}
@@ -706,7 +731,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                     <button
                       key={n}
                       onClick={() => handleAttackNatureChange(n as NatureModifier, index)}
-                      className={`px-3 py-1 text-xs rounded-md transition-colors ${attacker.attackStat.nature === n ? 'bg-blue-600 text-white font-semibold' : 'bg-gray-600 hover:bg-gray-500'}`}
+                      className={`px-3 py-1 text-xs rounded-md transition-colors ${(attacker.attackStat?.nature || 1.0) === n ? 'bg-blue-600 text-white font-semibold' : 'bg-gray-600 hover:bg-gray-500'}`}
                       disabled={!attacker.isEnabled || !attacker.pokemon}
                     >
                       x{n.toFixed(1)}
@@ -715,7 +740,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                 </div>
               </div>
               <div className="text-right">
-                <span className="text-sm text-gray-400">努力値: {attacker.attackStat.ev}</span>
+                <span className="text-sm text-gray-400">努力値: {attacker.attackStat?.ev || 0}</span>
                 <div className="flex gap-1 mt-1 justify-end">
                     <button
                         onClick={() => handleAttackEvChange(0, index)}
@@ -736,7 +761,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
             </div>
             <div className="mt-4">
               <RankSelector
-                value={attacker.attackStat.rank}
+                value={attacker.attackStat?.rank || 0}
                 onChange={(rank) => handleAttackRankChange(rank, index)}
                 label="こうげきランク"
                 disabled={!attacker.isEnabled || !attacker.pokemon}
@@ -760,7 +785,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
               />
             </div>
             <StatSlider
-              value={attacker.specialAttackStat.ev}
+              value={attacker.specialAttackStat?.ev || 0}
               onChange={(ev) => handleSpecialAttackEvChange(ev, index)}
               max={252}
               step={4}
@@ -775,7 +800,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                     <button
                       key={n}
                       onClick={() => handleSpecialAttackNatureChange(n as NatureModifier, index)}
-                      className={`px-3 py-1 text-xs rounded-md transition-colors ${attacker.specialAttackStat.nature === n ? 'bg-blue-600 text-white font-semibold' : 'bg-gray-600 hover:bg-gray-500'}`}
+                      className={`px-3 py-1 text-xs rounded-md transition-colors ${(attacker.specialAttackStat?.nature || 1.0) === n ? 'bg-blue-600 text-white font-semibold' : 'bg-gray-600 hover:bg-gray-500'}`}
                       disabled={!attacker.isEnabled || !attacker.pokemon}
                     >
                       x{n.toFixed(1)}
@@ -784,7 +809,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                 </div>
               </div>
               <div className="text-right">
-                <span className="text-sm text-gray-400">努力値: {attacker.specialAttackStat.ev}</span>
+                <span className="text-sm text-gray-400">努力値: {attacker.specialAttackStat?.ev || 0}</span>
                 <div className="flex gap-1 mt-1 justify-end">
                     <button
                         onClick={() => handleSpecialAttackEvChange(0, index)}
@@ -805,7 +830,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
             </div>
             <div className="mt-4">
               <RankSelector
-                value={attacker.specialAttackStat.rank}
+                value={attacker.specialAttackStat?.rank || 0}
                 onChange={(rank) => handleSpecialAttackRankChange(rank, index)}
                 label="とくこうランク"
                 disabled={!attacker.isEnabled || !attacker.pokemon}
@@ -828,7 +853,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
               />
             </div>
             <StatSlider
-              value={attacker.speedStat.ev}
+              value={attacker.speedStat?.ev || 0}
               onChange={(ev) => handleSpeedEvChange(ev, index)}
               max={252}
               step={4}
@@ -843,7 +868,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                     <button
                       key={n}
                       onClick={() => handleSpeedNatureChange(n as NatureModifier, index)}
-                      className={`px-3 py-1 text-xs rounded-md transition-colors ${attacker.speedStat.nature === n ? 'bg-blue-600 text-white font-semibold' : 'bg-gray-600 hover:bg-gray-500'}`}
+                      className={`px-3 py-1 text-xs rounded-md transition-colors ${(attacker.speedStat?.nature || 1.0) === n ? 'bg-blue-600 text-white font-semibold' : 'bg-gray-600 hover:bg-gray-500'}`}
                       disabled={!attacker.isEnabled || !attacker.pokemon}
                     >
                       x{n.toFixed(1)}
@@ -852,7 +877,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                 </div>
               </div>
               <div className="text-right">
-                <span className="text-sm text-gray-400">努力値: {attacker.speedStat.ev}</span>
+                <span className="text-sm text-gray-400">努力値: {attacker.speedStat?.ev || 0}</span>
                 <div className="flex gap-1 mt-1 justify-end">
                     <button
                         onClick={() => handleSpeedEvChange(0, index)}
@@ -873,7 +898,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
             </div>
             <div className="mt-4">
               <RankSelector
-                value={attacker.speedStat.rank}
+                value={attacker.speedStat?.rank || 0}
                 onChange={(rank) => handleSpeedRankChange(rank, index)}
                 label="すばやさランク"
                 disabled={!attacker.isEnabled || !attacker.pokemon}
@@ -948,8 +973,8 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
             attacker={attacker}
             index={index}
             defenseBaseValueForDisplay={defenseBaseValueForDisplay}
-            onDefenseInputChange={handleDefenseInputChange} // Pass down the new handlers
-            onDefenseInputBlur={() => handleDefenseInputBlur(index)} // Pass down the new handlers
+            onDefenseInputChange={handleDefenseInputChange}
+            onDefenseInputBlur={() => handleDefenseInputBlur(index)}
             onDefenseEvChange={(ev) => handleDefenseEvChange(ev, index)}
             onDefenseNatureChange={(nature) => handleDefenseNatureChange(nature, index)}
             onDefenseRankChange={(rank) => handleDefenseRankChange(rank, index)}
@@ -1034,7 +1059,6 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
             />
           )}
 
-
           {attacker.move && attacker.move.uiOption && attacker.isEnabled && attacker.pokemon && (
             <div className="mt-3 p-3 bg-gray-700/50 rounded-md">
               {attacker.move.uiOption.type === 'checkbox' && (
@@ -1059,7 +1083,6 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
               )}
             </div>
           )}
-
 
           {showTeraBlastSettings && attacker.move && (
             <TeraBlastOptions
