@@ -95,11 +95,9 @@ function App() {
         attackStat: initialAttackStatForApp,
         specialAttackStat: initialSpecialAttackStatForApp,
         defenseStat: initialDefenseStatForApp,
-        speedStat: { base: 0, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0}, // 初期化追加
         attackInputValue: initialAttackStatForApp.final.toString(),
         specialAttackInputValue: initialSpecialAttackStatForApp.final.toString(),
         defenseInputValue: initialDefenseStatForApp.final.toString(),
-        speedInputValue: "0", // 初期化追加
         hpEv: initialDefaultHpEv,
         actualMaxHp: initialDefaultActualMaxHp,
         currentHp: initialDefaultActualMaxHp,
@@ -117,7 +115,8 @@ function App() {
         protosynthesisManualTrigger: false,
         quarkDriveBoostedStat: null,
         quarkDriveManualTrigger: false,
-        moveUiOptionStates: {},
+        moveUiOptionStates: {}, // 追加
+      　effectiveMove: null, // ★★★ 追加 ★★★
     };
 
     const [activeAttackers, setActiveAttackers] = useState<AttackerState[]>([defaultInitialAttackerState]);
@@ -138,10 +137,6 @@ function App() {
         base: initialPokedexPokemon.baseStats.attack, iv: 31, ev: 0, nature: 1.0, rank: 0,
         final: calculateStat(initialPokedexPokemon.baseStats.attack, 31, 0, 50, 1.0)
     };
-    const initialDefenderSpeedStat: StatCalculation = { // 初期化追加
-        base: initialPokedexPokemon.baseStats.speed, iv: 31, ev: 0, nature: 1.0, rank: 0,
-        final: calculateStat(initialPokedexPokemon.baseStats.speed, 31, 0, 50, 1.0)
-    };
 
 
     const initialDefaultDefenderState: DefenderState = {
@@ -152,11 +147,11 @@ function App() {
         defenseStat: initialDefenderDefenseStat,
         specialDefenseStat: initialDefenderSpecialDefenseStat,
         attackStat: initialDefenderAttackStatForFoulPlay,
-        speedStat: initialDefenderSpeedStat, // 初期化追加
+        // speedStat は types.ts で追加したが、初期化がまだ。必要に応じて追加
+        // speedInputValue も同様
         hpInputValue: initialDefenderHpStat.final.toString(),
         defenseInputValue: initialDefenderDefenseStat.final.toString(),
         specialDefenseInputValue: initialDefenderSpecialDefenseStat.final.toString(),
-        speedInputValue: initialDefenderSpeedStat.final.toString(), // 初期化追加
         hpEv: 0,
         actualMaxHp: initialDefenderHpStat.final,
         teraType: null,
@@ -250,7 +245,6 @@ function App() {
                 newState.defenseStat = { base: newPokemon.baseStats.defense, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0 };
                 newState.specialDefenseStat = { base: newPokemon.baseStats.specialDefense, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0 };
                 newState.attackStat = { base: newPokemon.baseStats.attack, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0 };
-                newState.speedStat = { base: newPokemon.baseStats.speed, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0 }; // 追加
                 newState.hpEv = 0;
                 newState.item = null;
                 newState.ability = null;
@@ -289,9 +283,6 @@ function App() {
             newState.specialDefenseStat.final = calculateStat(newState.specialDefenseStat.base, newState.specialDefenseStat.iv, newState.specialDefenseStat.ev, 50, newState.specialDefenseStat.nature, false, newState.specialDefenseStat.rank, newState.item);
             newState.specialDefenseInputValue = newState.specialDefenseStat.final.toString();
             newState.attackStat.final = calculateStat(newState.attackStat.base, newState.attackStat.iv, newState.attackStat.ev, 50, newState.attackStat.nature, false, newState.attackStat.rank, newState.item);
-            newState.speedStat.final = calculateStat(newState.speedStat.base, newState.speedStat.iv, newState.speedStat.ev, 50, newState.speedStat.nature, false, newState.speedStat.rank, newState.item); // 追加
-            newState.speedInputValue = newState.speedStat.final.toString(); // 追加
-
 
             if (updates.hpEv !== undefined && updates.hpEv !== newState.hpStat.ev) {
                 newState.hpStat = { ...newState.hpStat, ev: updates.hpEv };
@@ -340,13 +331,11 @@ function App() {
         const defNatureMod = getNatureModifierValueFromDetails(natureDetails, 'defense');
         const spDefNatureMod = getNatureModifierValueFromDetails(natureDetails, 'specialDefense');
         const attackNatureMod = getNatureModifierValueFromDetails(natureDetails, 'attack');
-        const speedNatureMod = getNatureModifierValueFromDetails(natureDetails, 'speed'); // 追加
 
         const loadedHpStat: StatCalculation = { base: member.pokemon.baseStats.hp, iv: member.ivs.hp, ev: member.evs.hp, nature: 1.0, rank: 0, final: 0 };
         const loadedDefenseStat: StatCalculation = { base: member.pokemon.baseStats.defense, iv: member.ivs.defense, ev: member.evs.defense, nature: defNatureMod, rank: 0, final: 0 };
         const loadedSpecialDefenseStat: StatCalculation = { base: member.pokemon.baseStats.specialDefense, iv: member.ivs.specialDefense, ev: member.evs.specialDefense, nature: spDefNatureMod, rank: 0, final: 0 };
         const loadedAttackStat: StatCalculation = { base: member.pokemon.baseStats.attack, iv: member.ivs.attack, ev: member.evs.attack, nature: attackNatureMod, rank: 0, final: 0 };
-        const loadedSpeedStat: StatCalculation = { base: member.pokemon.baseStats.speed, iv: member.ivs.speed, ev: member.evs.speed, nature: speedNatureMod, rank: 0, final: 0 }; // 追加
 
         const memberTeraType = member.teraType.toLowerCase() as PokemonType;
 
@@ -358,7 +347,6 @@ function App() {
             defenseStat: loadedDefenseStat,
             specialDefenseStat: loadedSpecialDefenseStat,
             attackStat: loadedAttackStat,
-            speedStat: loadedSpeedStat, // 追加
             hpEv: member.evs.hp,
             teraType: memberTeraType,
             isStellar: false,
@@ -415,11 +403,6 @@ function App() {
             nature: getNatureModifierValueFromDetails(natureDetails, 'defense'), rank: 0,
             final: calculateStat(member.pokemon.baseStats.defense, member.ivs.defense, member.evs.defense, member.level, getNatureModifierValueFromDetails(natureDetails, 'defense'), false, 0, member.item)
         };
-        const loadedSpeedStat: StatCalculation = { // 追加
-            base: member.pokemon.baseStats.speed, iv: member.ivs.speed, ev: member.evs.speed,
-            nature: getNatureModifierValueFromDetails(natureDetails, 'speed'), rank: 0,
-            final: calculateStat(member.pokemon.baseStats.speed, member.ivs.speed, member.evs.speed, member.level, getNatureModifierValueFromDetails(natureDetails, 'speed'), false, 0, member.item)
-        };
         const loadedHpEv = member.evs.hp;
         const loadedActualMaxHp = calculateHpForApp(member.pokemon.baseStats.hp, member.ivs.hp, loadedHpEv, member.level);
 
@@ -431,11 +414,9 @@ function App() {
             attackStat: loadedAttackStat,
             specialAttackStat: loadedSpecialAttackStat,
             defenseStat: loadedDefenseStat,
-            speedStat: loadedSpeedStat, // 追加
             attackInputValue: loadedAttackStat.final.toString(),
             specialAttackInputValue: loadedSpecialAttackStat.final.toString(),
             defenseInputValue: loadedDefenseStat.final.toString(),
-            speedInputValue: loadedSpeedStat.final.toString(), // 追加
             hpEv: loadedHpEv,
             actualMaxHp: loadedActualMaxHp,
             currentHp: loadedActualMaxHp,
@@ -453,7 +434,8 @@ function App() {
             protosynthesisManualTrigger: member.protosynthesisManualTrigger ?? false,
             quarkDriveBoostedStat: member.quarkDriveBoostedStat ?? null,
             quarkDriveManualTrigger: member.quarkDriveManualTrigger ?? false,
-            moveUiOptionStates: {},
+            moveUiOptionStates: {}, // 追加
+          　effectiveMove: null, // ★★★ 追加:
         };
 
         setActiveAttackers(prevAttackers => {
@@ -485,22 +467,46 @@ function App() {
     }, [defenderState.pokemon, defenderState.teraType, defenderIsTerastallized, defenderUserModifiedTypes]);
 
 
-    useEffect(() => {
-        const newDamageResults = activeAttackers.map((attackerState, index) => {
-            if (!attackerState.isEnabled || !attackerState.pokemon || !defenderState.pokemon || !attackerState.move || !defenderCurrentTypes.length) {
-                return null;
+useEffect(() => {
+    const newDamageResults = activeAttackers.map((attackerState, index) => {
+        if (!attackerState.isEnabled || !attackerState.pokemon || !defenderState.pokemon || !attackerState.move || !defenderCurrentTypes.length) {
+            // ★★★ effectiveMove を null にリセット（該当する場合）★★★
+            if (attackerState.effectiveMove !== null) {
+                 setActiveAttackers(prev => {
+                    const newAttackers = [...prev];
+                    if (newAttackers[index]) {
+                        newAttackers[index] = { ...newAttackers[index], effectiveMove: null };
+                    }
+                    return newAttackers;
+                });
             }
+            return null;
+        }
 
-            // --- 技の動的プロパティ決定 ---
-            const moveContext: MoveDynamicContext = {
-    attackerPokemon: attackerState.pokemon,
-    defenderPokemon: defenderState.pokemon, // ★追加
-    attackerAbility: attackerState.ability,
-    weather: weather,
-    field: field,
-    uiOptionChecked: attackerState.moveUiOptionStates,
-};
-            let moveForCalc = getEffectiveMoveProperties(attackerState.move, moveContext);
+        // --- 技の動的プロパティ決定 ---
+        const moveContext: MoveDynamicContext = {
+            attackerPokemon: attackerState.pokemon,
+            defenderPokemon: defenderState.pokemon, // ★ defenderPokemon が渡されていることを確認
+            attackerAbility: attackerState.ability,
+            weather: weather,
+            field: field,
+            uiOptionChecked: attackerState.moveUiOptionStates,
+        };
+        let moveForCalc = getEffectiveMoveProperties(attackerState.move, moveContext);
+
+        // ★★★ effectiveMove の更新 ★★★
+        // attackerState のコピーを作成して直接変更を避ける
+        const currentAttackerState = activeAttackers[index];
+        if (currentAttackerState && 
+            (JSON.stringify(currentAttackerState.effectiveMove) !== JSON.stringify(moveForCalc))) {
+            setActiveAttackers(prev => {
+                const newAttackers = [...prev];
+                if (newAttackers[index]) {
+                    newAttackers[index] = { ...newAttackers[index], effectiveMove: moveForCalc };
+                }
+                return newAttackers;
+            });
+        }
 
             if (!moveForCalc) { // getEffectiveMoveProperties が null を返す場合
                 return null;
@@ -575,7 +581,7 @@ function App() {
                 attackerState.ability,
                 null, // attacker2Ability (現状考慮外)
                 currentDefenderAbility,
-                null, // defender2Ability (重複する、ここでは単体を渡す)
+                null, // defender2Ability (重複するので注意、ここでは単体を渡す)
                 weather,
                 disasters,
                 hasFriendGuard,
@@ -588,9 +594,7 @@ function App() {
                 isAttackerQuarkDriveActive,
                 attackerState.quarkDriveBoostedStat,
                 isDefenderQuarkDriveActive,
-                defenderState.quarkDriveBoostedStat,
-                attackerState.moveUiOptionStates // ★ Add this argument to the call
-
+                defenderState.quarkDriveBoostedStat
             );
         });
         setDamageResults(newDamageResults);
@@ -622,7 +626,7 @@ function App() {
                             mobileViewMode === 'attacker' ? 'text-red-400' : 'text-gray-300 hover:text-white'
                         }`}
                     >
-                       <span className="ml-1">攻撃</span>
+                        <Zap size={18} /> <span className="ml-1">攻撃</span>
                         {mobileViewMode === 'attacker' && (
                             <div className="absolute bottom-0 left-0 w-full h-1 bg-yellow-400"></div>
                         )}
@@ -631,7 +635,7 @@ function App() {
                         onClick={() => setMobileViewMode('defender')}
                         className={`flex-1 flex items-center justify-center px-2 py-1 transition-colors text-sm relative focus:outline-none ${mobileViewMode === 'defender' ? 'text-blue-400' : 'text-gray-300 hover:text-white'}`}
                     >
-                         <span className="ml-1">防御</span>
+                        <Shield size={18} /> <span className="ml-1">防御</span>
                         {mobileViewMode === 'defender' && (
                             <div className="absolute bottom-0 left-0 w-full h-1 bg-yellow-400"></div>
                         )}
@@ -642,7 +646,7 @@ function App() {
             <header className={`w-full ${activeTab === 'damage' ? 'md:pt-0 pt-[56px]' : 'pt-0'}`}>
                 <div className="max-w-7xl mx-auto py-2 md:py-4 px-2 md:px-8">
                     <div className="hidden md:flex justify-between items-center mb-6">
-                        <h1 className="text-3xl font-bold text-white">VGCダメージ計算</h1>
+                        <h1 className="text-3xl font-bold text-white">ポケモンツール</h1>
                         <div className="flex items-center space-x-2">
                             <button
                                 onClick={() => alert("ポケモン入れ替え機能は現在無効です。")}
@@ -812,9 +816,7 @@ function App() {
                                     // --- 計算に使用された技情報を取得 (再計算) ---
                                     const moveContextForDisplay: MoveDynamicContext = {
                                         attackerPokemon: attacker.pokemon,
-                                        attackerAbility: attacker.ability, // ★追加
                                         weather: weather,
-                                        field: field, // ★追加
                                         uiOptionChecked: attacker.moveUiOptionStates,
                                     };
                                     let moveUsedInCalc = getEffectiveMoveProperties(attacker.move, moveContextForDisplay);

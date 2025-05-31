@@ -164,6 +164,7 @@ export type QuarkDriveBoostTarget = 'attack' | 'defense' | 'specialAttack' | 'sp
 export interface AttackerState {
   pokemon: Pokemon | null;
   move: Move | null;
+  effectiveMove: Move | null; // ★★★ 追加: 動的効果適用後の技情報 ★★★
   item: Item | null;
   ability: Ability | null;
   attackStat: StatCalculation;
