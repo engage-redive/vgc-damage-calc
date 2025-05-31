@@ -359,7 +359,9 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
                     className="w-full px-1 py-0 h-5 bg-gray-700 border border-gray-600 rounded text-white text-[10px] text-center focus:ring-blue-500 focus:border-blue-500 tabular-nums"
                     min="0" max="252"
                   />
-                  <div className="flex-1 mx-0.5 h-5 flex items-center min-w-0">
+                  <div className="flex-1 mx-0.5 h-5 flex items-center min-w-0"
+                    style={{ touchAction: 'pan-y' }} 
+                    >
                     <StatSlider
                       label="" 
                       value={evValue}                 // 現在の努力値
