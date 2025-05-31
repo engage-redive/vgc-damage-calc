@@ -268,10 +268,9 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
 
   return (
     <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-1 sm:p-2">
-      <div className="bg-gray-800 p-2 sm:p-3 rounded-lg shadow-xl w-full max-w-md max-h-[80vh] overflow-y-auto relative text-[11px]">
+      <div className="bg-gray-800 p-2 sm:p-3 rounded-lg shadow-xl w-full max-w-md max-h-[85vh] overflow-y-auto relative text-[11px]">
         {/* ... (モーダルヘッダーや他の部分は変更なし) ... */}
-        <button onClick={onClose} className="absolute top-1.5 right-1.5 text-gray-400 hover:text-white z-10 p-1"> <X className="h-4 w-4" /> </button>
-        <h2 className="text-base sm:text-lg font-bold mb-4 sm:mb-4 text-white"> {editedMember.pokemon.name} </h2>
+
 
         {/* ポケモン、レベル */}
         <div className="grid grid-cols-[1fr_70px] gap-x-1.5 mb-2">
