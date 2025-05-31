@@ -60,13 +60,14 @@ export interface DisasterState {
   talisman: boolean;
 }
 
+// types.ts or index.ts の MoveDynamicContext の例
 export interface MoveDynamicContext {
-  attackerPokemon?: Pokemon | null; // Pokemonオブジェクトを許容
-  attackerAbility?: Ability | null; // 追加: ワイドフォースの浮遊判定用
+  attackerPokemon?: Pokemon | null;
+  defenderPokemon?: Pokemon | null; // ★追加: 防御側のポケモン情報
+  attackerAbility?: Ability | null;
   weather?: Weather;
-  field?: Field; // 追加: ワイドフォースのフィールド判定用
+  field?: Field;
   uiOptionChecked?: { [key: string]: boolean };
-  // isHexBoosted?: boolean; // uiOptionCheckedに統合
 }
 
 export interface MoveDynamicProperties { // もし MoveDynamicResult をグローバルに使うならこの名前

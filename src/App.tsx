@@ -493,13 +493,13 @@ function App() {
 
             // --- 技の動的プロパティ決定 ---
             const moveContext: MoveDynamicContext = {
-                attackerPokemon: attackerState.pokemon,
-                attackerAbility: attackerState.ability, // ★追加
-                weather: weather,
-                field: field, // ★追加
-                uiOptionChecked: attackerState.moveUiOptionStates,
-                // 他に必要なコンテキスト (例: isDoubleBattle など)
-            };
+    attackerPokemon: attackerState.pokemon,
+    defenderPokemon: defenderState.pokemon, // ★追加
+    attackerAbility: attackerState.ability,
+    weather: weather,
+    field: field,
+    uiOptionChecked: attackerState.moveUiOptionStates,
+};
             let moveForCalc = getEffectiveMoveProperties(attackerState.move, moveContext);
 
             if (!moveForCalc) { // getEffectiveMoveProperties が null を返す場合

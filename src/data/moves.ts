@@ -3416,9 +3416,10 @@ export const moves: Move[] = [
   nameEn: "Heat Crash",
   type: "fire",
   category: "physical",
-  power: 0,
+  power: 0, // 基本威力は0とし、動的に決定
   accuracy: 100,
-  pp: 10
+  pp: 10,
+  dynamicEffectId: "weightBasedPower" // 追加
 },
 {
   id: "heatwave",
@@ -3438,9 +3439,10 @@ export const moves: Move[] = [
   nameEn: "Heavy Slam",
   type: "steel",
   category: "physical",
-  power: 0,
+  power: 0, // 基本威力は0とし、動的に決定
   accuracy: 100,
-  pp: 10
+  pp: 10,
+  dynamicEffectId: "weightBasedPower" // 追加
 },
 {
   id: "helpinghand",

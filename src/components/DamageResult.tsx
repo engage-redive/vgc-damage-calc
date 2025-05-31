@@ -133,7 +133,7 @@ const DamageResult: React.FC<DamageResultProps> = ({
     if (percentage >= 75) return 'text-orange-500';
     if (percentage >= 50) return 'text-yellow-500';
     if (percentage >= 25) return 'text-green-500';
-    return 'text-gray-400';
+    return 'text-white';
   };
 
   const getOriginalDamageBarColor = (percentage: number) => {
@@ -141,12 +141,13 @@ const DamageResult: React.FC<DamageResultProps> = ({
     if (percentage >= 75) return 'bg-orange-500';
     if (percentage >= 50) return 'bg-yellow-500';
     if (percentage >= 25) return 'bg-green-500';
-    return 'bg-gray-400';
+    return 'bg-white';
   };
 
 
   const formatPercentage = (percentage: number): string => {
-    return Math.max(0, percentage).toFixed(1);
+    // 割合表示は削除されたため、この関数はKOテキスト内でしか使われなくなる
+    return Math.max(0, percentage).toFixed(2);
   };
 
   const handleDoubleBattleChangeFromInput = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -268,8 +269,8 @@ const DamageResult: React.FC<DamageResultProps> = ({
     }
     
     if (minUsagesToKO > 10 && confirmedUsagesToKO > 10) {
-        if (confirmedUsagesToKO !== Infinity) return `確定${confirmedUsagesToKO}発`;
-        return `乱数${minUsagesToKO}発`;
+        if (confirmedUsagesToKO !== Infinity) return `確定${confirmedUsagesToKO}発`; // 10発以上は確率省略
+        return `乱数${minUsagesToKO}発`; // 10発以上は確率省略
     }
 
     if (minUsagesToKO === confirmedUsagesToKO) {
@@ -285,7 +286,7 @@ const DamageResult: React.FC<DamageResultProps> = ({
       if (koChance > 99.99 && koChance < 100) {
         return `乱数${minUsagesToKO}発 (>99.99%)`;
       }
-      return `乱数${minUsagesToKO}発 (${koChance.toFixed(1)}%)`; 
+      return `乱数${minUsagesToKO}発 (${formatPercentage(koChance)}%)`;
     }
   };
 
