@@ -622,7 +622,7 @@ function App() {
                             mobileViewMode === 'attacker' ? 'text-red-400' : 'text-gray-300 hover:text-white'
                         }`}
                     >
-                        <Zap size={18} /> <span className="ml-1">攻撃</span>
+                       <span className="ml-1">攻撃</span>
                         {mobileViewMode === 'attacker' && (
                             <div className="absolute bottom-0 left-0 w-full h-1 bg-yellow-400"></div>
                         )}
@@ -631,7 +631,7 @@ function App() {
                         onClick={() => setMobileViewMode('defender')}
                         className={`flex-1 flex items-center justify-center px-2 py-1 transition-colors text-sm relative focus:outline-none ${mobileViewMode === 'defender' ? 'text-blue-400' : 'text-gray-300 hover:text-white'}`}
                     >
-                        <Shield size={18} /> <span className="ml-1">防御</span>
+                         <span className="ml-1">防御</span>
                         {mobileViewMode === 'defender' && (
                             <div className="absolute bottom-0 left-0 w-full h-1 bg-yellow-400"></div>
                         )}

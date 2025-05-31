@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { DamageCalculation, PokemonType, Weather, Field, DisasterState } from '../types';
-import { X, ChevronUp, ChevronDown } from 'lucide-react'; // ChevronUp/Down は不要になる可能性があります
+import { X, ChevronUp, ChevronDown } from 'lucide-react';
 
 interface AttackerDetailsForModal {
   pokemonId: number;
@@ -39,16 +39,33 @@ interface DamageResultProps {
     minPercentage: number;
     maxPercentage: number;
   };
-  attackerPokemonName?: string; // モーダル用に残す
-  attackerMoveName?: string;   // モーダル用に残す
-  defenderPokemonName?: string; // モーダル用に残す
+  attackerPokemonName?: string;
+  attackerMoveName?: string;
+  defenderPokemonName?: string;
   hitCount?: number;
   attackerDetails?: AttackerDetailsForModal;
   defenderDetails?: DefenderDetailsForModal | null;
   weather?: Weather | null;
   field?: Field | null;
   disasters?: DisasterState;
+  resultIdSuffix: string; // ユニークなID生成のためのサフィックス
 }
+
+// HPバーの残りHPのメインカラーを決定する関数
+const getHpBarColorByRemainingHp = (remainingPercentage: number) => {
+  // remainingPercentage は 0 から 100 の値
+  if (remainingPercentage <= 25) return 'bg-red-500';    // 残りHPが25%以下で赤
+  if (remainingPercentage <= 50) return 'bg-yellow-500'; // 残りHPが50%以下で黄色
+  return 'bg-green-500';                               // それ以上は緑
+};
+
+// HPバーの残りHPの範囲を示す部分の色（メインカラーより少し濃い）
+const getHpRangeBarColorByRemainingHp = (remainingPercentage: number) => {
+  if (remainingPercentage <= 25) return 'bg-red-700';
+  if (remainingPercentage <= 50) return 'bg-yellow-700';
+  return 'bg-green-700';
+};
+
 
 const DamageResult: React.FC<DamageResultProps> = ({
   result,
@@ -56,19 +73,20 @@ const DamageResult: React.FC<DamageResultProps> = ({
   isDoubleBattle,
   onDoubleBattleChange,
   combinedResult,
-  attackerPokemonName, // モーダル用に残す
-  attackerMoveName,   // モーダル用に残す
-  defenderPokemonName, // モーダル用に残す
+  attackerPokemonName,
+  attackerMoveName,
+  defenderPokemonName,
   hitCount = 1,
   attackerDetails,
   defenderDetails,
   weather,
   field,
   disasters,
+  resultIdSuffix,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCombinedDetailsExpanded, setIsCombinedDetailsExpanded] = useState(true);
-  // isIndividualDetailsExpanded は削除
+  const [isCriticalModeActive, setIsCriticalModeActive] = useState(false); // 急所モードの状態
 
   if (!result || !result.normalDamages || !result.criticalDamages) {
     return (
@@ -80,13 +98,25 @@ const DamageResult: React.FC<DamageResultProps> = ({
 
   const multiHitMinDamage = result.minDamage * hitCount;
   const multiHitMaxDamage = result.maxDamage * hitCount;
-  const multiHitMinPercentage = defenderHP > 0 ? (multiHitMinDamage / defenderHP) * 100 : 0;
-  const multiHitMaxPercentage = defenderHP > 0 ? (multiHitMaxDamage / defenderHP) * 100 : 0;
+  const multiHitMinPercentage = defenderHP > 0 ? Math.max(0, (multiHitMinDamage / defenderHP) * 100) : 0;
+  const multiHitMaxPercentage = defenderHP > 0 ? Math.max(0, (multiHitMaxDamage / defenderHP) * 100) : 0;
 
   const multiHitCritMinDamage = result.critMinDamage * hitCount;
   const multiHitCritMaxDamage = result.critMaxDamage * hitCount;
-  const multiHitCritMinPercentage = defenderHP > 0 ? (multiHitCritMinDamage / defenderHP) * 100 : 0;
-  const multiHitCritMaxPercentage = defenderHP > 0 ? (multiHitCritMaxDamage / defenderHP) * 100 : 0;
+  const multiHitCritMinPercentage = defenderHP > 0 ? Math.max(0, (multiHitCritMinDamage / defenderHP) * 100) : 0;
+  const multiHitCritMaxPercentage = defenderHP > 0 ? Math.max(0, (multiHitCritMaxDamage / defenderHP) * 100) : 0;
+
+  // HPバー表示用のダメージ割合 (通常モード or 急所モード)
+  const currentDisplayMinPercentage = isCriticalModeActive ? multiHitCritMinPercentage : multiHitMinPercentage;
+  const currentDisplayMaxPercentage = isCriticalModeActive ? multiHitCritMaxPercentage : multiHitMaxPercentage;
+
+  // ダメージ割合を0%から100%の範囲にクランプ（HPを超えたダメージは100%ダメージとして扱う）
+  const clampedCurrentDisplayMinPercentage = Math.min(100, currentDisplayMinPercentage);
+  const clampedCurrentDisplayMaxPercentage = Math.min(100, currentDisplayMaxPercentage);
+
+  // 残りHP割合の計算
+  const actualRemainingHPMinPercentage = Math.max(0, 100 - clampedCurrentDisplayMaxPercentage);
+  const actualRemainingHPMaxPercentage = Math.max(0, 100 - clampedCurrentDisplayMinPercentage);
   
   let showCombinedResultSection = false;
   if (combinedResult) {
@@ -106,7 +136,7 @@ const DamageResult: React.FC<DamageResultProps> = ({
     return 'text-gray-400';
   };
 
-  const getDamageBarColor = (percentage: number) => {
+  const getOriginalDamageBarColor = (percentage: number) => {
     if (percentage >= 100) return 'bg-red-600';
     if (percentage >= 75) return 'bg-orange-500';
     if (percentage >= 50) return 'bg-yellow-500';
@@ -114,9 +144,9 @@ const DamageResult: React.FC<DamageResultProps> = ({
     return 'bg-gray-400';
   };
 
+
   const formatPercentage = (percentage: number): string => {
-    // 割合表示は削除されたため、この関数はKOテキスト内でしか使われなくなる
-    return Math.max(0, percentage).toFixed(2);
+    return Math.max(0, percentage).toFixed(1);
   };
 
   const handleDoubleBattleChangeFromInput = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -238,8 +268,8 @@ const DamageResult: React.FC<DamageResultProps> = ({
     }
     
     if (minUsagesToKO > 10 && confirmedUsagesToKO > 10) {
-        if (confirmedUsagesToKO !== Infinity) return `確定${confirmedUsagesToKO}発`; // 10発以上は確率省略
-        return `乱数${minUsagesToKO}発`; // 10発以上は確率省略
+        if (confirmedUsagesToKO !== Infinity) return `確定${confirmedUsagesToKO}発`;
+        return `乱数${minUsagesToKO}発`;
     }
 
     if (minUsagesToKO === confirmedUsagesToKO) {
@@ -255,7 +285,7 @@ const DamageResult: React.FC<DamageResultProps> = ({
       if (koChance > 99.99 && koChance < 100) {
         return `乱数${minUsagesToKO}発 (>99.99%)`;
       }
-      return `乱数${minUsagesToKO}発 (${formatPercentage(koChance)}%)`;
+      return `乱数${minUsagesToKO}発 (${koChance.toFixed(1)}%)`; 
     }
   };
 
@@ -285,6 +315,9 @@ const DamageResult: React.FC<DamageResultProps> = ({
     vessel: "わざわいのうつわ",
     talisman: "わざわいのおふだ",
   };
+
+  const uniqueDoubleBattleId = `doubleBattle-${resultIdSuffix}`;
+  const uniqueCriticalModeId = `criticalMode-${resultIdSuffix}`;
 
   return (
     <div className="p-1 bg-gray-800 rounded-lg transition-all duration-300">
@@ -320,11 +353,11 @@ const DamageResult: React.FC<DamageResultProps> = ({
               <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden mb-1">
                 <div className="h-full relative">
                   <div
-                    className={`absolute h-full ${getDamageBarColor(combinedResult.minPercentage)}`}
+                    className={`absolute h-full ${getOriginalDamageBarColor(combinedResult.minPercentage)}`}
                     style={{ width: `${Math.min(100, combinedResult.minPercentage)}%` }}
                   />
                   <div
-                    className={`absolute h-full ${getDamageBarColor(combinedResult.maxPercentage)} opacity-50`}
+                    className={`absolute h-full ${getOriginalDamageBarColor(combinedResult.maxPercentage)} opacity-50`}
                     style={{
                       width: `${Math.max(0, Math.min(100, combinedResult.maxPercentage) - Math.min(100, combinedResult.minPercentage))}%`,
                       left: `${Math.min(100, combinedResult.minPercentage)}%`
@@ -343,38 +376,43 @@ const DamageResult: React.FC<DamageResultProps> = ({
 
       {(!showCombinedResultSection || isCombinedDetailsExpanded) && result && (
         <div className={`pt-1 ${showCombinedResultSection && isCombinedDetailsExpanded ? 'border-t border-gray-700 mt-2 pt-2' : ''}`}>
-          {/* HP Bar - Always visible */}
-          <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden mb-1">
+          <div className="w-full h-3 bg-white rounded-full overflow-hidden mb-1">
             <div className="h-full relative">
-              <div
-                className={`absolute h-full ${getDamageBarColor(multiHitMinPercentage)}`}
-                style={{ width: `${Math.min(100, multiHitMinPercentage)}%` }}
-              />
-              <div
-                className={`absolute h-full ${getDamageBarColor(multiHitMaxPercentage)} opacity-50`}
-                style={{
-                  width: `${Math.max(0, Math.min(100, multiHitMaxPercentage) - Math.min(100, multiHitMinPercentage))}%`,
-                  left: `${Math.min(100, multiHitMinPercentage)}%`
-                }}
-              />
+              {actualRemainingHPMinPercentage > 0 && (
+                <div
+                  className={`absolute top-0 left-0 h-full ${getHpBarColorByRemainingHp(actualRemainingHPMinPercentage)}`}
+                  style={{ width: `${actualRemainingHPMinPercentage}%` }}
+                />
+              )}
+              {actualRemainingHPMaxPercentage > actualRemainingHPMinPercentage && (
+                <div
+                  className={`absolute top-0 h-full ${getHpRangeBarColorByRemainingHp(actualRemainingHPMinPercentage)}`}
+                  style={{
+                    left: `${actualRemainingHPMinPercentage}%`,
+                    width: `${Math.max(0, actualRemainingHPMaxPercentage - actualRemainingHPMinPercentage)}%`,
+                  }}
+                />
+              )}
             </div>
           </div>
 
-          {/* Damage Info and Controls Container */}
           <div className="flex justify-between items-center">
-            {/* Left side: Damage numbers and KO text */}
             <div className="flex-grow">
-              <div className="grid grid-cols-2 gap-x-2"> {/* Use gap-x for horizontal spacing */}
+              <div className="grid grid-cols-2 gap-x-2">
                 <div>
                   <p className="text-xs text-gray-400 leading-tight">通常</p> 
                   <p className="text-white font-medium text-sm leading-tight">
                     <span className={getDamageColor(multiHitMinPercentage)}>{multiHitMinDamage}</span>
                     {' - '}
                     <span className={getDamageColor(multiHitMaxPercentage)}>{multiHitMaxDamage}</span>
+                    {defenderHP > 0 && multiHitMaxDamage > 0 && (
+                      <span className="text-xs text-gray-400 ml-1">
+                        ({formatPercentage(multiHitMinPercentage)}% - {formatPercentage(multiHitMaxPercentage)}%)
+                      </span>
+                    )}
                   </p>
                   <p className="text-xs text-gray-300 leading-tight">
-                    {getKOText(result.normalDamages, defenderHP, hitCount, false)} {/* Percentage removed from default */}
-                    {defenderHP > 0 && multiHitMaxDamage > 0 && ` (${formatPercentage(multiHitMinPercentage)}% - ${formatPercentage(multiHitMaxPercentage)}%)`} {/* Add percentage if damage exists */}
+                    {getKOText(result.normalDamages, defenderHP, hitCount, false)}
                   </p>
                 </div>
                 <div>
@@ -383,27 +421,45 @@ const DamageResult: React.FC<DamageResultProps> = ({
                     <span className={getDamageColor(multiHitCritMinPercentage)}>{multiHitCritMinDamage}</span>
                     {' - '}
                     <span className={getDamageColor(multiHitCritMaxPercentage)}>{multiHitCritMaxDamage}</span>
+                     {defenderHP > 0 && multiHitCritMaxDamage > 0 && (
+                       <span className="text-xs text-gray-400 ml-1">
+                        ({formatPercentage(multiHitCritMinPercentage)}% - {formatPercentage(multiHitCritMaxPercentage)}%)
+                      </span>
+                    )}
                   </p>
                   <p className="text-xs text-gray-300 leading-tight">
-                    {getKOText(result.criticalDamages, defenderHP, hitCount, false)} {/* Percentage removed from default */}
-                    {defenderHP > 0 && multiHitCritMaxDamage > 0 && ` (${formatPercentage(multiHitCritMinPercentage)}% - ${formatPercentage(multiHitCritMaxPercentage)}%)`} {/* Add percentage if damage exists */}
+                    {getKOText(result.criticalDamages, defenderHP, hitCount, false)}
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Right side: Controls (Double battle checkbox and Details button) */}
             <div className="flex items-center space-x-2 shrink-0 ml-2">
               <div className="flex items-center">
                 <input
                   type="checkbox"
-                  id={`doubleBattle-${attackerPokemonName}-${attackerMoveName}-${hitCount}-default`}
+                  id={uniqueDoubleBattleId}
                   checked={isDoubleBattle}
                   onChange={handleDoubleBattleChangeFromInput}
                   className="w-3 h-3 md:w-4 md:h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-offset-gray-800 focus:ring-1"
                 />
-                <label htmlFor={`doubleBattle-${attackerPokemonName}-${attackerMoveName}-${hitCount}-default`} className="ml-1 text-xs md:text-sm text-gray-300">
+                <label htmlFor={uniqueDoubleBattleId} className="ml-1 text-xs md:text-sm text-gray-300">
                   ダブル
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id={uniqueCriticalModeId}
+                  checked={isCriticalModeActive}
+                  onChange={() => setIsCriticalModeActive(!isCriticalModeActive)}
+                  className="w-3 h-3 md:w-4 md:h-4 text-red-600 bg-gray-700 border-gray-600 rounded focus:ring-red-500 focus:ring-offset-gray-800 focus:ring-1"
+                />
+                <label 
+                  htmlFor={uniqueCriticalModeId} 
+                  className={`ml-1 text-xs md:text-sm ${isCriticalModeActive ? 'text-red-400 font-semibold' : 'text-gray-300'}`}
+                >
+                  急所
                 </label>
               </div>
               <button
@@ -440,7 +496,7 @@ const DamageResult: React.FC<DamageResultProps> = ({
                     <span className={getDamageColor(multiHitMaxPercentage)}>{multiHitMaxDamage}</span>
                     <span className="text-sm text-gray-400 ml-2">
                       ({formatPercentage(multiHitMinPercentage)}% - {formatPercentage(multiHitMaxPercentage)}%) 
-                      {' '}{getKOText(result.normalDamages, defenderHP, hitCount, true)} {/* Modal shows full KO text */}
+                      {' '}{getKOText(result.normalDamages, defenderHP, hitCount, true)}
                     </span>
                   </p>
                 </div>
@@ -453,7 +509,7 @@ const DamageResult: React.FC<DamageResultProps> = ({
                     <span className={getDamageColor(multiHitCritMaxPercentage)}>{multiHitCritMaxDamage}</span>
                     <span className="text-sm text-gray-400 ml-2">
                       ({formatPercentage(multiHitCritMinPercentage)}% - {formatPercentage(multiHitCritMaxPercentage)}%) 
-                      {' '}{getKOText(result.criticalDamages, defenderHP, hitCount, true)} {/* Modal shows full KO text */}
+                      {' '}{getKOText(result.criticalDamages, defenderHP, hitCount, true)}
                     </span>
                   </p>
                 </div>

@@ -411,7 +411,7 @@ export const pokedex: Pokemon[] = [
     "weight": 30
   },
   {
-    "id": 26,
+    "id": "026-a",
     "name": "ライチュウ (アローラのすがた)",
     "nameEn": "Raichu-Alola",
     "types": ["electric", "psychic"],
@@ -445,7 +445,7 @@ export const pokedex: Pokemon[] = [
     "weight": 12
   },
   {
-    "id": 27,
+    "id": "027-a",
     "name": "サンド (アローラのすがた)",
     "nameEn": "Sandshrew-Alola",
     "types": ["ice", "steel"],
@@ -479,7 +479,7 @@ export const pokedex: Pokemon[] = [
     "weight": 29.5
   },
   {
-    "id": 28,
+    "id": "028-a",
     "name": "サンドパン (アローラのすがた)",
     "nameEn": "Sandslash-Alola",
     "types": ["ice", "steel"],
@@ -649,7 +649,7 @@ export const pokedex: Pokemon[] = [
     "weight": 9.9
   },
   {
-    "id": 37,
+    "id": "037-a",
     "name": "ロコン (アローラのすがた)",
     "nameEn": "Vulpix-Alola",
     "types": ["ice"],
@@ -683,7 +683,7 @@ export const pokedex: Pokemon[] = [
     "weight": 19.9
   },
   {
-    "id": 38,
+    "id": "038-a",
     "name": "キュウコン (アローラのすがた)",
     "nameEn": "Ninetales-Alola",
     "types": ["ice", "fairy"],
@@ -17643,4 +17643,533 @@ export const pokedex: Pokemon[] = [
     "height": 0.9,
     "weight": 28
   },
+  {
+    "id": "479h",
+    "name": "ロトム(ヒート)",
+    "nameEn": "Rotom-Heat",
+    "types": ["electric", "fire"],
+    "baseStats": {
+      "hp": 50,
+      "attack": 65,
+      "defense": 107,
+      "specialAttack": 105,
+      "specialDefense": 107,
+      "speed": 86
+    },
+    "abilities": ["Levitate"],
+    "height": 0.3,
+    "weight": 0.3
+  },
+  {
+    "id": "479w",
+    "name": "ロトム(ウォッシュ)",
+    "nameEn": "Rotom-Wash",
+    "types": ["electric", "water"],
+    "baseStats": {
+      "hp": 50,
+      "attack": 65,
+      "defense": 107,
+      "specialAttack": 105,
+      "specialDefense": 107,
+      "speed": 86
+    },
+    "abilities": ["Levitate"],
+    "height": 0.3,
+    "weight": 0.3
+  },
+  {
+    "id": "479f",
+    "name": "ロトム(フロスト)",
+    "nameEn": "Rotom-Frost",
+    "types": ["electric", "ice"],
+    "baseStats": {
+      "hp": 50,
+      "attack": 65,
+      "defense": 107,
+      "specialAttack": 105,
+      "specialDefense": 107,
+      "speed": 86
+    },
+    "abilities": ["Levitate"],
+    "height": 0.3,
+    "weight": 0.3
+  },
+  {
+    "id": "479s",
+    "name": "ロトム(スピン)",
+    "nameEn": "Rotom-Fan",
+    "types": ["electric", "flying"],
+    "baseStats": {
+      "hp": 50,
+      "attack": 65,
+      "defense": 107,
+      "specialAttack": 105,
+      "specialDefense": 107,
+      "speed": 86
+    },
+    "abilities": ["Levitate"],
+    "height": 0.3,
+    "weight": 0.3
+  },
+  {
+    "id": "479m",
+    "name": "ロトム(カット)",
+    "nameEn": "Rotom-Mow",
+    "types": ["electric", "grass"],
+    "baseStats": {
+      "hp": 50,
+      "attack": 65,
+      "defense": 107,
+      "specialAttack": 105,
+      "specialDefense": 107,
+      "speed": 86
+    },
+    "abilities": ["Levitate"],
+    "height": 0.3,
+    "weight": 0.3
+  },
+  
+  {
+    "id": "888-c",
+    "name": "ザシアン (おうのけん)",
+    "nameEn": "Zacian-Crowned",
+    "types": ["fairy", "steel"],
+    "baseStats": {
+      "hp": 92,
+      "attack": 150,
+      "defense": 115,
+      "specialAttack": 80,
+      "specialDefense": 115,
+      "speed": 148
+    },
+    "abilities": ["Intrepid Sword"],
+    "height": 2.8,
+    "weight": 355
+  },
+  {
+    "id": "889-c",
+    "name": "ザマゼンタ (おうのたて)",
+    "nameEn": "Zamazenta-Crowned",
+    "types": ["fighting", "steel"],
+    "baseStats": {
+      "hp": 92,
+      "attack": 120,
+      "defense": 140,
+      "specialAttack": 80,
+      "specialDefense": 140,
+      "speed": 128
+    },
+    "abilities": ["Dauntless Shield"],
+    "height": 2.9,
+    "weight": 785
+  },
+  {
+    "id": "641-t",
+    "name": "トルネロス (れいじゅうフォルム)",
+    "nameEn": "Tornadus-Therian",
+    "types": ["flying"],
+    "baseStats": {
+      "hp": 79,
+      "attack": 100,
+      "defense": 80,
+      "specialAttack": 110,
+      "specialDefense": 90,
+      "speed": 121
+    },
+    "abilities": ["Regenerator"],
+    "height": 1.4,
+    "weight": 63
+  },
+  {
+    "id": "642-t",
+    "name": "ボルトロス (れいじゅう)",
+    "nameEn": "Thundurus-Therian",
+    "types": ["electric", "flying"],
+    "baseStats": {
+      "hp": 79,
+      "attack": 105,
+      "defense": 70,
+      "specialAttack": 145,
+      "specialDefense": 80,
+      "speed": 101
+    },
+    "abilities": ["Volt Absorb"],
+    "height": 3,
+    "weight": 61
+  },
+  {
+    "id": "645-s",
+    "name": "ランドロス (れいじゅう)",
+    "nameEn": "Landorus-Therian",
+    "types": ["ground", "flying"],
+    "baseStats": {
+      "hp": 89,
+      "attack": 145,
+      "defense": 90,
+      "specialAttack": 105,
+      "specialDefense": 80,
+      "speed": 91
+    },
+    "abilities": ["Intimidate"],
+    "height": 1.3,
+    "weight": 68
+  },
+  {
+    "id": "905-s",
+    "name": "ラブトロス (れいじゅう)",
+    "nameEn": "Enamorus-Therian",
+    "types": ["fairy", "flying"],
+    "baseStats": {
+      "hp": 74,
+      "attack": 115,
+      "defense": 110,
+      "specialAttack": 135,
+      "specialDefense": 100,
+      "speed": 46
+    },
+    "abilities": ["Overcoat"],
+    "height": 1.6,
+    "weight": 48
+  },
+  {
+    "id": "144-g",
+    "name": "フリーザー (ガラル)",
+    "nameEn": "Articuno-Galar",
+    "types": ["psychic", "flying"],
+    "baseStats": {
+      "hp": 90,
+      "attack": 85,
+      "defense": 85,
+      "specialAttack": 125,
+      "specialDefense": 100,
+      "speed": 95
+    },
+    "abilities": [],
+    "height": 1.7,
+    "weight": 50.9
+  },
+  {
+    "id": "145-g",
+    "name": "サンダー (ガラル)",
+    "nameEn": "Zapdos-Galar",
+    "types": ["fighting", "flying"],
+    "baseStats": {
+      "hp": 90,
+      "attack": 125,
+      "defense": 90,
+      "specialAttack": 85,
+      "specialDefense": 90,
+      "speed": 100
+    },
+    "abilities": ["Defiant"],
+    "height": 1.6,
+    "weight": 58.2
+  },
+  {
+    "id": "146-g",
+    "name": "ファイヤー (ガラル)",
+    "nameEn": "Moltres-Galar",
+    "types": ["dark", "flying"],
+    "baseStats": {
+      "hp": 90,
+      "attack": 85,
+      "defense": 90,
+      "specialAttack": 100,
+      "specialDefense": 125,
+      "speed": 90
+    },
+    "abilities": ["Berserk"],
+    "height": 2,
+    "weight": 66
+  },
+  {
+    "id": "105-a",
+    "name": "ガラガラ (アローラ)",
+    "nameEn": "Marowak-Alola",
+    "types": ["fire", "ghost"],
+    "baseStats": {
+      "hp": 60,
+      "attack": 80,
+      "defense": 110,
+      "specialAttack": 50,
+      "specialDefense": 80,
+      "speed": 45
+    },
+    "abilities": ["Cursed Body", "Lightning Rod", "Rock Head"],
+    "height": 1,
+    "weight": 34
+  },
+  {
+    "id": "555-g",
+    "name": "ヒヒダルマ (ガラル)",
+    "nameEn": "Darmanitan-Galar",
+    "types": ["ice"],
+    "baseStats": {
+      "hp": 105,
+      "attack": 140,
+      "defense": 55,
+      "specialAttack": 30,
+      "specialDefense": 55,
+      "speed": 95
+    },
+    "abilities": ["Gorilla Tactics", "Zen Mode"],
+    "height": 1.7,
+    "weight": 120
+  },
+  {
+    "id": "059-h",
+    "name": "ウインディ (ヒスイ)",
+    "nameEn": "Arcanine-Hisui",
+    "types": ["fire", "rock"],
+    "baseStats": {
+      "hp": 95,
+      "attack": 115,
+      "defense": 80,
+      "specialAttack": 95,
+      "specialDefense": 80,
+      "speed": 90
+    },
+    "abilities": ["Intimidate", "Flash Fire", "Rock Head"],
+    "height": 2,
+    "weight": 168
+  },
+  {
+    "id": "706-h",
+    "name": "ヌメルゴン (ヒスイ)",
+    "nameEn": "Goodra-Hisui",
+    "types": ["steel", "dragon"],
+    "baseStats": {
+      "hp": 80,
+      "attack": 100,
+      "defense": 100,
+      "specialAttack": 110,
+      "specialDefense": 150,
+      "speed": 60
+    },
+    "abilities": ["Sap Sipper", "Shell Armor", "Gooey"],
+    "height": 1.7,
+    "weight": 334.1
+  },
+  {
+    "id": "549-h",
+    "name": "ドレディア (ヒスイ)",
+    "nameEn": "Lilligant-Hisui",
+    "types": ["grass", "fighting"],
+    "baseStats": {
+      "hp": 70,
+      "attack": 105,
+      "defense": 75,
+      "specialAttack": 50,
+      "specialDefense": 75,
+      "speed": 105
+    },
+    "abilities": ["Chlorophyll", "Hustle", "Leaf Guard"],
+    "height": 1.2,
+    "weight": 19.2
+  },
+  {
+    "id": "503-h",
+    "name": "ダイケンキ (ヒスイ)",
+    "nameEn": "Samurott-Hisui",
+    "types": ["water", "dark"],
+    "baseStats": {
+      "hp": 90,
+      "attack": 108,
+      "defense": 80,
+      "specialAttack": 100,
+      "specialDefense": 65,
+      "speed": 85
+    },
+    "abilities": ["Torrent", "Sharpness"],
+    "height": 1.5,
+    "weight": 58.2
+  },
+  {
+    "id": "157-h",
+    "name": "バクフーン (ヒスイ)",
+    "nameEn": "Typhlosion-Hisui",
+    "types": ["fire", "ghost"],
+    "baseStats": {
+      "hp": 73,
+      "attack": 84,
+      "defense": 78,
+      "specialAttack": 119,
+      "specialDefense": 85,
+      "speed": 95
+    },
+    "abilities": ["Blaze", "Frisk"],
+    "height": 1.6,
+    "weight": 69.8
+  },
+  {
+    "id": "571-h",
+    "name": "ゾロアーク (ヒスイ)",
+    "nameEn": "Zoroark-Hisui",
+    "types": ["normal", "ghost"],
+    "baseStats": {
+      "hp": 55,
+      "attack": 100,
+      "defense": 60,
+      "specialAttack": 125,
+      "specialDefense": 60,
+      "speed": 110
+    },
+    "abilities": ["Illusion"],
+    "height": 1.6,
+    "weight": 73
+  },
+  {
+    "id": 724,
+    "name": "ジュナイパー (ヒスイのすがた)",
+    "nameEn": "Decidueye-Hisui",
+    "types": ["grass", "fighting"],
+    "baseStats": {
+      "hp": 88,
+      "attack": 112,
+      "defense": 80,
+      "specialAttack": 95,
+      "specialDefense": 95,
+      "speed": 60
+    },
+    "abilities": ["Overgrow", "Scrappy"],
+    "height": 1.6,
+    "weight": 37
+  },
+  {
+    "id": "078-g",
+    "name": "ギャロップ (ガラル)",
+    "nameEn": "Rapidash-Galar",
+    "types": ["psychic", "fairy"],
+    "baseStats": {
+      "hp": 65,
+      "attack": 100,
+      "defense": 70,
+      "specialAttack": 80,
+      "specialDefense": 80,
+      "speed": 105
+    },
+    "abilities": ["Run Away", "Pastel Veil", "Anticipation"],
+    "height": 1.7,
+    "weight": 80
+  },
+  {
+    "id": "713-h",
+    "name": "クレベース (ヒスイ)",
+    "nameEn": "Avalugg-Hisui",
+    "types": ["ice", "rock"],
+    "baseStats": {
+      "hp": 95,
+      "attack": 127,
+      "defense": 184,
+      "specialAttack": 34,
+      "specialDefense": 36,
+      "speed": 38
+    },
+    "abilities": ["Strong Jaw", "Ice Body", "Sturdy"],
+    "height": 1.4,
+    "weight": 262.4
+  },
+  {
+    "id": "199-g",
+    "name": "ヤドキング (ガラル)",
+    "nameEn": "Slowking-Galar",
+    "types": ["poison", "psychic"],
+    "baseStats": {
+      "hp": 95,
+      "attack": 65,
+      "defense": 80,
+      "specialAttack": 110,
+      "specialDefense": 110,
+      "speed": 30
+    },
+    "abilities": ["Curious Medicine", "Own Tempo", "Regenerator"],
+    "height": 1.8,
+    "weight": 79.5
+  },
+  {
+    "id": "101-h",
+    "name": "マルマイン (ヒスイ)",
+    "nameEn": "Electrode-Hisui",
+    "types": ["electric", "grass"],
+    "baseStats": {
+      "hp": 60,
+      "attack": 50,
+      "defense": 70,
+      "specialAttack": 80,
+      "specialDefense": 80,
+      "speed": 150
+    },
+    "abilities": ["Soundproof", "Static", "Aftermath"],
+    "height": 1.2,
+    "weight": 71
+  },
+  {
+    "id": "128-p",
+    "name": "ケンタロス (パルデア)",
+    "nameEn": "Tauros-Paldea-Combat",
+    "types": ["fighting"],
+    "baseStats": {
+      "hp": 75,
+      "attack": 110,
+      "defense": 105,
+      "specialAttack": 30,
+      "specialDefense": 70,
+      "speed": 100
+    },
+    "abilities": ["Intimidate", "Anger Point", "Cud Chew"],
+    "height": 1.4,
+    "weight": 115
+  },
+  {
+    "id": "128-b",
+    "name": "ケンタロス (ブレイズ)",
+    "nameEn": "Tauros-Paldea-Blaze",
+    "types": ["fighting", "fire"],
+    "baseStats": {
+      "hp": 75,
+      "attack": 110,
+      "defense": 105,
+      "specialAttack": 30,
+      "specialDefense": 70,
+      "speed": 100
+    },
+    "abilities": ["Intimidate", "Anger Point", "Cud Chew"],
+    "height": 1.4,
+    "weight": 85
+  },
+  {
+    "id": "128-a",
+    "name": "ケンタロス (ウォーター)",
+    "nameEn": "Tauros-Paldea-Aqua",
+    "types": ["fighting", "water"],
+    "baseStats": {
+      "hp": 75,
+      "attack": 110,
+      "defense": 105,
+      "specialAttack": 30,
+      "specialDefense": 70,
+      "speed": 100
+    },
+    "abilities": ["Intimidate", "Anger Point", "Cud Chew"],
+    "height": 1.4,
+    "weight": 110
+  },
+  {
+    "id": "103-a",
+    "name": "ナッシー (アローラ)",
+    "nameEn": "Exeggutor-Alola",
+    "types": ["grass", "dragon"],
+    "baseStats": {
+      "hp": 95,
+      "attack": 105,
+      "defense": 85,
+      "specialAttack": 125,
+      "specialDefense": 75,
+      "speed": 45
+    },
+    "abilities": ["Frisk", "Harvest"],
+    "height": 10.9,
+    "weight": 415.6
+  },
+
 ];
