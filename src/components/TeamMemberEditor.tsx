@@ -268,7 +268,7 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
 
   return (
     <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-1 sm:p-2">
-      <div className="bg-gray-800 p-2 sm:p-3 rounded-lg shadow-xl w-full max-w-md max-h-[95vh] overflow-y-auto relative text-[11px]">
+      <div className="bg-gray-800 p-2 sm:p-3 rounded-lg shadow-xl w-full max-w-md max-h-[80vh] overflow-y-auto relative text-[11px]">
         {/* ... (モーダルヘッダーや他の部分は変更なし) ... */}
         <button onClick={onClose} className="absolute top-1.5 right-1.5 text-gray-400 hover:text-white z-10 p-1"> <X className="h-4 w-4" /> </button>
         <h2 className="text-base sm:text-lg font-bold mb-4 sm:mb-4 text-white"> {editedMember.pokemon.name} </h2>
@@ -348,7 +348,7 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
               // 最終的な努力値はhandleEvChange内でgetValidEVされる。
 
               return (
-                <div key={stat} className="grid grid-cols-[20px_40px_1fr_10px] items-center gap-x-3 py-1.5">
+                <div key={stat} className="grid grid-cols-[20px_40px_1fr_18px] items-center gap-x-2 py-1.5">
                   <label className="text-gray-300 text-[10px] font-medium whitespace-nowrap pr-0.5 text-center">
                     {getStatLabelWithNature(stat, editedMember.nature)}
                   </label>

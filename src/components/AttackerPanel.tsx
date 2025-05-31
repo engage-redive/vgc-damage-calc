@@ -1120,9 +1120,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
 
   return (
     <div className="bg-gray-900 p-1 rounded-lg shadow-lg">
-      <div className="mb-6">
-        <h2 className="text-xl font-bold text-white">攻撃側</h2>
-      </div>
+
       {attackers.map((attacker, index) => renderAttackerSection(attacker, index))}
       {attackers.length < 2 && (
         <div className="mt-4 flex justify-end">

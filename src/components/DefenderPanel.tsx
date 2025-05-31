@@ -334,14 +334,10 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
 
   return (
     <div className="bg-gray-900 p-1 rounded-lg shadow-lg">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-white">防御側</h2>
-      </div>
       <div className="bg-gray-800 rounded-lg p-4 mb-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-white">防御側</h3>
         </div>
-
         {selectedPokemon && (
           <div className="flex items-center gap-3 mb-3">
             <img src={`/icon/${selectedPokemon.id.toString().padStart(3, '0')}.png`} alt={selectedPokemon.name} className="w-8 h-8" />
