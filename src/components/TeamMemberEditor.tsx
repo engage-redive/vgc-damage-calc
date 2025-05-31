@@ -271,7 +271,7 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
       <div className="bg-gray-800 p-2 sm:p-3 rounded-lg shadow-xl w-full max-w-md max-h-[95vh] overflow-y-auto relative text-[11px]">
         {/* ... (モーダルヘッダーや他の部分は変更なし) ... */}
         <button onClick={onClose} className="absolute top-1.5 right-1.5 text-gray-400 hover:text-white z-10 p-1"> <X className="h-4 w-4" /> </button>
-        <h2 className="text-base sm:text-lg font-bold mb-2 sm:mb-3 text-white"> {editedMember.pokemon.name} </h2>
+        <h2 className="text-base sm:text-lg font-bold mb-4 sm:mb-4 text-white"> {editedMember.pokemon.name} </h2>
 
         {/* ポケモン、レベル */}
         <div className="grid grid-cols-[1fr_70px] gap-x-1.5 mb-2">
@@ -348,7 +348,7 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
               // 最終的な努力値はhandleEvChange内でgetValidEVされる。
 
               return (
-                <div key={stat} className="grid grid-cols-[28px_40px_1fr_28px_36px] items-center gap-x-1 py-0.5">
+                <div key={stat} className="grid grid-cols-[20px_40px_1fr_10px] items-center gap-x-3 py-1.5">
                   <label className="text-gray-300 text-[10px] font-medium whitespace-nowrap pr-0.5 text-center">
                     {getStatLabelWithNature(stat, editedMember.nature)}
                   </label>
@@ -370,7 +370,6 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
                       className="hide-stat-slider-real-value"
                     />
                   </div>
-                  <span className="text-[10px] text-gray-400 text-center tabular-nums">{ivValue}</span>
                   <span className="text-[11px] text-white text-right tabular-nums font-medium">{actualStat}</span>
                 </div>
               );
