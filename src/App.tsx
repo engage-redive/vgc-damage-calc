@@ -21,13 +21,13 @@ import {
     DefenderState,
     ProtosynthesisBoostTarget,
     AttackerState,
-    TeamMemberForAttackerLoad,
-    TeamMemberForDefenderLoad,
+    TeamMemberForAttackerLoad, // Assuming this is now in types.ts
+    TeamMemberForDefenderLoad, // Assuming this is now in types.ts
     MoveDynamicContext,
     AttackerDetailsForModal,
     DefenderDetailsForModal,
-    LoggedDamageEntry, // 追加
-} from './types'; // types.ts (または index.ts) からインポート
+    LoggedDamageEntry,
+} from './types';
 import { calculateStat, calculateDamage } from './utils/calculator';
 import { getEffectiveMoveProperties } from './utils/moveEffects';
 import AttackerPanel from './components/AttackerPanel';
@@ -35,12 +35,12 @@ import DefenderPanel from './components/DefenderPanel';
 import DamageResult from './components/DamageResult';
 import WeatherField from './components/WeatherField';
 import TeamManager from './components/TeamManager';
-import HistoryTab from './components/HistoryTab'; // 追加
-import { ArrowRightLeft, Calculator, Users, Zap, Shield, History as HistoryIcon } from 'lucide-react'; // HistoryIcon にエイリアス
+import HistoryTab from './components/HistoryTab';
+import { ArrowRightLeft, Calculator, Users, Zap, Shield, History as HistoryIcon } from 'lucide-react';
 
 const HP_DEPENDENT_MOVE_NAMES = ["ふんか", "しおふき"];
 const LOG_STORAGE_KEY = 'pokemonDamageCalcLogs';
-const MAX_LOG_ENTRIES = 50; 
+const MAX_LOG_ENTRIES = 50;
 
 type TabType = 'damage' | 'team' | 'history';
 type MobileViewMode = 'attacker' | 'defender';
@@ -77,13 +77,11 @@ function App() {
             const storedLogs = localStorage.getItem(LOG_STORAGE_KEY);
             if (storedLogs) {
                 const parsedLogs: LoggedDamageEntry[] = JSON.parse(storedLogs);
-                // TODO: ここで型チェックやバリデーションを行うのが望ましい
-                // 例: Array.isArray(parsedLogs) && parsedLogs.every(log => typeof log.id === 'string' && ...)
                 setLoggedEntries(parsedLogs);
             }
         } catch (error) {
             console.error("Failed to load logs from localStorage:", error);
-            localStorage.removeItem(LOG_STORAGE_KEY); 
+            localStorage.removeItem(LOG_STORAGE_KEY);
         }
     }, []);
 
@@ -112,7 +110,7 @@ function App() {
         base: initialPokedexPokemon.baseStats.defense, iv: 31, ev: 0, nature: 1.0 as NatureModifier, rank: 0,
         final: calculateStat(initialPokedexPokemon.baseStats.defense, 31, 0, 50, 1.0, false, 0, null)
     };
-    const initialSpeedStatForApp: StatCalculation = { 
+    const initialSpeedStatForApp: StatCalculation = {
         base: initialPokedexPokemon.baseStats.speed, iv: 31, ev: 0, nature: 1.0 as NatureModifier, rank: 0,
         final: calculateStat(initialPokedexPokemon.baseStats.speed, 31, 0, 50, 1.0, false, 0, null)
     };
@@ -153,7 +151,7 @@ function App() {
         base: initialPokedexPokemon.baseStats.attack, iv: 31, ev: 0, nature: 1.0, rank: 0,
         final: calculateStat(initialPokedexPokemon.baseStats.attack, 31, 0, 50, 1.0, false, 0, null)
     };
-    const initialDefenderSpeedStat: StatCalculation = { 
+    const initialDefenderSpeedStat: StatCalculation = {
         base: initialPokedexPokemon.baseStats.speed, iv: 31, ev: 0, nature: 1.0, rank: 0,
         final: calculateStat(initialPokedexPokemon.baseStats.speed, 31, 0, 50, 1.0, false, 0, null)
     };
@@ -185,7 +183,7 @@ function App() {
     const [defenderCurrentTypes, setDefenderCurrentTypes] = useState<[PokemonType, PokemonType?]>(getInitialDefenderTypesBasedOnState());
 
     const calculateCombinedDamage = (
-        results: DamageCalculation[], // Changed from (DamageCalculation | null)[] to DamageCalculation[]
+        results: DamageCalculation[],
         attackers: AttackerState[]
     ): { minDamage: number; maxDamage: number; minPercentage: number; maxPercentage: number; } | null => {
         if (results.length === 0 || !defenderState.hpStat.final || defenderState.hpStat.final === 0) {
@@ -287,8 +285,10 @@ function App() {
     };
 
     const handleDefenderOffensiveStatChange = (updates: Partial<Pick<StatCalculation, 'ev' | 'rank'>>) => {
+        // DefenderState の attackStat を更新
         handleDefenderStateChange({ attackStat: { ...defenderState.attackStat, ...updates } });
     };
+
 
     const handleDefenderTeraTypeChange = (types: [PokemonType, PokemonType?]) => {
         if (types[0]) handleDefenderStateChange({ teraType: types[0], isStellar: false });
@@ -368,7 +368,7 @@ function App() {
             nature: getNatureModifierValueFromDetails(natureDetails, 'defense'), rank: 0,
             final: calculateStat(member.pokemon.baseStats.defense, member.ivs.defense, member.evs.defense, member.level, getNatureModifierValueFromDetails(natureDetails, 'defense'), false, 0, member.item)
         };
-        const loadedSpeedStat: StatCalculation = { 
+        const loadedSpeedStat: StatCalculation = {
             base: member.pokemon.baseStats.speed, iv: member.ivs.speed, ev: member.evs.speed,
             nature: getNatureModifierValueFromDetails(natureDetails, 'speed'), rank: 0,
             final: calculateStat(member.pokemon.baseStats.speed, member.ivs.speed, member.evs.speed, member.level, getNatureModifierValueFromDetails(natureDetails, 'speed'), false, 0, member.item)
@@ -439,6 +439,22 @@ function App() {
                 const calculatedPower = Math.floor((basePower * attackerState.currentHp) / attackerState.actualMaxHp);
                 moveForCalc.power = Math.max(1, calculatedPower);
             }
+
+            // ★★★ イカサマ対応: 攻撃ステータスの差し替え ★★★
+            let attackStatToUseForCalc: StatCalculation;
+            if (attackerState.move.id === 'foulplay') { // 技IDで判定 (より堅牢)
+                attackStatToUseForCalc = defenderState.attackStat;
+            } else {
+                attackStatToUseForCalc = attackerState.attackStat;
+            }
+
+            const attackerStatsForCalc: { attack: StatCalculation; specialAttack: StatCalculation; defense: StatCalculation; speed: StatCalculation; } = {
+                attack: attackStatToUseForCalc, // ★ イカサマの場合は防御側の攻撃、それ以外は攻撃側の攻撃
+                specialAttack: attackerState.specialAttackStat,
+                defense: attackerState.defenseStat,
+                speed: attackerState.speedStat, // calculateDamageに渡すが、直接は使われないかも
+            };
+
             const attackerTeraBlastConfig = {
                 actualType: attackerState.teraBlastDeterminedType,
                 actualCategory: attackerState.teraBlastDeterminedCategory,
@@ -459,13 +475,11 @@ function App() {
             const defenderIsQuarkDriveForCalc = currentDefenderAbility?.id === 'quark_drive';
             const isElectricFieldActiveForDefender = field === 'electric';
             const isDefenderQuarkDriveActive = defenderIsQuarkDriveForCalc && defenderState.quarkDriveBoostedStat !== null && (defenderHasBoosterEnergyForCalc || isElectricFieldActiveForDefender || defenderState.quarkDriveManualTrigger);
-            const attackerStatsForCalc: { attack: StatCalculation; specialAttack: StatCalculation; defense: StatCalculation; speed: StatCalculation; } = { 
-                attack: attackerState.attackStat, specialAttack: attackerState.specialAttackStat,
-                defense: attackerState.defenseStat, speed: attackerState.speedStat, 
-            };
+
             return calculateDamage(
                 attackerState.pokemon, { ...defenderState.pokemon!, types: defenderCurrentTypes }, moveForCalc,
-                attackerStatsForCalc, { defense: defenderState.defenseStat, specialDefense: defenderState.specialDefenseStat, hp: defenderState.hpStat, speed: defenderState.speedStat }, 
+                attackerStatsForCalc, // ★ 差し替えられた可能性のあるステータスを使用
+                { defense: defenderState.defenseStat, specialDefense: defenderState.specialDefenseStat, hp: defenderState.hpStat, speed: defenderState.speedStat, attack: defenderState.attackStat }, // ★ defenderStatsにattackを追加
                 field, attackerState.item, currentDefenderItem, attackerState.teraType, attackerState.isStellar, 50,
                 isDoubleBattle, attackerState.isBurned, attackerState.hasHelpingHand, hasReflect, hasLightScreen,
                 attackerState.ability, null, currentDefenderAbility, null, weather, disasters, hasFriendGuard,
@@ -479,7 +493,8 @@ function App() {
         });
         setDamageResults(newDamageResults);
     }, [
-        activeAttackers, defenderState, defenderCurrentTypes, isDoubleBattle, hasReflect,
+        activeAttackers, defenderState, // ★ defenderState全体を依存配列に入れることでattackStatの変更も検知
+        defenderCurrentTypes, isDoubleBattle, hasReflect,
         hasLightScreen, weather, field, disasters, hasFriendGuard, defenderIsTerastallized,
         defender2Item, defender2Ability
     ]);
@@ -512,25 +527,35 @@ function App() {
         if (attacker.isStellar) attackerDisplayTypesForLog = [PokemonType.Stellar];
         else if (attacker.teraType) attackerDisplayTypesForLog = [attacker.teraType];
         else attackerDisplayTypesForLog = attacker.pokemon.types as [PokemonType, PokemonType?];
-        const isFoulPlayLog = attacker.move.name === "イカサマ";
+
+        const isFoulPlayLog = attacker.move.id === "foulplay"; // IDで判定
         const moveCategoryForLog = attacker.teraBlastDeterminedCategory || attacker.move.category as MoveCategory;
         let offensiveStatValueLog = 0, offensiveStatRankLog = 0, defensiveStatValueLog = 0, defensiveStatRankLog = 0;
         let defensiveStatTypeLog: 'defense' | 'specialDefense' = 'defense';
+
         if (isFoulPlayLog) {
-            offensiveStatValueLog = defenderState.attackStat.final; offensiveStatRankLog = defenderState.attackStat.rank;
-            defensiveStatValueLog = defenderState.defenseStat.final; defensiveStatRankLog = defenderState.defenseStat.rank;
+            offensiveStatValueLog = defenderState.attackStat.final; // ★ 相手の攻撃力
+            offensiveStatRankLog = defenderState.attackStat.rank;    // ★ 相手の攻撃ランク
+            defensiveStatValueLog = defenderState.defenseStat.final;
+            defensiveStatRankLog = defenderState.defenseStat.rank;
             defensiveStatTypeLog = 'defense';
         } else if (attacker.move.name === "ボディプレス") {
-            offensiveStatValueLog = attacker.defenseStat.final; offensiveStatRankLog = attacker.defenseStat.rank;
-            defensiveStatValueLog = defenderState.defenseStat.final; defensiveStatRankLog = defenderState.defenseStat.rank;
+            offensiveStatValueLog = attacker.defenseStat.final;
+            offensiveStatRankLog = attacker.defenseStat.rank;
+            defensiveStatValueLog = defenderState.defenseStat.final;
+            defensiveStatRankLog = defenderState.defenseStat.rank;
             defensiveStatTypeLog = 'defense';
         } else if (moveCategoryForLog === 'physical') {
-            offensiveStatValueLog = attacker.attackStat.final; offensiveStatRankLog = attacker.attackStat.rank;
-            defensiveStatValueLog = defenderState.defenseStat.final; defensiveStatRankLog = defenderState.defenseStat.rank;
+            offensiveStatValueLog = attacker.attackStat.final;
+            offensiveStatRankLog = attacker.attackStat.rank;
+            defensiveStatValueLog = defenderState.defenseStat.final;
+            defensiveStatRankLog = defenderState.defenseStat.rank;
             defensiveStatTypeLog = 'defense';
         } else if (moveCategoryForLog === 'special') {
-            offensiveStatValueLog = attacker.specialAttackStat.final; offensiveStatRankLog = attacker.specialAttackStat.rank;
-            defensiveStatValueLog = defenderState.specialDefenseStat.final; defensiveStatRankLog = defenderState.specialDefenseStat.rank;
+            offensiveStatValueLog = attacker.specialAttackStat.final;
+            offensiveStatRankLog = attacker.specialAttackStat.rank;
+            defensiveStatValueLog = defenderState.specialDefenseStat.final;
+            defensiveStatRankLog = defenderState.specialDefenseStat.rank;
             defensiveStatTypeLog = 'specialDefense';
         }
         const logAttackerDetails: AttackerDetailsForModal = {
@@ -678,7 +703,7 @@ function App() {
 
                                 const combinedResultsForDisplay =
                                     enabledAttackers.length > 0 &&
-                                    enabledDamageResults.length === enabledDamageResultsWithNulls.length // All enabled results are non-null
+                                    enabledDamageResults.length === enabledDamageResultsWithNulls.length
                                     ? calculateCombinedDamage(enabledDamageResults, enabledAttackers.filter(a => a.isEnabled))
                                     : null;
 
@@ -688,8 +713,6 @@ function App() {
                                         return null;
                                     }
 
-                                    // Reconstruct attackerDetails and defenderDetails for DamageResult props
-                                    // This logic should ideally be a shared utility function with handleSaveLogEntry
                                     const moveContextForDisplay: MoveDynamicContext = {
                                         attackerPokemon: attacker.pokemon, defenderPokemon: defenderState.pokemon,
                                         attackerAbility: attacker.ability, weather: weather, field: field,
@@ -708,29 +731,37 @@ function App() {
                                     else if (attacker.teraType) attackerDisplayTypes = [attacker.teraType];
                                     else attackerDisplayTypes = attacker.pokemon.types as [PokemonType, PokemonType?];
 
-                                    const isFoulPlay = attacker.move.name === "イカサマ";
+                                    const isFoulPlay = attacker.move.id === "foulplay"; // IDで判定
                                     const moveCategoryForDisplay = attacker.teraBlastDeterminedCategory || attacker.move.category as MoveCategory;
-                                    
+
                                     let offensiveStatValue = 0, offensiveStatRank = 0;
                                     let defenderDefensiveStatValue = 0, defenderDefensiveStatRank = 0;
                                     let defenderDefensiveStatType: 'defense' | 'specialDefense' = 'defense';
 
 
                                     if (isFoulPlay) {
-                                        offensiveStatValue = defenderState.attackStat.final; offensiveStatRank = defenderState.attackStat.rank;
-                                        defenderDefensiveStatValue = defenderState.defenseStat.final; defenderDefensiveStatRank = defenderState.defenseStat.rank;
+                                        offensiveStatValue = defenderState.attackStat.final; // ★ イカサマ時は相手の攻撃力
+                                        offensiveStatRank = defenderState.attackStat.rank;   // ★ イカサマ時は相手の攻撃ランク
+                                        defenderDefensiveStatValue = defenderState.defenseStat.final;
+                                        defenderDefensiveStatRank = defenderState.defenseStat.rank;
                                         defenderDefensiveStatType = 'defense';
                                     } else if (attacker.move.name === "ボディプレス") {
-                                        offensiveStatValue = attacker.defenseStat.final; offensiveStatRank = attacker.defenseStat.rank;
-                                        defenderDefensiveStatValue = defenderState.defenseStat.final; defenderDefensiveStatRank = defenderState.defenseStat.rank;
+                                        offensiveStatValue = attacker.defenseStat.final;
+                                        offensiveStatRank = attacker.defenseStat.rank;
+                                        defenderDefensiveStatValue = defenderState.defenseStat.final;
+                                        defenderDefensiveStatRank = defenderState.defenseStat.rank;
                                         defenderDefensiveStatType = 'defense';
                                     } else if (moveCategoryForDisplay === 'physical') {
-                                        offensiveStatValue = attacker.attackStat.final; offensiveStatRank = attacker.attackStat.rank;
-                                        defenderDefensiveStatValue = defenderState.defenseStat.final; defenderDefensiveStatRank = defenderState.defenseStat.rank;
+                                        offensiveStatValue = attacker.attackStat.final;
+                                        offensiveStatRank = attacker.attackStat.rank;
+                                        defenderDefensiveStatValue = defenderState.defenseStat.final;
+                                        defenderDefensiveStatRank = defenderState.defenseStat.rank;
                                         defenderDefensiveStatType = 'defense';
                                     } else if (moveCategoryForDisplay === 'special') {
-                                        offensiveStatValue = attacker.specialAttackStat.final; offensiveStatRank = attacker.specialAttackStat.rank;
-                                        defenderDefensiveStatValue = defenderState.specialDefenseStat.final; defenderDefensiveStatRank = defenderState.specialDefenseStat.rank;
+                                        offensiveStatValue = attacker.specialAttackStat.final;
+                                        offensiveStatRank = attacker.specialAttackStat.rank;
+                                        defenderDefensiveStatValue = defenderState.specialDefenseStat.final;
+                                        defenderDefensiveStatRank = defenderState.specialDefenseStat.rank;
                                         defenderDefensiveStatType = 'specialDefense';
                                     }
 
@@ -743,10 +774,10 @@ function App() {
                                         isBurned: attacker.isBurned, hasHelpingHand: attacker.hasHelpingHand,
                                         displayTypes: attackerDisplayTypes,
                                     };
-                                    
+
                                     const currentDefenderItem = index === 1 && activeAttackers.length > 1 && activeAttackers[1]?.isEnabled ? defender2Item : defenderState.item;
                                     const currentDefenderAbility = index === 1 && activeAttackers.length > 1 && activeAttackers[1]?.isEnabled ? defender2Ability : defenderState.ability;
-                                    
+
                                     const currentDefenderDetails: DefenderDetailsForModal | null = defenderState.pokemon ? {
                                         pokemonId: defenderState.pokemon.id, pokemonName: defenderState.pokemon.name,
                                         maxHp: defenderState.hpStat.final, defensiveStatValue: defenderDefensiveStatValue,
@@ -770,7 +801,7 @@ function App() {
                                             combinedResult={(index === 0 && enabledAttackers.length > 0) ? combinedResultsForDisplay : undefined}
                                             attackerPokemonName={attacker.pokemon.name}
                                             attackerMoveName={attacker.move.name}
-                                            attackerMoveNameForDisplay={moveUsedInCalc.name} // effectiveMove.name or original
+                                            attackerMoveNameForDisplay={moveUsedInCalc.name}
                                             defenderPokemonName={defenderState.pokemon?.name}
                                             hitCount={currentHitCount}
                                             attackerDetails={currentAttackerDetails}

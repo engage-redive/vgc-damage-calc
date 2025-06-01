@@ -104,7 +104,7 @@ const findClosestEvForBaseValue = (
   if (targetBaseValue >= statAt252Ev) {
     return 252;
   }
-  
+
   let closestEv = 0;
   let smallestDiff = Infinity;
 
@@ -622,7 +622,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
     if (!isNaN(targetFinalValue) && targetFinalValue >= 0) {
       const rankMultiplier = stat.rank !== 0 ? (stat.rank > 0 ? (2 + stat.rank) / 2 : 2 / (2 - stat.rank)) : 1;
       const targetBaseStatValue = Math.floor(targetFinalValue / rankMultiplier);
-      
+
       newEv = findClosestEvForBaseValue(
         targetBaseStatValue,
         baseStat,
@@ -705,7 +705,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
               <label className="text-white font-medium">こうげき</label>
               <input
                 type="number"
-                inputMode="numeric" 
+                inputMode="numeric"
                 pattern="[0-9]*"
                 value={attacker.attackInputValue}
                 onChange={(e) => handleAttackInputChange(e, index)}
@@ -837,13 +837,10 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
               />
             </div>
           </div>
-          
-
-
         </div>
       );
 
-      if (moveName === "イカサマ") {
+      if (moveName === "イカサマ") { // 技名で判定（ID 'foulplay' でも可）
         statInputsSection = <FoulPlayDisplay />;
         hpEvSliderToShow = null;
         hpDependentInputsToShow = null;
@@ -852,23 +849,23 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
             <div className="mt-3">
               <StatSlider
                 label="相手のこうげき努力値"
-                value={defenderAttackStatForFoulPlay.ev}
+                value={defenderAttackStatForFoulPlay.ev} // App.tsxから渡される防御側の攻撃EV
                 max={252}
                 step={4}
                 onChange={(newEv) => {
                   let validEv = Math.floor(newEv / 4) * 4;
                   validEv = Math.max(0, Math.min(validEv, 252));
-                  onDefenderOffensiveStatChange({ ev: validEv });
+                  onDefenderOffensiveStatChange({ ev: validEv }); // App.tsxのdefenderState.attackStat.evを更新
                 }}
                 disabled={!attacker.isEnabled || !attacker.pokemon || defenderAttackStatForFoulPlay.base === 0}
-                currentStat={defenderAttackStatForFoulPlay.final}
-                baseStat={defenderAttackStatForFoulPlay.base}
+                currentStat={defenderAttackStatForFoulPlay.final} // App.tsxから渡される防御側の最終攻撃力
+                baseStat={defenderAttackStatForFoulPlay.base}   // App.tsxから渡される防御側の攻撃種族値
               />
             </div>
             <div className="mt-3">
               <RankSelector
-                value={defenderAttackStatForFoulPlay.rank}
-                onChange={(newRank) => onDefenderOffensiveStatChange({ rank: newRank })}
+                value={defenderAttackStatForFoulPlay.rank} // App.tsxから渡される防御側の攻撃ランク
+                onChange={(newRank) => onDefenderOffensiveStatChange({ rank: newRank })} // App.tsxのdefenderState.attackStat.rankを更新
                 label="相手のこうげきランク"
                 disabled={!attacker.isEnabled || !attacker.pokemon || defenderAttackStatForFoulPlay.base === 0}
               />

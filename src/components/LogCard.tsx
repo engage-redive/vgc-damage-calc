@@ -12,9 +12,8 @@ import {
 } from '../types';
 import { X, Trash2, Info } from 'lucide-react';
 
-// DamageResult.tsx から必要な定数や関数をコピーまたはインポート
-// ここでは主要なものを再定義・簡略化していますが、共通化も検討可能です。
-
+// --- 定数・ユーティリティ関数 (TYPE_NAME_JP_HISTORY, TYPE_COLORS_HISTORYなど) ---
+// (前回のコードから変更なしのため、ここでは省略します。実際のファイルには含めてください)
 const TYPE_NAME_JP_HISTORY: Record<string, string> = {
   normal: 'ノーマル', fire: 'ほのお', water: 'みず', electric: 'でんき', grass: 'くさ', ice: 'こおり',
   fighting: 'かくとう', poison: 'どく', ground: 'じめん', flying: 'ひこう', psychic: 'エスパー', bug: 'むし',
@@ -68,57 +67,6 @@ const getDamageColorHistory = (percentage: number) => {
   return 'text-white';
 };
 
-// ダメージ分布計算関数はDamageResultから流用するか、必要ならこちらにも定義
-const getKOTextHistory = (
-  damagesPerSingleHitDistribution: number[],
-  hp: number,
-  currentHitCount: number,
-  // calculateKOChance関数の実装も必要 (DamageResult.tsxからコピー)
-  calculateKOChance: (damagesPerUsage: number[], hp: number, usagesToTest: number) => number,
-  showPercentage: boolean = true
-): string => {
-    if (!damagesPerSingleHitDistribution || damagesPerSingleHitDistribution.length !== 16) {
-      return "計算不可";
-    }
-    if (hp <= 0) return "確定1発";
-
-    const damagesPerUsage = damagesPerSingleHitDistribution.map(d => d * currentHitCount);
-    const minDamagePerUsage = Math.min(...damagesPerUsage);
-    const maxDamagePerUsage = Math.max(...damagesPerUsage);
-
-    if (maxDamagePerUsage <= 0) {
-      return "ダメージなし";
-    }
-    
-    const minUsagesToKO = Math.ceil(hp / maxDamagePerUsage);
-    const confirmedUsagesToKO = minDamagePerUsage > 0 ? Math.ceil(hp / minDamagePerUsage) : Infinity;
-
-    if (minUsagesToKO === Infinity && confirmedUsagesToKO === Infinity) {
-      return "ダメージなし"; 
-    }
-    
-    if (minUsagesToKO > 10 && confirmedUsagesToKO > 10) {
-        if (confirmedUsagesToKO !== Infinity) return `確定${confirmedUsagesToKO}発`;
-        return `乱数${minUsagesToKO}発`;
-    }
-
-    if (minUsagesToKO === confirmedUsagesToKO) {
-      return `確定${minUsagesToKO}発`;
-    } else {
-      if (!showPercentage) {
-        return `乱数${minUsagesToKO}発`;
-      }
-      const koChanceVal = calculateKOChance(damagesPerUsage, hp, minUsagesToKO);
-      if (koChanceVal < 0.01 && koChanceVal > 0) {
-        return `乱数${minUsagesToKO}発 (<0.01%)`;
-      }
-      if (koChanceVal > 99.99 && koChanceVal < 100) {
-        return `乱数${minUsagesToKO}発 (>99.99%)`;
-      }
-      return `乱数${minUsagesToKO}発 (${formatPercentageHistory(koChanceVal)}%)`;
-    }
-};
-// calculateKOChance関数 (DamageResult.tsxからコピー)
 const calculateKOChanceForHistory = (damagesPerUsage: number[], hp: number, usagesToTest: number): number => {
     if (usagesToTest <= 0) return 0;
     if (hp <= 0) return 100;
@@ -136,7 +84,7 @@ const calculateKOChanceForHistory = (damagesPerUsage: number[], hp: number, usag
       else { frequencies[index]++; }
     }
     const totalFrequency = validDamages.length;
-    if (usagesToTest === 2) { /* ... (DamageResultからコピー) ... */ 
+    if (usagesToTest === 2) { 
         let koProb = 0;
         for (let i = 0; i < uniqueDamages.length; i++) {
             const d1 = uniqueDamages[i], p1 = frequencies[i] / totalFrequency;
@@ -147,7 +95,7 @@ const calculateKOChanceForHistory = (damagesPerUsage: number[], hp: number, usag
         }
         return koProb * 100;
     }
-    if (usagesToTest === 3) { /* ... (DamageResultからコピー) ... */ 
+    if (usagesToTest === 3) { 
         let koProb = 0;
         for (let i = 0; i < uniqueDamages.length; i++) {
             const d1 = uniqueDamages[i], p1 = frequencies[i] / totalFrequency;
@@ -178,6 +126,59 @@ const calculateKOChanceForHistory = (damagesPerUsage: number[], hp: number, usag
     return Math.min(100, koProb * 100);
 };
 
+const getKOTextHistory = (
+  damagesPerSingleHitDistribution: number[],
+  hp: number,
+  currentHitCount: number,
+  calculateKOChance: (damagesPerUsage: number[], hp: number, usagesToTest: number) => number,
+  showPercentage: boolean = true
+): string => {
+    if (!damagesPerSingleHitDistribution || damagesPerSingleHitDistribution.length !== 16) {
+      return "計算不可";
+    }
+    if (hp <= 0) return "確定1発";
+
+    const damagesPerUsage = damagesPerSingleHitDistribution.map(d => d * currentHitCount);
+    const minDamagePerUsage = Math.min(...damagesPerUsage);
+    const maxDamagePerUsage = Math.max(...damagesPerUsage);
+
+    if (maxDamagePerUsage <= 0) return "ダメージなし";
+    
+    const minUsagesToKO = Math.ceil(hp / maxDamagePerUsage);
+    const confirmedUsagesToKO = minDamagePerUsage > 0 ? Math.ceil(hp / minDamagePerUsage) : Infinity;
+
+    if (minUsagesToKO === Infinity && confirmedUsagesToKO === Infinity) return "ダメージなし";
+    
+    if (minUsagesToKO > 10 && confirmedUsagesToKO > 10) {
+        if (confirmedUsagesToKO !== Infinity) return `確定${confirmedUsagesToKO}発`;
+        return `乱数${minUsagesToKO}発`;
+    }
+
+    if (minUsagesToKO === confirmedUsagesToKO) return `確定${minUsagesToKO}発`;
+    
+    if (!showPercentage) return `乱数${minUsagesToKO}発`;
+    
+    const koChanceVal = calculateKOChance(damagesPerUsage, hp, minUsagesToKO);
+    if (koChanceVal < 0.01 && koChanceVal > 0) return `乱数${minUsagesToKO}発 (<0.01%)`;
+    if (koChanceVal > 99.99 && koChanceVal < 100) return `乱数${minUsagesToKO}発 (>99.99%)`;
+    return `乱数${minUsagesToKO}発 (${formatPercentageHistory(koChanceVal)}%)`;
+};
+
+
+// ★★★ HPバーの色決定関数 (DamageResult.tsxからコピー) ★★★
+const getHpBarColorByRemainingHp = (remainingPercentage: number) => {
+  if (remainingPercentage <= 25) return 'bg-red-500';
+  if (remainingPercentage <= 50) return 'bg-yellow-500';
+  return 'bg-green-500';
+};
+
+const getHpRangeBarColorByRemainingHp = (remainingPercentage: number) => {
+  if (remainingPercentage <= 25) return 'bg-red-700';
+  if (remainingPercentage <= 50) return 'bg-yellow-700';
+  return 'bg-green-700';
+};
+// ★★★ ここまでHPバーの色決定関数 ★★★
+
 
 interface LogCardProps {
   logEntry: LoggedDamageEntry;
@@ -192,34 +193,43 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry, onDelete }) => {
     timestamp,
     attackerDetails,
     defenderDetails,
-    result,
+    result, // This is DamageCalculation type
     defenderOriginalHP,
     attackerPokemonName,
     attackerMoveName,
     defenderPokemonName,
     hitCount,
-    isDoubleBattle, // 将来的にカード表示に使用するかも
+    isDoubleBattle,
     weather,
     field,
     disasters,
   } = logEntry;
 
+  // --- HPバー表示用の計算 (DamageResult.tsxのロジックを適用) ---
+  // ログには急所モードの状態は保存していないため、通常ダメージを基準にする
+  // (もし急所モードもログに保存して切り替えたい場合は、logEntryにその情報が必要)
+  const currentDisplayMinPercentageInLog = result.minPercentage; // 通常ダメージの最小割合
+  const currentDisplayMaxPercentageInLog = result.maxPercentage; // 通常ダメージの最大割合
+
+  // ダメージ割合を0%から100%の範囲にクランプ
+  const clampedCurrentDisplayMinPercentageInLog = Math.min(100, currentDisplayMinPercentageInLog);
+  const clampedCurrentDisplayMaxPercentageInLog = Math.min(100, currentDisplayMaxPercentageInLog);
+
+  // 残りHP割合の計算
+  const actualRemainingHPMinPercentageInLog = Math.max(0, 100 - clampedCurrentDisplayMaxPercentageInLog);
+  const actualRemainingHPMaxPercentageInLog = Math.max(0, 100 - clampedCurrentDisplayMinPercentageInLog);
+  // --- HPバー表示用の計算ここまで ---
+
+
   const minDamageDisplay = result.minDamage * hitCount;
   const maxDamageDisplay = result.maxDamage * hitCount;
-  const minPercentageDisplay = defenderOriginalHP > 0 ? (minDamageDisplay / defenderOriginalHP) * 100 : 0;
-  const maxPercentageDisplay = defenderOriginalHP > 0 ? (maxDamageDisplay / defenderOriginalHP) * 100 : 0;
-
+  // minPercentageDisplay と maxPercentageDisplay は result から直接使用
   const koTextDisplay = getKOTextHistory(
     result.normalDamages,
     defenderOriginalHP,
     hitCount,
     calculateKOChanceForHistory
   );
-
-  // HPバー用 (簡易表示)
-  const hpBarDamageMinPercent = Math.min(100, minPercentageDisplay);
-  const hpBarDamageMaxPercent = Math.min(100, maxPercentageDisplay);
-
 
   return (
     <div className="bg-gray-800 p-4 rounded-lg shadow-md mb-4">
@@ -239,9 +249,7 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry, onDelete }) => {
         </button>
       </div>
 
-      {/* メインコンテンツエリア */}
       <div className="flex items-center space-x-3 mb-2">
-        {/* 攻撃側ポケモン */}
         <div className="flex flex-col items-center w-1/3">
           <img
             src={`/icon/${attackerDetails.pokemonId.toString().padStart(3, '0')}.png`}
@@ -253,24 +261,22 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry, onDelete }) => {
           {attackerDetails.ability && <p className="text-[10px] text-gray-400 text-center truncate w-full" title={attackerDetails.ability}>特: {attackerDetails.ability}</p>}
         </div>
 
-        {/* ダメージ情報 */}
         <div className="flex-grow text-center">
             <p className="font-semibold text-sm">
                 {attackerMoveName}
                 {hitCount > 1 && <span className="text-xs"> ({hitCount}回)</span>}
             </p>
             <p className="text-lg font-bold my-1">
-                <span className={getDamageColorHistory(minPercentageDisplay)}>{minDamageDisplay}</span>
+                <span className={getDamageColorHistory(result.minPercentage)}>{minDamageDisplay}</span>
                 {' ~ '}
-                <span className={getDamageColorHistory(maxPercentageDisplay)}>{maxDamageDisplay}</span>
+                <span className={getDamageColorHistory(result.maxPercentage)}>{maxDamageDisplay}</span>
             </p>
             <p className="text-xs text-gray-300">
-                ({formatPercentageHistory(minPercentageDisplay)}% ~ {formatPercentageHistory(maxPercentageDisplay)}%)
+                ({formatPercentageHistory(result.minPercentage)}% ~ {formatPercentageHistory(result.maxPercentage)}%)
             </p>
             <p className="text-xs font-semibold mt-1">{koTextDisplay}</p>
         </div>
 
-        {/* 防御側ポケモン */}
         <div className="flex flex-col items-center w-1/3">
           <img
             src={`/icon/${defenderDetails.pokemonId.toString().padStart(3, '0')}.png`}
@@ -283,20 +289,31 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry, onDelete }) => {
         </div>
       </div>
       
-      {/* HPバー */}
-      <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden mb-2">
-        <div
-            className="h-full bg-red-500 opacity-30"
-            style={{ width: `${hpBarDamageMaxPercent}%` }}
-        />
-        <div
-            className="h-full bg-red-600 -mt-3" // -mt-3で重ねる
-            style={{ width: `${hpBarDamageMinPercent}%` }}
-        />
+      {/* ★★★ HPバー (DamageResult.tsx と同じロジックで表示) ★★★ */}
+      <div className="w-full h-3 bg-white rounded-full overflow-hidden mb-1"> {/* 背景を白に */}
+        <div className="h-full relative">
+          {actualRemainingHPMinPercentageInLog > 0 && (
+            <div
+              className={`absolute top-0 left-0 h-full ${getHpBarColorByRemainingHp(actualRemainingHPMinPercentageInLog)}`}
+              style={{ width: `${actualRemainingHPMinPercentageInLog}%` }}
+            />
+          )}
+          {actualRemainingHPMaxPercentageInLog > actualRemainingHPMinPercentageInLog && (
+            <div
+              className={`absolute top-0 h-full ${getHpRangeBarColorByRemainingHp(actualRemainingHPMinPercentageInLog)}`}
+              style={{
+                left: `${actualRemainingHPMinPercentageInLog}%`,
+                width: `${Math.max(0, actualRemainingHPMaxPercentageInLog - actualRemainingHPMinPercentageInLog)}%`,
+              }}
+            />
+          )}
+        </div>
       </div>
-       <div className="flex justify-between text-xs text-gray-400 mb-3">
-        <span>与ダメ範囲 (HP: {defenderOriginalHP})</span>
+      <div className="flex justify-between text-xs text-gray-400 mb-3">
+        <span>残りHP (最大HP: {defenderOriginalHP})</span>
+        {/* <span>{defenderOriginalHP}</span> */} {/* HPの数値を右に表示したい場合 */}
       </div>
+      {/* ★★★ HPバーここまで ★★★ */}
 
 
       <button
@@ -306,7 +323,7 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry, onDelete }) => {
         <Info size={16} className="mr-1"/> 詳細を見る
       </button>
 
-      {/* 詳細モーダル */}
+      {/* 詳細モーダル (変更なしのため省略) */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4">
           <div className="bg-gray-800 rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 relative">
@@ -350,7 +367,6 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry, onDelete }) => {
               </p>
             </div>
 
-            {/* Attacker and Defender Details (from DamageResult.tsx, adapted for logEntry) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <h3 className="text-lg font-medium text-red-400 mb-3 border-b border-gray-700 pb-1">攻撃側: {attackerDetails.pokemonName}</h3>
@@ -430,7 +446,7 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry, onDelete }) => {
                 <ul className="space-y-1 text-sm text-gray-300">
                   {weather && <li>天候: <span className="font-semibold text-white">{WEATHER_NAME_JP_HISTORY[weather as keyof typeof WEATHER_NAME_JP_HISTORY] || weather}</span></li>}
                   {field && <li>フィールド: <span className="font-semibold text-white">{FIELD_NAME_JP_HISTORY[field as keyof typeof FIELD_NAME_JP_HISTORY] || field}</span></li>}
-                  {disasters && Object.entries(disasters).map(([key, value]) =>
+                  {disasters && Object.entries(disasters).map(([key, value]) => 
                     value && <li key={key}>災い: <span className="font-semibold text-red-400">{DISASTER_MAP_HISTORY[key as keyof DisasterState]}</span></li>
                   )}
                 </ul>

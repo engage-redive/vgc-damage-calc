@@ -39,6 +39,12 @@ export const enum PokemonType {
   Stellar = 'stellar', // ステラタイプを追加
 }
 
+export const enum MoveCategory {
+  Physical = 'physical',
+  Special = 'special',
+  Status = 'status'
+}
+
 export type TeraBurstEffectiveType = PokemonType | 'stellar';
 
 export type Weather = 'none' | 'sun' | 'rain' | 'sandstorm' | 'snow' | 'harsh_sunlight' | 'heavy_rain';
@@ -51,8 +57,6 @@ export const enum Field {
   Misty = 'misty'
 }
 
-export type MoveCategory = 'physical' | 'special' | 'status';
-
 export interface DisasterState {
   sword: boolean;
   ball: boolean;
@@ -60,24 +64,20 @@ export interface DisasterState {
   talisman: boolean;
 }
 
-// types.ts or index.ts の MoveDynamicContext の例
 export interface MoveDynamicContext {
   attackerPokemon?: Pokemon | null;
-  defenderPokemon?: Pokemon | null; // ★追加: 防御側のポケモン情報
+  defenderPokemon?: Pokemon | null;
   attackerAbility?: Ability | null;
   weather?: Weather;
   field?: Field;
   uiOptionChecked?: { [key: string]: boolean };
 }
 
-export interface MoveDynamicProperties { // もし MoveDynamicResult をグローバルに使うならこの名前
+export interface MoveDynamicProperties {
   type?: PokemonType;
   power?: number;
-  isSpread?: boolean; // 追加: ワイドフォースの範囲変更用
-  // 他に動的に変化する可能性のあるプロパティ
+  isSpread?: boolean;
 }
-
-
 
 export interface MoveUiOption {
   type: 'checkbox';
@@ -94,7 +94,7 @@ export interface Move {
   accuracy: number;
   pp: number;
   description?: string;
-  isSpread?: boolean; // 基本的な範囲攻撃技か (ワイドフォースでは動的に変更
+  isSpread?: boolean;
   recoil?: boolean;
   hasHighJumpKickRecoil?: boolean;
   isPunch?: boolean;
@@ -105,11 +105,10 @@ export interface Move {
   hasSecondaryEffect?: boolean;
   affectedBySheerForceNegative?: boolean;
   isTeraBlast?: boolean;
-  multihit?: number | "2-5"; // 2-5回攻撃を表現できるように修正
-  uiOption?: MoveUiOption; // uiOption の型を具体的に定義
-  dynamicEffectId?: string; // 追加: 技の動的効果を識別するためのID
+  multihit?: number | "2-5";
+  uiOption?: MoveUiOption;
+  dynamicEffectId?: string;
 }
-
 
 export interface Item {
   id: string;
@@ -162,11 +161,10 @@ export interface BattleStats {
 export type ProtosynthesisBoostTarget = 'attack' | 'defense' | 'specialAttack' | 'specialDefense' | 'speed' | null;
 export type QuarkDriveBoostTarget = 'attack' | 'defense' | 'specialAttack' | 'specialDefense' | 'speed' | null;
 
-
 export interface AttackerState {
   pokemon: Pokemon | null;
   move: Move | null;
-  effectiveMove: Move | null; // ★★★ 追加: 動的効果適用後の技情報 ★★★
+  effectiveMove: Move | null;
   item: Item | null;
   ability: Ability | null;
   attackStat: StatCalculation;
@@ -194,7 +192,7 @@ export interface AttackerState {
   protosynthesisManualTrigger: boolean;
   quarkDriveBoostedStat: QuarkDriveBoostTarget | null;
   quarkDriveManualTrigger: boolean;
-  moveUiOptionStates: { [key: string]: boolean }; // 追加
+  moveUiOptionStates: { [key: string]: boolean };
 }
 
 export interface DefenderState {
@@ -259,23 +257,21 @@ export interface Ability {
   description: string;
   side: 'attacker' | 'defender' | 'both';
 }
+
 export type StatType = 'hp' | 'attack' | 'defense' | 'specialAttack' | 'specialDefense' | 'speed' | null;
 
-export interface Nature { // types.ts に Nature の定義がなかったので追加
-    name: string;
-    nameEn: string;
-    increasedStat: 'attack' | 'defense' | 'specialAttack' | 'specialDefense' | 'speed' | null;
-    decreasedStat: 'attack' | 'defense' | 'specialAttack' | 'specialDefense' | 'speed' | null;
+export interface Nature {
+  name: string;
+  nameEn: string;
+  increasedStat: 'attack' | 'defense' | 'specialAttack' | 'specialDefense' | 'speed' | null;
+  decreasedStat: 'attack' | 'defense' | 'specialAttack' | 'specialDefense' | 'speed' | null;
 }
 
-export type TeraBurstEffectiveType = PokemonType | 'stellar';
-
-
 export interface AttackerDetailsForModal {
-  pokemonId: number | string; // Pokemon['id'] と型を合わせる
+  pokemonId: number | string;
   pokemonName: string;
   movePower: number;
-  moveCategory?: MoveCategory; // ★追加: 技のカテゴリ
+  moveCategory?: MoveCategory;
   offensiveStatValue: number;
   offensiveStatRank: number;
   teraType: PokemonType | null;
@@ -284,15 +280,15 @@ export interface AttackerDetailsForModal {
   ability: string | null;
   isBurned: boolean;
   hasHelpingHand: boolean;
-  displayTypes: [PokemonType, PokemonType?] | ['stellar']; // 追加
+  displayTypes: [PokemonType, PokemonType?] | ['stellar'];
 }
 
 export interface DefenderDetailsForModal {
-  pokemonId: number | string; // Pokemon['id'] と型を合わせる
+  pokemonId: number | string;
   pokemonName: string;
-  maxHp?: number; // ★追加: 防御側の最大HP
+  maxHp?: number;
   defensiveStatValue: number;
-  defensiveStatType?: 'defense' | 'specialDefense'; // ★追加: 参照された防御ステータス
+  defensiveStatType?: 'defense' | 'specialDefense';
   defensiveStatRank: number;
   item: string | null;
   ability: string | null;

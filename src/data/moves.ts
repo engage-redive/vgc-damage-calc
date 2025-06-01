@@ -3082,16 +3082,6 @@ export const moves: Move[] = [
   pp: 30
 },
 {
-  id: "grassknot",
-  name: "くさむすび",
-  nameEn: "Grass Knot",
-  type: "grass",
-  category: "special",
-  power: 0,
-  accuracy: 100,
-  pp: 20
-},
-{
   id: "grasspledge",
   name: "くさのちかい",
   nameEn: "Grass Pledge",
@@ -4377,16 +4367,7 @@ export const moves: Move[] = [
   accuracy: 75,
   pp: 10
 },
-{
-  id: "lowkick",
-  name: "けたぐり",
-  nameEn: "Low Kick",
-  type: "fighting",
-  category: "physical",
-  power: 0,
-  accuracy: 100,
-  pp: 20
-},
+
 {
   id: "lowsweep",
   name: "ローキック",
@@ -8882,4 +8863,31 @@ export const moves: Move[] = [
   pp: 10,
   hasSecondaryEffect: true
 },
+
+{
+    id: "grassknot",
+    name: "くさむすび",
+    nameEn: "Grass Knot",
+    type: PokemonType.Grass,
+    category: MoveCategory.Special,
+    power: 0, // 動的に決定される
+    accuracy: 100,
+    pp: 20,
+    makesContact: true, // くさむすびは接触技
+    dynamicEffectId: "defenderWeightBasedPowerLowKickGrassKnot", // ★新しいdynamicEffectId
+    description: '相手の重さによって威力が変わる。',
+  },
+  {
+    id: "lowkick",
+    name: "けたぐり",
+    nameEn: "Low Kick",
+    type: PokemonType.Fighting,
+    category: MoveCategory.Physical,
+    power: 0, // 動的に決定される
+    accuracy: 100,
+    pp: 20,
+    makesContact: true, // けたぐりは接触技
+    dynamicEffectId: "defenderWeightBasedPowerLowKickGrassKnot", // ★新しいdynamicEffectId
+    description: '相手の重さによって威力が変わる。',
+  },
 ];
