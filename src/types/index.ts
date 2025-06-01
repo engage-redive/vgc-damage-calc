@@ -77,6 +77,8 @@ export interface MoveDynamicProperties { // もし MoveDynamicResult をグロ�
   // 他に動的に変化する可能性のあるプロパティ
 }
 
+
+
 export interface MoveUiOption {
   type: 'checkbox';
   label: string;
@@ -92,7 +94,7 @@ export interface Move {
   accuracy: number;
   pp: number;
   description?: string;
-  isSpread?: boolean; // 基本的な範囲攻撃技か (ワイドフォースでは動的に変更)
+  isSpread?: boolean; // 基本的な範囲攻撃技か (ワイドフォースでは動的に変更
   recoil?: boolean;
   hasHighJumpKickRecoil?: boolean;
   isPunch?: boolean;
@@ -264,4 +266,55 @@ export interface Nature { // types.ts に Nature の定義がなかったので�
     nameEn: string;
     increasedStat: 'attack' | 'defense' | 'specialAttack' | 'specialDefense' | 'speed' | null;
     decreasedStat: 'attack' | 'defense' | 'specialAttack' | 'specialDefense' | 'speed' | null;
+}
+
+export type TeraBurstEffectiveType = PokemonType | 'stellar';
+
+
+export interface AttackerDetailsForModal {
+  pokemonId: number | string; // Pokemon['id'] と型を合わせる
+  pokemonName: string;
+  movePower: number;
+  moveCategory?: MoveCategory; // ★追加: 技のカテゴリ
+  offensiveStatValue: number;
+  offensiveStatRank: number;
+  teraType: PokemonType | null;
+  isStellar: boolean;
+  item: string | null;
+  ability: string | null;
+  isBurned: boolean;
+  hasHelpingHand: boolean;
+  displayTypes: [PokemonType, PokemonType?] | ['stellar']; // 追加
+}
+
+export interface DefenderDetailsForModal {
+  pokemonId: number | string; // Pokemon['id'] と型を合わせる
+  pokemonName: string;
+  maxHp?: number; // ★追加: 防御側の最大HP
+  defensiveStatValue: number;
+  defensiveStatType?: 'defense' | 'specialDefense'; // ★追加: 参照された防御ステータス
+  defensiveStatRank: number;
+  item: string | null;
+  ability: string | null;
+  hasReflect: boolean;
+  hasLightScreen: boolean;
+  hasFriendGuard: boolean;
+  displayTypes: [PokemonType, PokemonType?];
+}
+
+export interface LoggedDamageEntry {
+  id: string;
+  timestamp: number;
+  attackerDetails: AttackerDetailsForModal;
+  defenderDetails: DefenderDetailsForModal;
+  result: DamageCalculation;
+  defenderOriginalHP: number;
+  attackerPokemonName: string;
+  attackerMoveName: string;
+  defenderPokemonName: string;
+  hitCount: number;
+  isDoubleBattle: boolean;
+  weather: Weather | null;
+  field: Field | null;
+  disasters: DisasterState;
 }

@@ -1,32 +1,15 @@
 import React, { useState } from 'react';
-import { DamageCalculation, PokemonType, Weather, Field, DisasterState } from '../types';
-import { X, ChevronUp, ChevronDown } from 'lucide-react';
-
-interface AttackerDetailsForModal {
-  pokemonId: number;
-  pokemonName: string;
-  movePower: number;
-  offensiveStatValue: number;
-  offensiveStatRank: number;
-  teraType: PokemonType | null;
-  isStellar: boolean;
-  item: string | null;
-  ability: string | null;
-  isBurned: boolean;
-  hasHelpingHand: boolean;
-}
-
-interface DefenderDetailsForModal {
-  pokemonId: number;
-  pokemonName: string;
-  defensiveStatValue: number;
-  defensiveStatRank: number;
-  item: string | null;
-  ability: string | null;
-  hasReflect: boolean;
-  hasLightScreen: boolean;
-  hasFriendGuard: boolean;
-}
+import {
+  DamageCalculation,
+  PokemonType,
+  Weather,
+  Field,
+  DisasterState,
+  AttackerDetailsForModal,
+  DefenderDetailsForModal,
+  MoveCategory, // 追加: 技カテゴリ表示のため
+} from '../types';
+import { X, ChevronUp, ChevronDown, Save } from 'lucide-react'; // Save アイコン追加
 
 interface DamageResultProps {
   result: DamageCalculation | null;
@@ -41,6 +24,7 @@ interface DamageResultProps {
   };
   attackerPokemonName?: string;
   attackerMoveName?: string;
+  attackerMoveNameForDisplay?: string;
   defenderPokemonName?: string;
   hitCount?: number;
   attackerDetails?: AttackerDetailsForModal;
@@ -48,18 +32,63 @@ interface DamageResultProps {
   weather?: Weather | null;
   field?: Field | null;
   disasters?: DisasterState;
-  resultIdSuffix: string; // ユニークなID生成のためのサフィックス
+  resultIdSuffix: string;
+  onSaveLog?: () => void; // ★ログ保存用コールバック関数を追加
 }
 
-// HPバーの残りHPのメインカラーを決定する関数
-const getHpBarColorByRemainingHp = (remainingPercentage: number) => {
-  // remainingPercentage は 0 から 100 の値
-  if (remainingPercentage <= 25) return 'bg-red-500';    // 残りHPが25%以下で赤
-  if (remainingPercentage <= 50) return 'bg-yellow-500'; // 残りHPが50%以下で黄色
-  return 'bg-green-500';                               // それ以上は緑
+const TYPE_NAME_JP_MODAL: Record<string, string> = {
+  normal: 'ノーマル', fire: 'ほのお', water: 'みず', electric: 'でんき', grass: 'くさ', ice: 'こおり',
+  fighting: 'かくとう', poison: 'どく', ground: 'じめん', flying: 'ひこう', psychic: 'エスパー', bug: 'むし',
+  rock: 'いわ', ghost: 'ゴースト', dragon: 'ドラゴン', dark: 'あく', steel: 'はがね', fairy: 'フェアリー',
+  stellar: 'ステラ',
 };
 
-// HPバーの残りHPの範囲を示す部分の色（メインカラーより少し濃い）
+const TYPE_COLORS_MODAL: Record<string, string> = {
+  normal: '#A8A77A', fire: '#EE8130', water: '#6390F0', electric: '#F7D02C', grass: '#7AC74C', ice: '#96D9D6',
+  fighting: '#C22E28', poison: '#A33EA1', ground: '#E2BF65', flying: '#A98FF3', psychic: '#F95587', bug: '#A6B91A',
+  rock: '#B6A136', ghost: '#735797', dragon: '#6F35FC', dark: '#705746', steel: '#B7B7CE', fairy: '#D685AD',
+  stellar: '#7A7AE6',
+};
+
+const WEATHER_NAME_JP: Record<string, string> = { // Weather型に合わせる
+  'none': 'なし',
+  'sun': 'はれ',
+  'rain': 'あめ',
+  'sandstorm': 'すなあらし',
+  'snow': 'ゆき',
+  'harsh_sunlight': 'おおひでり',
+  'heavy_rain': 'おおあめ',
+  // 'strong_winds': 'らんきりゅう', // Weather型にstrong_windsがない場合は削除
+};
+
+const FIELD_NAME_JP: Record<string, string> = { // Field型に合わせる
+  'none': 'なし',
+  'electric': 'エレキフィールド',
+  'grassy': 'グラスフィールド',
+  'psychic': 'サイコフィールド',
+  'misty': 'ミストフィールド',
+};
+
+
+const getTypeNameJpFromModal = (type: PokemonType | 'stellar' | null | undefined): string => {
+  if (!type) return '';
+  const typeKey = type.toLowerCase() as keyof typeof TYPE_NAME_JP_MODAL;
+  return TYPE_NAME_JP_MODAL[typeKey] || typeKey.toString();
+};
+
+const getTypeColorFromModal = (type: PokemonType | 'stellar' | null | undefined): string => {
+  if (!type) return '#777777';
+  const typeKey = type.toLowerCase() as keyof typeof TYPE_COLORS_MODAL;
+  return TYPE_COLORS_MODAL[typeKey] || '#777777';
+};
+
+
+const getHpBarColorByRemainingHp = (remainingPercentage: number) => {
+  if (remainingPercentage <= 25) return 'bg-red-500';
+  if (remainingPercentage <= 50) return 'bg-yellow-500';
+  return 'bg-green-500';
+};
+
 const getHpRangeBarColorByRemainingHp = (remainingPercentage: number) => {
   if (remainingPercentage <= 25) return 'bg-red-700';
   if (remainingPercentage <= 50) return 'bg-yellow-700';
@@ -75,6 +104,7 @@ const DamageResult: React.FC<DamageResultProps> = ({
   combinedResult,
   attackerPokemonName,
   attackerMoveName,
+  attackerMoveNameForDisplay,
   defenderPokemonName,
   hitCount = 1,
   attackerDetails,
@@ -83,10 +113,11 @@ const DamageResult: React.FC<DamageResultProps> = ({
   field,
   disasters,
   resultIdSuffix,
+  onSaveLog, // ★props受け取り
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCombinedDetailsExpanded, setIsCombinedDetailsExpanded] = useState(true);
-  const [isCriticalModeActive, setIsCriticalModeActive] = useState(false); // 急所モードの状態
+  const [isCriticalModeActive, setIsCriticalModeActive] = useState(false);
 
   if (!result || !result.normalDamages || !result.criticalDamages) {
     return (
@@ -106,15 +137,12 @@ const DamageResult: React.FC<DamageResultProps> = ({
   const multiHitCritMinPercentage = defenderHP > 0 ? Math.max(0, (multiHitCritMinDamage / defenderHP) * 100) : 0;
   const multiHitCritMaxPercentage = defenderHP > 0 ? Math.max(0, (multiHitCritMaxDamage / defenderHP) * 100) : 0;
 
-  // HPバー表示用のダメージ割合 (通常モード or 急所モード)
   const currentDisplayMinPercentage = isCriticalModeActive ? multiHitCritMinPercentage : multiHitMinPercentage;
   const currentDisplayMaxPercentage = isCriticalModeActive ? multiHitCritMaxPercentage : multiHitMaxPercentage;
 
-  // ダメージ割合を0%から100%の範囲にクランプ（HPを超えたダメージは100%ダメージとして扱う）
   const clampedCurrentDisplayMinPercentage = Math.min(100, currentDisplayMinPercentage);
   const clampedCurrentDisplayMaxPercentage = Math.min(100, currentDisplayMaxPercentage);
 
-  // 残りHP割合の計算
   const actualRemainingHPMinPercentage = Math.max(0, 100 - clampedCurrentDisplayMaxPercentage);
   const actualRemainingHPMaxPercentage = Math.max(0, 100 - clampedCurrentDisplayMinPercentage);
   
@@ -146,7 +174,6 @@ const DamageResult: React.FC<DamageResultProps> = ({
 
 
   const formatPercentage = (percentage: number): string => {
-    // 割合表示は削除されたため、この関数はKOテキスト内でしか使われなくなる
     return Math.max(0, percentage).toFixed(2);
   };
 
@@ -269,8 +296,8 @@ const DamageResult: React.FC<DamageResultProps> = ({
     }
     
     if (minUsagesToKO > 10 && confirmedUsagesToKO > 10) {
-        if (confirmedUsagesToKO !== Infinity) return `確定${confirmedUsagesToKO}発`; // 10発以上は確率省略
-        return `乱数${minUsagesToKO}発`; // 10発以上は確率省略
+        if (confirmedUsagesToKO !== Infinity) return `確定${confirmedUsagesToKO}発`;
+        return `乱数${minUsagesToKO}発`;
     }
 
     if (minUsagesToKO === confirmedUsagesToKO) {
@@ -319,6 +346,13 @@ const DamageResult: React.FC<DamageResultProps> = ({
 
   const uniqueDoubleBattleId = `doubleBattle-${resultIdSuffix}`;
   const uniqueCriticalModeId = `criticalMode-${resultIdSuffix}`;
+
+  const handleSaveLog = () => {
+    if (onSaveLog) {
+      onSaveLog();
+      // setIsModalOpen(false); // Optionally close modal after saving
+    }
+  };
 
   return (
     <div className="p-1 bg-gray-800 rounded-lg transition-all duration-300">
@@ -399,9 +433,8 @@ const DamageResult: React.FC<DamageResultProps> = ({
 
           <div className="flex justify-between items-center">
             <div className="flex-grow">
-              <div> {/* grid-cols-2 を削除し、単一のコンテナにする */}
+              <div>
                 {isCriticalModeActive ? (
-                  // 急所ダメージ表示
                   <div>
                   <p className="text-sm text-red-400 mb-1">急所 {hitCount > 1 && ` (${hitCount}回)`} 
                      {' '}{getKOText(result.criticalDamages, defenderHP, hitCount, true)}
@@ -417,7 +450,6 @@ const DamageResult: React.FC<DamageResultProps> = ({
                   </p>
                   </div>
                 ) : (
-                  // 通常ダメージ表示
                   <div>
                   <p className="text-sm text-white mb-1">通常 {hitCount > 1 && ` (${hitCount}回)`}
                    {' '}{getKOText(result.normalDamages, defenderHP, hitCount, true)}
@@ -426,7 +458,6 @@ const DamageResult: React.FC<DamageResultProps> = ({
                     <span className={getDamageColor(multiHitMinPercentage)}>{multiHitMinDamage}</span>
                     {' - '}
                     <span className={getDamageColor(multiHitMaxPercentage)}>{multiHitMaxDamage}</span>
-
                     
                     <span className="text-sm text-white ml-2">
                       ({formatPercentage(multiHitMinPercentage)}% - {formatPercentage(multiHitMaxPercentage)}%) 
@@ -436,8 +467,6 @@ const DamageResult: React.FC<DamageResultProps> = ({
                 )}
               </div>
             </div>
-
-
             
             <div className="flex items-center space-x-2 shrink-0 ml-2">
               <div className="flex items-center">
@@ -477,20 +506,22 @@ const DamageResult: React.FC<DamageResultProps> = ({
             </div>
           </div>
 
-
           {isModalOpen && attackerDetails && defenderDetails && (
             <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4">
               <div className="bg-gray-800 rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 relative">
-                <button
-                  className="absolute top-4 right-4 text-gray-400 hover:text-white"
-                  onClick={() => setIsModalOpen(false)}
-                >
-                  <X className="w-6 h-6" />
-                </button>
-                <h2 className="text-xl font-semibold text-white mb-6 text-center">ダメージ計算詳細</h2>
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold text-white text-center flex-grow">ダメージ計算詳細</h2>
+                    <button
+                      className="text-gray-400 hover:text-white"
+                      onClick={() => setIsModalOpen(false)}
+                      aria-label="閉じる"
+                    >
+                      <X className="w-6 h-6" />
+                    </button>
+                </div>
                 
                 <div className="mb-2">
-                  <p>攻：{attackerPokemonName}:{attackerMoveName} {hitCount > 1 && `${hitCount}回`}</p>
+                  <p>攻：{attackerPokemonName}:{attackerMoveNameForDisplay || attackerMoveName} {hitCount > 1 && `${hitCount}回`}</p>
                   <p>防：{defenderPokemonName}</p>
                 </div>
                 <div className="mb-2">
@@ -522,19 +553,36 @@ const DamageResult: React.FC<DamageResultProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <h3 className="text-lg font-medium text-red-400 mb-3 border-b border-gray-700 pb-1">攻撃側: {attackerDetails.pokemonName}</h3>
-                    <ul className="space-y-1 text-sm text-gray-300">
-                      <li>
+                    <div className="flex items-start mb-2">
                         <img 
                           src={`/icon/${attackerDetails.pokemonId.toString().padStart(3, '0')}.png`} 
                           alt={attackerDetails.pokemonName} 
-                          className="w-12 h-12 inline-block mr-2 mb-1 border border-gray-700 rounded" 
+                          className="w-12 h-12 inline-block mr-2 border border-gray-700 rounded" 
                         />
-                      </li>
+                        <div className="flex flex-col space-y-1">
+                            {Array.isArray(attackerDetails.displayTypes) && attackerDetails.displayTypes.map((type, idx) => (
+                                type && <span 
+                                    key={`attacker-type-${idx}`}
+                                    className="px-2 py-0.5 rounded text-xs font-medium text-white"
+                                    style={{ backgroundColor: getTypeColorFromModal(type as PokemonType | 'stellar') }}
+                                >
+                                    {getTypeNameJpFromModal(type as PokemonType | 'stellar')}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                    <ul className="space-y-1 text-sm text-gray-300">
                       <li>技の威力: <span className="font-semibold text-white">{attackerDetails.movePower}</span></li>
+                      {/* 技カテゴリ表示の例 (attackerDetails.moveCategory があれば) */}
+                      {attackerDetails.moveCategory && (
+                        <li>技カテゴリ: <span className="font-semibold text-white">
+                            {attackerDetails.moveCategory === 'physical' ? '物理' : attackerDetails.moveCategory === 'special' ? '特殊' : '変化'}
+                        </span></li>
+                      )}
                       <li>攻撃/特攻の値: <span className="font-semibold text-white">{attackerDetails.offensiveStatValue}</span></li>
                       <li>攻撃/特攻ランク: <span className="font-semibold text-white">{attackerDetails.offensiveStatRank >= 0 ? `+${attackerDetails.offensiveStatRank}` : attackerDetails.offensiveStatRank}</span></li>
-                      {attackerDetails.teraType && <li>テラスタル: <span className="font-semibold text-white">{attackerDetails.teraType}</span></li>}
-                      {attackerDetails.isStellar && <li><span className="font-semibold text-pink-400">ステラ</span></li>}
+                      {attackerDetails.teraType && !attackerDetails.isStellar && <li>テラスタル: <span className="font-semibold text-white">{getTypeNameJpFromModal(attackerDetails.teraType)}</span></li>}
+                      {attackerDetails.isStellar && <li>テラスタル: <span className="font-semibold text-pink-400">{getTypeNameJpFromModal(PokemonType.Stellar)}</span></li>}
                       {attackerDetails.item && <li>持ち物: <span className="font-semibold text-white">{attackerDetails.item}</span></li>}
                       {attackerDetails.ability && <li>特性: <span className="font-semibold text-white">{attackerDetails.ability}</span></li>}
                       {attackerDetails.isBurned && <li className="text-red-400 font-semibold">火傷状態</li>}
@@ -544,16 +592,30 @@ const DamageResult: React.FC<DamageResultProps> = ({
 
                   <div>
                     <h3 className="text-lg font-medium text-blue-400 mb-3 border-b border-gray-700 pb-1">防御側: {defenderDetails.pokemonName}</h3>
-                    <ul className="space-y-1 text-sm text-gray-300">
-                      <li>
+                     <div className="flex items-start mb-2">
                         <img 
                             src={`/icon/${defenderDetails.pokemonId.toString().padStart(3, '0')}.png`} 
                             alt={defenderDetails.pokemonName} 
-                            className="w-12 h-12 inline-block mr-2 mb-1 border border-gray-700 rounded"
-                          />
-                      </li>
+                            className="w-12 h-12 inline-block mr-2 border border-gray-700 rounded"
+                        />
+                        <div className="flex flex-col space-y-1">
+                            {Array.isArray(defenderDetails.displayTypes) && defenderDetails.displayTypes.map((type, idx) => (
+                                type && <span 
+                                    key={`defender-type-${idx}`}
+                                    className="px-2 py-0.5 rounded text-xs font-medium text-white"
+                                    style={{ backgroundColor: getTypeColorFromModal(type) }}
+                                >
+                                    {getTypeNameJpFromModal(type)}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                    <ul className="space-y-1 text-sm text-gray-300">
+                      {/* 防御側最大HP表示の例 (defenderDetails.maxHp があれば) */}
+                      {defenderDetails.maxHp && <li>最大HP: <span className="font-semibold text-white">{defenderDetails.maxHp}</span></li>}
                       <li>防御/特防の値: <span className="font-semibold text-white">{defenderDetails.defensiveStatValue}</span></li>
                       <li>防御/特防ランク: <span className="font-semibold text-white">{defenderDetails.defensiveStatRank >= 0 ? `+${defenderDetails.defensiveStatRank}` : defenderDetails.defensiveStatRank}</span></li>
+                      <li>相性: <span className="font-semibold text-white">×{result.effectiveness.toFixed(2)}</span></li>
                       {defenderDetails.item && <li>持ち物: <span className="font-semibold text-white">{defenderDetails.item}</span></li>}
                       {defenderDetails.ability && <li>特性: <span className="font-semibold text-white">{defenderDetails.ability}</span></li>}
                       {defenderDetails.hasReflect && <li className="text-blue-300 font-semibold">リフレクター</li>}
@@ -567,8 +629,8 @@ const DamageResult: React.FC<DamageResultProps> = ({
                   <div className="mt-6 pt-4 border-t border-gray-700">
                     <h3 className="text-lg font-medium text-indigo-400 mb-3">フィールド状態</h3>
                     <ul className="space-y-1 text-sm text-gray-300">
-                      {weather && <li>天候: <span className="font-semibold text-white">{weather}</span></li>}
-                      {field && <li>フィールド: <span className="font-semibold text-white">{field}</span></li>}
+                      {weather && <li>天候: <span className="font-semibold text-white">{WEATHER_NAME_JP[weather as keyof typeof WEATHER_NAME_JP] || weather}</span></li>}
+                      {field && <li>フィールド: <span className="font-semibold text-white">{FIELD_NAME_JP[field as keyof typeof FIELD_NAME_JP] || field}</span></li>}
                       {disasters && Object.entries(disasters).map(([key, value]) => 
                         value && <li key={key}>災い: <span className="font-semibold text-red-400">{disasterMap[key as keyof DisasterState]}</span></li>
                       )}
@@ -616,12 +678,22 @@ const DamageResult: React.FC<DamageResultProps> = ({
                   </div>
                 </div>
 
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="mt-8 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors"
-                >
-                  閉じる
-                </button>
+                <div className="mt-8 flex space-x-2">
+                    <button
+                        onClick={handleSaveLog}
+                        disabled={!onSaveLog}
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors flex items-center justify-center disabled:opacity-50"
+                    >
+                        <Save size={18} className="mr-2"/>
+                        ログ保存
+                    </button>
+                    <button
+                        onClick={() => setIsModalOpen(false)}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors"
+                    >
+                        閉じる
+                    </button>
+                </div>
               </div>
             </div>
           )}
