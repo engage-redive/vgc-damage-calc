@@ -1,4 +1,4 @@
-import { Ability, Item, DisasterState, MoveCategory, PokemonType } from '../types';
+import { Ability, Item, DisasterState, MoveCategory, PokemonType, ProtosynthesisBoostTarget, QuarkDriveBoostTarget, Weather, Field } from '../types';
 
 function applyMultiplierAndRound(currentValue: number, multiplier: number): number {
     const result = (currentValue * multiplier) / 4096;
@@ -30,7 +30,9 @@ export const calculateFinalAttack = (
     attackerProtosynthesisBoostedStat: ProtosynthesisBoostTarget | null,
     // クォークチャージ関連引数
     isAttackerQuarkDriveActive: boolean,
-    attackerQuarkDriveBoostedStat: QuarkDriveBoostTarget | null
+    attackerQuarkDriveBoostedStat: QuarkDriveBoostTarget | null,
+    weather: Weather,
+    field: Field
 ): number => {
     let attackMultiplier = 4096; // 初期値は4096 (1倍)
 
@@ -63,11 +65,30 @@ export const calculateFinalAttack = (
         }
 
         // 他の攻撃上昇特性をここに追加
-        switch (attackerAbility.id) {
-            case 'guts': // こんじょう (やけど時など状態異常で攻撃1.5倍) - isBurnedはApp.tsxで別途考慮
-                // ここでは特性自体が持つ常時効果や、特定の条件下での効果を記述
+switch (attackerAbility.id) {
+            case 'guts':
                 break;
-            // ...
+            case 'transistor':
+                // トランジスタ: でんきタイプの攻撃技を使うとき、攻撃/特攻が1.3倍 (5325/4096)
+                if (moveType === PokemonType.Electric) { // PokemonType.Electric を使用 (types.ts の enum と比較)
+                    attackMultiplier = applyMultiplierAndRound(attackMultiplier, 5325);
+                }
+                break;
+
+            case 'hadronengine':
+                // ハドロンエンジン: 場がエレキフィールド状態の間、特攻が4/3倍 (5461/4096)
+                if (moveCategory === 'special' && field === Field.Electric) { // Field.Electric を使用 (types.ts の enum と比較)
+                    attackMultiplier = applyMultiplierAndRound(attackMultiplier, 5461);
+                }
+                break;
+
+            case 'orichalcumpulse':
+                // ひひいろのこどう: 場がにほんばれ状態の間、攻撃が4/3倍 (5461/4096)
+                // types.ts の Weather 型定義に合わせて 'sun' と 'harsh_sunlight' をチェック
+                if (moveCategory === 'physical' && (weather === 'sun' || weather === 'harsh_sunlight')) {
+                    attackMultiplier = applyMultiplierAndRound(attackMultiplier, 5461);
+                }
+                break;
         }
     }
 

@@ -3,7 +3,6 @@ import { Pokemon, StatCalculation, NatureModifier, Item, Ability, PokemonType, D
 import PokemonSelect from './PokemonSelect';
 import ItemSelect from './ItemSelect';
 import AbilitySelect from './AbilitySelect';
-// import StandardDefensiveStatInputs from './defenderSpecific/StandardDefensiveStatInputs'; // この行を削除
 import StatSlider from './StatSlider'; // StatSliderをインポート
 import RankSelector from './RankSelector'; // RankSelectorをインポート
 
@@ -93,9 +92,11 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
     hpStat,
     defenseStat,
     specialDefenseStat,
+    // speedStat, // speedStat も参照できるように
     hpInputValue,
     defenseInputValue,
     specialDefenseInputValue,
+    // speedInputValue, // speedInputValue も参照できるように
     protosynthesisBoostedStat,
     protosynthesisManualTrigger,
     quarkDriveBoostedStat,
@@ -129,120 +130,127 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
     if (!base || base <= 0) return 0;
 
     if (isHpStat) {
-      if (base === 1) return 1;
-      return Math.floor(((2 * base + iv + Math.floor(ev / 4)) * LEVEL) / 100) + LEVEL + 10;
+      if (base === 1) return 1; // Shedinja case
+      return Math.floor(((2 * base + iv + Math.floor(ev / 4)) * level) / 100) + level + 10;
     } else {
       let stat = Math.floor(((2 * base + iv + Math.floor(ev / 4)) * level) / 100) + 5;
       stat = Math.floor(stat * nature);
       return stat;
     }
   };
-
-  useEffect(() => {
-    if (selectedPokemon) {
-      if (defenderState.hpInputValue !== hpStat.final.toString()) {
-        onDefenderStateChange({ hpInputValue: hpStat.final.toString() });
-      }
-    } else if (defenderState.hpInputValue !== "") {
-       onDefenderStateChange({ hpInputValue: "" });
-    }
-  }, [selectedPokemon, hpStat.final, defenderState.hpInputValue, onDefenderStateChange]);
-
-  useEffect(() => {
-    if (selectedPokemon) {
-      if (defenderState.defenseInputValue !== defenseStat.final.toString()) {
-        onDefenderStateChange({ defenseInputValue: defenseStat.final.toString() });
-      }
-    } else if (defenderState.defenseInputValue !== "") {
-      onDefenderStateChange({ defenseInputValue: "" });
-    }
-  }, [selectedPokemon, defenseStat.final, defenderState.defenseInputValue, onDefenderStateChange]);
-
-  useEffect(() => {
-    if (selectedPokemon) {
-      if (defenderState.specialDefenseInputValue !== specialDefenseStat.final.toString()) {
-        onDefenderStateChange({ specialDefenseInputValue: specialDefenseStat.final.toString() });
-      }
-    } else if (defenderState.specialDefenseInputValue !== "") {
-      onDefenderStateChange({ specialDefenseInputValue: "" });
-    }
-  }, [selectedPokemon, specialDefenseStat.final, defenderState.specialDefenseInputValue, onDefenderStateChange]);
-
+  
   const findClosestEvForBaseValue = (
-    targetBaseValue: number,
+    targetBaseValue: number, // This is the target stat value *before* rank modifications
     pokemonSpeciesStat: number,
     nature: NatureModifier,
     iv: number = 31,
     isHp: boolean = false
   ): number => {
     if (pokemonSpeciesStat <= 0) return 0;
+    // For non-HP stats, if target is 0 or less, EV is 0.
+    // For HP, targetBaseValue must be at least 1 (Shedinja) or more.
+    if (!isHp && targetBaseValue <= 0) return 0;
+    if (isHp && pokemonSpeciesStat === 1 && targetBaseValue === 1) return 0; // Shedinja specific
+
+    const statAt0Ev = calculateBaseStatValue(pokemonSpeciesStat, iv, 0, LEVEL, nature, isHp);
+    if (targetBaseValue <= statAt0Ev) return 0;
+
+    const statAt252Ev = calculateBaseStatValue(pokemonSpeciesStat, iv, 252, LEVEL, nature, isHp);
+    if (targetBaseValue >= statAt252Ev) return 252;
+    
     let closestEv = 0;
     let smallestDiff = Infinity;
     for (let ev = 0; ev <= 252; ev += 4) {
-      let calculatedStat;
-      if (isHp) {
-        if (pokemonSpeciesStat === 1) { calculatedStat = 1; }
-        else { calculatedStat = Math.floor(((2 * pokemonSpeciesStat + iv + Math.floor(ev / 4)) * LEVEL) / 100) + LEVEL + 10; }
-      } else {
-        let stat = Math.floor(((2 * pokemonSpeciesStat + iv + Math.floor(ev / 4)) * LEVEL) / 100) + 5;
-        stat = Math.floor(stat * nature);
-        calculatedStat = stat;
-      }
+      const calculatedStat = calculateBaseStatValue(pokemonSpeciesStat, iv, ev, LEVEL, nature, isHp);
       const diff = Math.abs(calculatedStat - targetBaseValue);
-      if (diff < smallestDiff) { smallestDiff = diff; closestEv = ev; }
-      else if (diff === smallestDiff) { closestEv = Math.min(closestEv, ev); }
+      if (diff < smallestDiff) {
+        smallestDiff = diff;
+        closestEv = ev;
+      } else if (diff === smallestDiff) {
+        // Prioritize lower EV if differences are equal
+        closestEv = Math.min(closestEv, ev);
+      }
     }
     return closestEv;
   };
 
+  // onChange handlers: Only update the inputValue in App.tsx's state.
   const handleHpInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    onDefenderStateChange({ hpInputValue: newValue });
-    const value = parseInt(newValue, 10);
-    if (selectedPokemon && !isNaN(value) && value >= 0) {
-      const closestEv = findClosestEvForBaseValue(value, selectedPokemon.baseStats.hp, hpStat.nature, hpStat.iv, true);
-      onDefenderStateChange({ hpStat: { ...hpStat, ev: closestEv }, hpEv: closestEv });
-    }
+    onDefenderStateChange({ hpInputValue: e.target.value });
   };
 
   const handleDefenseInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    onDefenderStateChange({ defenseInputValue: newValue });
-    const value = parseInt(newValue, 10);
-    if (selectedPokemon && !isNaN(value) && value >= 0) {
-      const closestEv = findClosestEvForBaseValue(value, selectedPokemon.baseStats.defense, defenseStat.nature, defenseStat.iv);
-      onDefenderStateChange({ defenseStat: { ...defenseStat, ev: closestEv } });
-    }
+    onDefenderStateChange({ defenseInputValue: e.target.value });
   };
 
   const handleSpecialDefenseInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    onDefenderStateChange({ specialDefenseInputValue: newValue });
-    const value = parseInt(newValue, 10);
-    if (selectedPokemon && !isNaN(value) && value >= 0) {
-      const closestEv = findClosestEvForBaseValue(value, selectedPokemon.baseStats.specialDefense, specialDefenseStat.nature, specialDefenseStat.iv);
-      onDefenderStateChange({ specialDefenseStat: { ...specialDefenseStat, ev: closestEv } });
-    }
+    onDefenderStateChange({ specialDefenseInputValue: e.target.value });
   };
+  // handleSpeedInputChange も同様に追加
 
+
+  // onBlur handlers: Calculate EV based on the current inputValue (from App.tsx's state)
+  // and send the updated StatCalculation object (with new EV) to App.tsx.
   const handleHpInputBlur = () => {
     if (selectedPokemon) {
-      if (hpInputValue !== hpStat.final.toString()) { onDefenderStateChange({ hpInputValue: hpStat.final.toString() }); }
-    } else if (hpInputValue !== "") { onDefenderStateChange({ hpInputValue: "" }); }
+      const value = parseInt(hpInputValue, 10);
+      if (!isNaN(value) && value >= 0) {
+        // For HP, rank is not applied to the base value for EV calculation
+        const closestEv = findClosestEvForBaseValue(value, selectedPokemon.baseStats.hp, hpStat.nature, hpStat.iv, true);
+        onDefenderStateChange({
+            hpStat: { ...hpStat, ev: closestEv },
+            hpEv: closestEv, // Also update hpEv for direct use if needed
+        });
+      } else {
+        // If input is invalid, tell App.tsx to revert to the current final stat string
+        // App.tsx's handleDefenderStateChange will handle this by recalculating final and setting inputValue
+        onDefenderStateChange({ hpInputValue: hpStat.final.toString() });
+      }
+    } else if (hpInputValue !== "") {
+      onDefenderStateChange({ hpInputValue: "" }); // Clear if no Pokemon and input is not already empty
+    }
   };
 
   const handleDefenseInputBlur = () => {
     if (selectedPokemon) {
-      if (defenseInputValue !== defenseStat.final.toString()) { onDefenderStateChange({ defenseInputValue: defenseStat.final.toString() }); }
-    } else if (defenseInputValue !== "") { onDefenderStateChange({ defenseInputValue: "" }); }
+      const value = parseInt(defenseInputValue, 10);
+      if (!isNaN(value) && value >= 0) {
+        const rankMultiplier = defenseStat.rank !== 0 ? (defenseStat.rank > 0 ? (2 + defenseStat.rank) / 2 : 2 / (2 - defenseStat.rank)) : 1;
+        // Target base value is the input value adjusted for rank
+        const targetBaseValue = Math.round(value / rankMultiplier); 
+        const closestEv = findClosestEvForBaseValue(targetBaseValue, selectedPokemon.baseStats.defense, defenseStat.nature, defenseStat.iv, false);
+        onDefenderStateChange({
+            defenseStat: { ...defenseStat, ev: closestEv },
+        });
+      } else {
+        onDefenderStateChange({ defenseInputValue: defenseStat.final.toString() });
+      }
+    } else if (defenseInputValue !== "") {
+      onDefenderStateChange({ defenseInputValue: "" });
+    }
   };
 
   const handleSpecialDefenseInputBlur = () => {
     if (selectedPokemon) {
-      if (specialDefenseInputValue !== specialDefenseStat.final.toString()) { onDefenderStateChange({ specialDefenseInputValue: specialDefenseStat.final.toString() }); }
-    } else if (specialDefenseInputValue !== "") { onDefenderStateChange({ specialDefenseInputValue: "" }); }
+      const value = parseInt(specialDefenseInputValue, 10);
+      if (!isNaN(value) && value >= 0) {
+        const rankMultiplier = specialDefenseStat.rank !== 0 ? (specialDefenseStat.rank > 0 ? (2 + specialDefenseStat.rank) / 2 : 2 / (2 - specialDefenseStat.rank)) : 1;
+        const targetBaseValue = Math.round(value / rankMultiplier);
+        const closestEv = findClosestEvForBaseValue(targetBaseValue, selectedPokemon.baseStats.specialDefense, specialDefenseStat.nature, specialDefenseStat.iv, false);
+        onDefenderStateChange({
+            specialDefenseStat: { ...specialDefenseStat, ev: closestEv },
+        });
+      } else {
+        onDefenderStateChange({ specialDefenseInputValue: specialDefenseStat.final.toString() });
+      }
+    } else if (specialDefenseInputValue !== "") {
+      onDefenderStateChange({ specialDefenseInputValue: "" });
+    }
   };
+  // handleSpeedInputBlur も同様に追加
 
+
+  // Direct change handlers (sliders, buttons): Send updated StatCalculation part to App.tsx.
   const handleHpEvChangeDirect = (ev: number) => {
     let validEv = Math.floor(ev / 4) * 4; validEv = Math.max(0, Math.min(validEv, 252));
     onDefenderStateChange({ hpStat: { ...hpStat, ev: validEv }, hpEv: validEv });
@@ -255,10 +263,24 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
     let validEv = Math.floor(ev / 4) * 4; validEv = Math.max(0, Math.min(validEv, 252));
     onDefenderStateChange({ specialDefenseStat: { ...specialDefenseStat, ev: validEv } });
   };
-  const handleDefenseNatureChangeDirect = (nature: NatureModifier) => onDefenderStateChange({ defenseStat: { ...defenseStat, nature } });
-  const handleSpecialDefenseNatureChangeDirect = (nature: NatureModifier) => onDefenderStateChange({ specialDefenseStat: { ...specialDefenseStat, nature } });
-  const handleDefenseRankChangeDirect = (rank: number) => onDefenderStateChange({ defenseStat: { ...defenseStat, rank } });
-  const handleSpecialDefenseRankChangeDirect = (rank: number) => onDefenderStateChange({ specialDefenseStat: { ...specialDefenseStat, rank } });
+  // handleSpeedEvChangeDirect も同様に追加
+
+  const handleDefenseNatureChangeDirect = (nature: NatureModifier) => {
+    onDefenderStateChange({ defenseStat: { ...defenseStat, nature } });
+  };
+  const handleSpecialDefenseNatureChangeDirect = (nature: NatureModifier) => {
+    onDefenderStateChange({ specialDefenseStat: { ...specialDefenseStat, nature } });
+  };
+  // handleSpeedNatureChangeDirect も同様に追加
+
+  const handleDefenseRankChangeDirect = (rank: number) => {
+    onDefenderStateChange({ defenseStat: { ...defenseStat, rank } });
+  };
+  const handleSpecialDefenseRankChangeDirect = (rank: number) => {
+    onDefenderStateChange({ specialDefenseStat: { ...specialDefenseStat, rank } });
+  };
+  // handleSpeedRankChangeDirect も同様に追加
+
 
   const handleProtosynthesisBoostedStatChangeForDefender = (stat: ProtosynthesisBoostTarget | null) => {
     onDefenderStateChange({ protosynthesisBoostedStat: stat });
@@ -278,9 +300,12 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
     onDefenderStateChange({ ability });
   };
 
+  // For StatSlider's currentStat display (base value before rank)
   const hpBaseValueForDisplay = selectedPokemon ? calculateBaseStatValue(selectedPokemon.baseStats.hp, hpStat.iv, hpStat.ev, LEVEL, hpStat.nature, true) : 0;
   const defenseBaseValueForDisplay = selectedPokemon ? calculateBaseStatValue(selectedPokemon.baseStats.defense, defenseStat.iv, defenseStat.ev, LEVEL, defenseStat.nature) : 0;
   const specialDefenseBaseValueForDisplay = selectedPokemon ? calculateBaseStatValue(selectedPokemon.baseStats.specialDefense, specialDefenseStat.iv, specialDefenseStat.ev, LEVEL, specialDefenseStat.nature) : 0;
+  // const speedBaseValueForDisplay = selectedPokemon ? calculateBaseStatValue(selectedPokemon.baseStats.speed, speedStat.iv, speedStat.ev, LEVEL, speedStat.nature) : 0;
+
 
   const handleSelectType1 = (newType: PokemonType) => {
     if (isTerastallized) {
@@ -341,8 +366,8 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
         {selectedPokemon && (
           <div className="flex items-center gap-3 mb-3">
             <img src={`/icon/${selectedPokemon.id.toString().padStart(3, '0')}.png`} alt={selectedPokemon.name} className="w-8 h-8" />
-            <div className="flex flex-col"> {/* タイプと種族値を縦に並べるコンテナ */}
-              <div className="flex gap-1"> {/* タイプ表示 */}
+            <div className="flex flex-col">
+              <div className="flex gap-1">
                 {selectedPokemon.types.map((type, typeIndex) => (
                   <span
                     key={typeIndex}
@@ -353,7 +378,6 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
                   </span>
                 ))}
               </div>
-              {/* 種族値表示 */}
               <div className="text-sm font-mono text-gray-300 mt-1">
                 H{selectedPokemon.baseStats.hp} A{selectedPokemon.baseStats.attack} B{selectedPokemon.baseStats.defense} C{selectedPokemon.baseStats.specialAttack} D{selectedPokemon.baseStats.specialDefense} S{selectedPokemon.baseStats.speed}
               </div>
@@ -423,7 +447,7 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
         </div>
 
         <div className="mt-6">
-          <AbilitySelect abilities={abilities} selected={selectedAbility} onChange={handleAbilityChangeForDefender} label="特性" side="defender" />
+          <AbilitySelect abilities={abilities} selected={selectedAbility} onChange={handleAbilityChangeForDefender} label="特性" side="defender" disabled={!selectedPokemon}/>
         </div>
         {isProtosynthesisSelectedOnDefender && (
             <div className="mt-4 p-3 bg-gray-700 rounded-md">
@@ -541,7 +565,7 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
             <ItemSelect items={items} selected={defender2Item} onChange={onDefender2ItemChange} label="持ち物(2体目用)" side="defender" disabled={!selectedPokemon} />
           </div>
           <div className="mt-6">
-            <AbilitySelect abilities={abilities} selected={defender2Ability} onChange={onDefender2AbilityChange} label="Ability (防御側2)" side="defender" />
+            <AbilitySelect abilities={abilities} selected={defender2Ability} onChange={onDefender2AbilityChange} label="Ability (防御側2)" side="defender" disabled={!selectedPokemon} />
           </div>
           <p className="text-xs text-gray-400 mt-3">※ 防御側2の能力値・ランク・バトル状態は防御側1と共通です。</p>
         </div>
@@ -549,19 +573,21 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
 
       <div className="bg-gray-800 rounded-lg p-4 mb-4">
         <div className="flex items-center justify-between mb-4"><h3 className="text-lg font-semibold text-white">能力値設定</h3></div>
-        {/* StandardDefensiveStatInputs の呼び出しを削除し、以下に展開 */}
         <div className="space-y-6">
-          {/* HPセクション */}
           <div>
             <div className="flex justify-between items-center mb-1">
-              <label className="text-white font-medium">HP</label>
+              <label htmlFor="hp-input-defender" className="text-white font-medium">HP</label>
               <input
+                id="hp-input-defender"
                 type="number"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={hpInputValue}
                 onChange={handleHpInputChange}
                 onBlur={handleHpInputBlur}
                 className="w-24 bg-gray-700 text-white text-center p-1 rounded-md text-lg"
                 disabled={!selectedPokemon}
+                min="0"
               />
             </div>
             <StatSlider
@@ -569,11 +595,11 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
               onChange={handleHpEvChangeDirect}
               max={252}
               step={4}
-              currentStat={hpBaseValueForDisplay} // HPの実数値
-              baseStat={selectedPokemon?.baseStats.hp} // HPの種族値
+              currentStat={hpBaseValueForDisplay}
+              baseStat={selectedPokemon?.baseStats.hp}
               disabled={!selectedPokemon}
             />
-            <div className="flex justify-end items-start mt-2"> {/* HPには性格補正がないため右寄せ */}
+            <div className="flex justify-end items-start mt-2">
               <div className="text-right">
                 <span className="text-sm text-gray-400">努力値: {hpStat.ev}</span>
                 <div className="flex gap-1 mt-1 justify-end">
@@ -594,20 +620,22 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
                 </div>
               </div>
             </div>
-            {/* HPにはランクセレクターなし */}
           </div>
 
-          {/* ぼうぎょセクション */}
           <div>
             <div className="flex justify-between items-center mb-1">
-              <label className="text-white font-medium">ぼうぎょ</label>
+              <label htmlFor="def-input-defender" className="text-white font-medium">ぼうぎょ</label>
               <input
+                id="def-input-defender"
                 type="number"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={defenseInputValue}
                 onChange={handleDefenseInputChange}
                 onBlur={handleDefenseInputBlur}
                 className="w-24 bg-gray-700 text-white text-center p-1 rounded-md text-lg"
                 disabled={!selectedPokemon}
+                min="0"
               />
             </div>
             <StatSlider
@@ -665,17 +693,20 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
             </div>
           </div>
 
-          {/* とくぼうセクション */}
           <div>
             <div className="flex justify-between items-center mb-1">
-              <label className="text-white font-medium">とくぼう</label>
+              <label htmlFor="spd-input-defender" className="text-white font-medium">とくぼう</label>
               <input
+                id="spd-input-defender"
                 type="number"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={specialDefenseInputValue}
                 onChange={handleSpecialDefenseInputChange}
                 onBlur={handleSpecialDefenseInputBlur}
                 className="w-24 bg-gray-700 text-white text-center p-1 rounded-md text-lg"
                 disabled={!selectedPokemon}
+                min="0"
               />
             </div>
             <StatSlider
@@ -732,6 +763,7 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
               />
             </div>
           </div>
+          {/* Speed stat section can be added here if needed, following the pattern of defense/specialDefense */}
         </div>
       </div>
 

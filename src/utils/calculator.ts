@@ -195,6 +195,8 @@ export const calculateDamage = (
         attackerProtosynthesisBoostedStat,
         isAttackerQuarkDriveActive, // New
         attackerQuarkDriveBoostedStat, // New
+        weather, // 天候情報を渡す
+        field,   // フィールド情報を渡す
         false // isCriticalHit
     );
 
@@ -248,6 +250,8 @@ export const calculateDamage = (
         attackerProtosynthesisBoostedStat,
         isAttackerQuarkDriveActive, // New
         attackerQuarkDriveBoostedStat, // New
+        weather, // 天候情報を渡す
+        field,   // フィールド情報を渡す
         true // isCriticalHit
     );
 

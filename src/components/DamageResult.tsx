@@ -399,42 +399,46 @@ const DamageResult: React.FC<DamageResultProps> = ({
 
           <div className="flex justify-between items-center">
             <div className="flex-grow">
-              <div className="grid grid-cols-2 gap-x-2">
-                <div>
-                  <p className="text-xs text-gray-400 leading-tight">通常</p> 
-                  <p className="text-white font-medium text-sm leading-tight">
-                    <span className={getDamageColor(multiHitMinPercentage)}>{multiHitMinDamage}</span>
-                    {' - '}
-                    <span className={getDamageColor(multiHitMaxPercentage)}>{multiHitMaxDamage}</span>
-                    {defenderHP > 0 && multiHitMaxDamage > 0 && (
-                      <span className="text-xs text-gray-400 ml-1">
-                        ({formatPercentage(multiHitMinPercentage)}% - {formatPercentage(multiHitMaxPercentage)}%)
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-xs text-gray-300 leading-tight">
-                    {getKOText(result.normalDamages, defenderHP, hitCount, false)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-red-400 leading-tight">急所</p> 
-                  <p className="text-white font-medium text-sm leading-tight">
+              <div> {/* grid-cols-2 を削除し、単一のコンテナにする */}
+                {isCriticalModeActive ? (
+                  // 急所ダメージ表示
+                  <div>
+                  <p className="text-sm text-red-400 mb-1">急所 {hitCount > 1 && ` (${hitCount}回)`} 
+                     {' '}{getKOText(result.criticalDamages, defenderHP, hitCount, true)}
+                  </p>  
+                  <p className="text-white font-medium">
                     <span className={getDamageColor(multiHitCritMinPercentage)}>{multiHitCritMinDamage}</span>
                     {' - '}
                     <span className={getDamageColor(multiHitCritMaxPercentage)}>{multiHitCritMaxDamage}</span>
-                     {defenderHP > 0 && multiHitCritMaxDamage > 0 && (
-                       <span className="text-xs text-gray-400 ml-1">
-                        ({formatPercentage(multiHitCritMinPercentage)}% - {formatPercentage(multiHitCritMaxPercentage)}%)
-                      </span>
-                    )}
+                    
+                    <span className="text-sm text-white ml-2">
+                      ({formatPercentage(multiHitCritMinPercentage)}% - {formatPercentage(multiHitCritMaxPercentage)}%) 
+                    </span>
                   </p>
-                  <p className="text-xs text-gray-300 leading-tight">
-                    {getKOText(result.criticalDamages, defenderHP, hitCount, false)}
+                  </div>
+                ) : (
+                  // 通常ダメージ表示
+                  <div>
+                  <p className="text-sm text-white mb-1">通常 {hitCount > 1 && ` (${hitCount}回)`}
+                   {' '}{getKOText(result.normalDamages, defenderHP, hitCount, true)}
+                  </p> 
+                  <p className="text-white font-medium">
+                    <span className={getDamageColor(multiHitMinPercentage)}>{multiHitMinDamage}</span>
+                    {' - '}
+                    <span className={getDamageColor(multiHitMaxPercentage)}>{multiHitMaxDamage}</span>
+
+                    
+                    <span className="text-sm text-white ml-2">
+                      ({formatPercentage(multiHitMinPercentage)}% - {formatPercentage(multiHitMaxPercentage)}%) 
+                    </span>
                   </p>
-                </div>
+                  </div>
+                )}
               </div>
             </div>
 
+
+            
             <div className="flex items-center space-x-2 shrink-0 ml-2">
               <div className="flex items-center">
                 <input

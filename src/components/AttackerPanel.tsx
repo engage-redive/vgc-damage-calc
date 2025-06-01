@@ -837,74 +837,9 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
               />
             </div>
           </div>
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <label className="text-white font-medium">すばやさ</label>
-              <input
-                type="number"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={attacker.speedInputValue}
-                onChange={(e) => handleSpeedInputChange(e, index)}
-                onBlur={() => handleSpeedInputBlur(index)}
-                className="w-24 bg-gray-700 text-white text-center p-1 rounded-md text-lg"
-                disabled={!attacker.isEnabled || !attacker.pokemon}
-                min="0"
-              />
-            </div>
-            <StatSlider
-              value={attacker.speedStat?.ev || 0}
-              onChange={(ev) => handleSpeedEvChange(ev, index)}
-              max={252}
-              step={4}
-              currentStat={speedBaseValueForDisplay}
-              disabled={!attacker.isEnabled || !attacker.pokemon}
-            />
-            <div className="flex justify-between items-start mt-2">
-              <div>
-                <label className="text-sm text-gray-400">性格補正</label>
-                <div className="flex gap-1 mt-1">
-                  {[0.9, 1.0, 1.1].map((n) => (
-                    <button
-                      key={n}
-                      onClick={() => handleSpeedNatureChange(n as NatureModifier, index)}
-                      className={`px-3 py-1 text-xs rounded-md transition-colors ${(attacker.speedStat?.nature || 1.0) === n ? 'bg-blue-600 text-white font-semibold' : 'bg-gray-600 hover:bg-gray-500'}`}
-                      disabled={!attacker.isEnabled || !attacker.pokemon}
-                    >
-                      x{n.toFixed(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="text-right">
-                <span className="text-sm text-gray-400">努力値: {attacker.speedStat?.ev || 0}</span>
-                <div className="flex gap-1 mt-1 justify-end">
-                    <button
-                        onClick={() => handleSpeedEvChange(0, index)}
-                        className="w-12 py-1 text-xs rounded-md bg-gray-600 hover:bg-gray-500 transition-colors"
-                        disabled={!attacker.isEnabled || !attacker.pokemon}
-                    >
-                        0
-                    </button>
-                    <button
-                        onClick={() => handleSpeedEvChange(252, index)}
-                        className="w-12 py-1 text-xs rounded-md bg-gray-600 hover:bg-gray-500 transition-colors"
-                        disabled={!attacker.isEnabled || !attacker.pokemon}
-                    >
-                        252
-                    </button>
-                </div>
-              </div>
-            </div>
-            <div className="mt-4">
-              <RankSelector
-                value={attacker.speedStat?.rank || 0}
-                onChange={(rank) => handleSpeedRankChange(rank, index)}
-                label="すばやさランク"
-                disabled={!attacker.isEnabled || !attacker.pokemon}
-              />
-            </div>
-          </div>
+          
+
+
         </div>
       );
 

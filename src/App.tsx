@@ -20,13 +20,13 @@ import {
     MoveCategory,
     DefenderState,
     ProtosynthesisBoostTarget,
-    AttackerState, // 追加: types.ts からインポート
-    TeamMemberForAttackerLoad, // 追加: types.ts からインポート
-    TeamMemberForDefenderLoad, // 追加: types.ts からインポート
-    MoveDynamicContext,      // 追加
-} from './types'; // ProtosynthesisBoostTarget は quarkDrive にも流用
+    AttackerState,
+    TeamMemberForAttackerLoad,
+    TeamMemberForDefenderLoad,
+    MoveDynamicContext,
+} from './types';
 import { calculateStat, calculateDamage } from './utils/calculator';
-import { getEffectiveMoveProperties } from './utils/moveEffects'; // 追加
+import { getEffectiveMoveProperties } from './utils/moveEffects';
 import AttackerPanel from './components/AttackerPanel';
 import DefenderPanel from './components/DefenderPanel';
 import DamageResult from './components/DamageResult';
@@ -41,7 +41,7 @@ type MobileViewMode = 'attacker' | 'defender';
 
 const calculateHpForApp = (base: number, iv: number, ev: number, level: number): number => {
   if (base <= 0) return 0;
-  if (base === 1) return 1; // ヌケニン
+  if (base === 1) return 1;
   return Math.floor(((2 * base + iv + Math.floor(ev / 4)) * level) / 100) + level + 10;
 };
 
@@ -60,6 +60,7 @@ function App() {
     const [hasLightScreen, setHasLightScreen] = useState(false);
     const [hasFriendGuard, setHasFriendGuard] = useState(false);
     const [defenderIsTerastallized, setDefenderIsTerastallized] = useState(false);
+    const [damageResults, setDamageResults] = useState<(DamageCalculation | null)[]>([]);
 
     const [defender2Item, setDefender2Item] = useState<Item | null>(null);
     const [defender2Ability, setDefender2Ability] = useState<Ability | null>(null);
@@ -70,17 +71,22 @@ function App() {
     const initialAttackStatForApp: StatCalculation = {
         base: initialPokedexPokemon.baseStats.attack,
         iv: 31, ev: 0, nature: 1.0 as NatureModifier, rank: 0,
-        final: calculateStat(initialPokedexPokemon.baseStats.attack, 31, 0, 50, 1.0)
+        final: calculateStat(initialPokedexPokemon.baseStats.attack, 31, 0, 50, 1.0, false, 0, null)
     };
     const initialSpecialAttackStatForApp: StatCalculation = {
         base: initialPokedexPokemon.baseStats.specialAttack,
         iv: 31, ev: 0, nature: 1.0 as NatureModifier, rank: 0,
-        final: calculateStat(initialPokedexPokemon.baseStats.specialAttack, 31, 0, 50, 1.0)
+        final: calculateStat(initialPokedexPokemon.baseStats.specialAttack, 31, 0, 50, 1.0, false, 0, null)
     };
     const initialDefenseStatForApp: StatCalculation = {
         base: initialPokedexPokemon.baseStats.defense,
         iv: 31, ev: 0, nature: 1.0 as NatureModifier, rank: 0,
-        final: calculateStat(initialPokedexPokemon.baseStats.defense, 31, 0, 50, 1.0)
+        final: calculateStat(initialPokedexPokemon.baseStats.defense, 31, 0, 50, 1.0, false, 0, null)
+    };
+    const initialSpeedStatForApp: StatCalculation = { 
+        base: initialPokedexPokemon.baseStats.speed,
+        iv: 31, ev: 0, nature: 1.0 as NatureModifier, rank: 0,
+        final: calculateStat(initialPokedexPokemon.baseStats.speed, 31, 0, 50, 1.0, false, 0, null)
     };
     const initialDefaultHpBase = initialPokedexPokemon.baseStats.hp || 0;
     const initialDefaultHpEv = 0;
@@ -90,14 +96,17 @@ function App() {
     const defaultInitialAttackerState: AttackerState = {
         pokemon: initialPokedexPokemon,
         move: initialMove,
+        effectiveMove: null,
         item: null,
         ability: null,
         attackStat: initialAttackStatForApp,
         specialAttackStat: initialSpecialAttackStatForApp,
         defenseStat: initialDefenseStatForApp,
+        speedStat: initialSpeedStatForApp,
         attackInputValue: initialAttackStatForApp.final.toString(),
         specialAttackInputValue: initialSpecialAttackStatForApp.final.toString(),
         defenseInputValue: initialDefenseStatForApp.final.toString(),
+        speedInputValue: initialSpeedStatForApp.final.toString(),
         hpEv: initialDefaultHpEv,
         actualMaxHp: initialDefaultActualMaxHp,
         currentHp: initialDefaultActualMaxHp,
@@ -115,27 +124,30 @@ function App() {
         protosynthesisManualTrigger: false,
         quarkDriveBoostedStat: null,
         quarkDriveManualTrigger: false,
-        moveUiOptionStates: {}, // 追加
-      　effectiveMove: null, // ★★★ 追加 ★★★
+        moveUiOptionStates: {},
     };
 
     const [activeAttackers, setActiveAttackers] = useState<AttackerState[]>([defaultInitialAttackerState]);
 
     const initialDefenderHpStat: StatCalculation = {
         base: initialPokedexPokemon.baseStats.hp, iv: 31, ev: 0, nature: 1.0, rank: 0,
-        final: calculateStat(initialPokedexPokemon.baseStats.hp, 31, 0, 50, 1.0, true)
+        final: calculateStat(initialPokedexPokemon.baseStats.hp, 31, 0, 50, 1.0, true, 0, null)
     };
     const initialDefenderDefenseStat: StatCalculation = {
         base: initialPokedexPokemon.baseStats.defense, iv: 31, ev: 0, nature: 1.0, rank: 0,
-        final: calculateStat(initialPokedexPokemon.baseStats.defense, 31, 0, 50, 1.0)
+        final: calculateStat(initialPokedexPokemon.baseStats.defense, 31, 0, 50, 1.0, false, 0, null)
     };
     const initialDefenderSpecialDefenseStat: StatCalculation = {
         base: initialPokedexPokemon.baseStats.specialDefense, iv: 31, ev: 0, nature: 1.0, rank: 0,
-        final: calculateStat(initialPokedexPokemon.baseStats.specialDefense, 31, 0, 50, 1.0)
+        final: calculateStat(initialPokedexPokemon.baseStats.specialDefense, 31, 0, 50, 1.0, false, 0, null)
     };
     const initialDefenderAttackStatForFoulPlay: StatCalculation = {
         base: initialPokedexPokemon.baseStats.attack, iv: 31, ev: 0, nature: 1.0, rank: 0,
-        final: calculateStat(initialPokedexPokemon.baseStats.attack, 31, 0, 50, 1.0)
+        final: calculateStat(initialPokedexPokemon.baseStats.attack, 31, 0, 50, 1.0, false, 0, null)
+    };
+    const initialDefenderSpeedStat: StatCalculation = { 
+        base: initialPokedexPokemon.baseStats.speed, iv: 31, ev: 0, nature: 1.0, rank: 0,
+        final: calculateStat(initialPokedexPokemon.baseStats.speed, 31, 0, 50, 1.0, false, 0, null)
     };
 
 
@@ -147,11 +159,11 @@ function App() {
         defenseStat: initialDefenderDefenseStat,
         specialDefenseStat: initialDefenderSpecialDefenseStat,
         attackStat: initialDefenderAttackStatForFoulPlay,
-        // speedStat は types.ts で追加したが、初期化がまだ。必要に応じて追加
-        // speedInputValue も同様
+        speedStat: initialDefenderSpeedStat,
         hpInputValue: initialDefenderHpStat.final.toString(),
         defenseInputValue: initialDefenderDefenseStat.final.toString(),
         specialDefenseInputValue: initialDefenderSpecialDefenseStat.final.toString(),
+        speedInputValue: initialDefenderSpeedStat.final.toString(),
         hpEv: 0,
         actualMaxHp: initialDefenderHpStat.final,
         teraType: null,
@@ -178,12 +190,10 @@ function App() {
             }
             return [defenderState.pokemon.types[0], defenderState.pokemon.types[1] || undefined];
         }
-        return [PokemonType.Normal]; // Enumを使用
+        return [PokemonType.Normal];
     };
     const [defenderCurrentTypes, setDefenderCurrentTypes] = useState<[PokemonType, PokemonType?]>(getInitialDefenderTypesBasedOnState());
 
-
-    const [damageResults, setDamageResults] = useState<(DamageCalculation | null)[]>([]);
 
     const calculateCombinedDamage = (
         results: (DamageCalculation | null)[],
@@ -210,7 +220,7 @@ function App() {
             if (!attackerState || !attackerState.move) return;
 
             const hitCount = attackerState.selectedHitCount ||
-                             (attackerState.move.multihit === '2-5' ? 1 : // '2-5' の場合、計算上は1ヒットとして扱い、表示側で調整
+                             (attackerState.move.multihit === '2-5' ? 1 :
                              (typeof attackerState.move.multihit === 'number' ? attackerState.move.multihit : 1));
 
             combinedMin += result.minDamage * hitCount;
@@ -218,7 +228,7 @@ function App() {
         });
 
         if (combinedMin === 0 && combinedMax === 0 && validCalculations.length > 0) {
-            // ダメージが全くない場合でも、計算対象があったなら0として表示する
+
         } else if (validCalculations.length === 0) {
             return null;
         }
@@ -234,17 +244,25 @@ function App() {
         };
     };
 
-
     const handleDefenderStateChange = (updates: Partial<DefenderState>) => {
         setDefenderState(prev => {
-            let newState = { ...prev, ...updates };
-
+            let newState = { ...prev };
+            let recomputeHp = false;
+            let recomputeDefense = false;
+            let recomputeSpecialDefense = false;
+            let recomputeSpeed = false;
+            let recomputeAttack = false; // for Foul Play
+    
             if (updates.pokemon && updates.pokemon !== prev.pokemon) {
                 const newPokemon = updates.pokemon;
+                newState.pokemon = newPokemon;
+                // Initialize stats
                 newState.hpStat = { base: newPokemon.baseStats.hp, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0 };
                 newState.defenseStat = { base: newPokemon.baseStats.defense, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0 };
                 newState.specialDefenseStat = { base: newPokemon.baseStats.specialDefense, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0 };
                 newState.attackStat = { base: newPokemon.baseStats.attack, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0 };
+                newState.speedStat = { base: newPokemon.baseStats.speed, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0 };
+    
                 newState.hpEv = 0;
                 newState.item = null;
                 newState.ability = null;
@@ -258,34 +276,123 @@ function App() {
                 newState.protosynthesisManualTrigger = false;
                 newState.quarkDriveBoostedStat = null;
                 newState.quarkDriveManualTrigger = false;
-            } else if (updates.ability !== undefined) {
-                if (updates.ability?.id === 'protosynthesis' && prev.ability?.id !== 'protosynthesis') {
-                    newState.protosynthesisBoostedStat = 'defense'; // デフォルト
-                    newState.protosynthesisManualTrigger = false;
-                } else if (updates.ability?.id !== 'protosynthesis' && prev.ability?.id === 'protosynthesis') {
-                    newState.protosynthesisBoostedStat = null;
-                    newState.protosynthesisManualTrigger = false;
+    
+                recomputeHp = recomputeDefense = recomputeSpecialDefense = recomputeAttack = recomputeSpeed = true;
+            } else {
+                // Apply direct inputValue updates first (from onChange)
+                if (updates.hpInputValue !== undefined) newState.hpInputValue = updates.hpInputValue;
+                if (updates.defenseInputValue !== undefined) newState.defenseInputValue = updates.defenseInputValue;
+                if (updates.specialDefenseInputValue !== undefined) newState.specialDefenseInputValue = updates.specialDefenseInputValue;
+                if (updates.speedInputValue !== undefined) newState.speedInputValue = updates.speedInputValue;
+    
+                // Apply stat updates (from onBlur, sliders, buttons)
+                if (updates.hpStat) {
+                    newState.hpStat = { ...newState.hpStat, ...updates.hpStat };
+                    recomputeHp = true;
                 }
-                if (updates.ability?.id === 'quark_drive' && prev.ability?.id !== 'quark_drive') {
-                    newState.quarkDriveBoostedStat = 'defense'; // デフォルト
-                    newState.quarkDriveManualTrigger = false;
-                } else if (updates.ability?.id !== 'quark_drive' && prev.ability?.id === 'quark_drive') {
-                    newState.quarkDriveBoostedStat = null;
-                    newState.quarkDriveManualTrigger = false;
+                if (updates.defenseStat) {
+                    newState.defenseStat = { ...newState.defenseStat, ...updates.defenseStat };
+                    recomputeDefense = true;
+                }
+                if (updates.specialDefenseStat) {
+                    newState.specialDefenseStat = { ...newState.specialDefenseStat, ...updates.specialDefenseStat };
+                    recomputeSpecialDefense = true;
+                }
+                if (updates.attackStat) { // Foul Play
+                    newState.attackStat = { ...newState.attackStat, ...updates.attackStat };
+                    recomputeAttack = true;
+                }
+                if (updates.speedStat) {
+                    newState.speedStat = { ...newState.speedStat, ...updates.speedStat };
+                    recomputeSpeed = true;
+                }
+    
+                // hpEv is a special case as it can be updated directly from slider
+                if (updates.hpEv !== undefined && newState.hpStat.ev !== updates.hpEv) {
+                    newState.hpStat.ev = updates.hpEv;
+                    recomputeHp = true;
+                }
+                newState.hpEv = newState.hpStat.ev; // Sync hpEv with hpStat.ev
+    
+                // Other direct updates that might require stat re-computation
+                let itemChanged = false;
+                if (updates.item !== undefined && updates.item !== prev.item) {
+                     newState.item = updates.item;
+                     itemChanged = true;
+                }
+                if (updates.ability !== undefined && updates.ability !== prev.ability) {
+                    newState.ability = updates.ability;
+                    // Protosynthesis/Quark Drive logic
+                    if (updates.ability?.id === 'protosynthesis' && prev.ability?.id !== 'protosynthesis') {
+                        newState.protosynthesisBoostedStat = 'defense';
+                        newState.protosynthesisManualTrigger = false;
+                    } else if (updates.ability?.id !== 'protosynthesis' && prev.ability?.id === 'protosynthesis') {
+                        newState.protosynthesisBoostedStat = null;
+                        newState.protosynthesisManualTrigger = false;
+                    }
+                    if (updates.ability?.id === 'quark_drive' && prev.ability?.id !== 'quark_drive') {
+                        newState.quarkDriveBoostedStat = 'defense';
+                        newState.quarkDriveManualTrigger = false;
+                    } else if (updates.ability?.id !== 'quark_drive' && prev.ability?.id === 'quark_drive') {
+                        newState.quarkDriveBoostedStat = null;
+                        newState.quarkDriveManualTrigger = false;
+                    }
+                    // Ability might affect stats if calculateStat considers it (e.g. Guts, etc.)
+                    // For simplicity, assume item is the main external factor for now
+                    // or recompute all if ability change can affect base calculation
+                }
+
+                if (itemChanged) { // If item changed, all stats might need recomputing if item affects them
+                    recomputeHp = recomputeDefense = recomputeSpecialDefense = recomputeAttack = recomputeSpeed = true;
+                }
+
+                if (updates.teraType !== undefined) newState.teraType = updates.teraType;
+                if (updates.isStellar !== undefined) newState.isStellar = updates.isStellar;
+                if (updates.isBurned !== undefined) {
+                     newState.isBurned = updates.isBurned;
+                     // Burn affects physical attack stat if Guts is not active
+                     // Assuming calculateStat handles burn via attacker context for damage calc,
+                     // defender's own burn status doesn't change its base stats directly for display
+                }
+                if (updates.hasFlowerGift !== undefined) newState.hasFlowerGift = updates.hasFlowerGift; // May affect stats under sun
+                
+                if (updates.protosynthesisBoostedStat !== undefined) newState.protosynthesisBoostedStat = updates.protosynthesisBoostedStat;
+                if (updates.protosynthesisManualTrigger !== undefined) newState.protosynthesisManualTrigger = updates.protosynthesisManualTrigger;
+                if (updates.quarkDriveBoostedStat !== undefined) newState.quarkDriveBoostedStat = updates.quarkDriveBoostedStat;
+                if (updates.quarkDriveManualTrigger !== undefined) newState.quarkDriveManualTrigger = updates.quarkDriveManualTrigger;
+            }
+    
+            // Recalculate final stats and update corresponding inputValues if needed
+            if (recomputeHp) {
+                newState.hpStat.final = calculateStat(newState.hpStat.base, newState.hpStat.iv, newState.hpStat.ev, 50, newState.hpStat.nature, true, newState.hpStat.rank, newState.item);
+                newState.actualMaxHp = newState.hpStat.final;
+                // Only update inputValue if it wasn't the source of an onChange event from its own input field,
+                // or if a stat property (EV, nature, rank, item) affecting the final value changed.
+                if (!(updates.hpInputValue !== undefined && !updates.hpStat && !updates.item)) {
+                     newState.hpInputValue = newState.hpStat.final.toString();
                 }
             }
-
-            newState.hpStat.final = calculateStat(newState.hpStat.base, newState.hpStat.iv, newState.hpStat.ev, 50, newState.hpStat.nature, true, newState.hpStat.rank, newState.item);
-            newState.actualMaxHp = newState.hpStat.final;
-            newState.hpInputValue = newState.hpStat.final.toString();
-            newState.defenseStat.final = calculateStat(newState.defenseStat.base, newState.defenseStat.iv, newState.defenseStat.ev, 50, newState.defenseStat.nature, false, newState.defenseStat.rank, newState.item);
-            newState.defenseInputValue = newState.defenseStat.final.toString();
-            newState.specialDefenseStat.final = calculateStat(newState.specialDefenseStat.base, newState.specialDefenseStat.iv, newState.specialDefenseStat.ev, 50, newState.specialDefenseStat.nature, false, newState.specialDefenseStat.rank, newState.item);
-            newState.specialDefenseInputValue = newState.specialDefenseStat.final.toString();
-            newState.attackStat.final = calculateStat(newState.attackStat.base, newState.attackStat.iv, newState.attackStat.ev, 50, newState.attackStat.nature, false, newState.attackStat.rank, newState.item);
-
-            if (updates.hpEv !== undefined && updates.hpEv !== newState.hpStat.ev) {
-                newState.hpStat = { ...newState.hpStat, ev: updates.hpEv };
+            if (recomputeDefense) {
+                newState.defenseStat.final = calculateStat(newState.defenseStat.base, newState.defenseStat.iv, newState.defenseStat.ev, 50, newState.defenseStat.nature, false, newState.defenseStat.rank, newState.item);
+                if (!(updates.defenseInputValue !== undefined && !updates.defenseStat && !updates.item)) {
+                    newState.defenseInputValue = newState.defenseStat.final.toString();
+                }
+            }
+            if (recomputeSpecialDefense) {
+                newState.specialDefenseStat.final = calculateStat(newState.specialDefenseStat.base, newState.specialDefenseStat.iv, newState.specialDefenseStat.ev, 50, newState.specialDefenseStat.nature, false, newState.specialDefenseStat.rank, newState.item);
+                if (!(updates.specialDefenseInputValue !== undefined && !updates.specialDefenseStat && !updates.item)) {
+                    newState.specialDefenseInputValue = newState.specialDefenseStat.final.toString();
+                }
+            }
+            if (recomputeAttack) { // For Foul Play display or other uses
+                newState.attackStat.final = calculateStat(newState.attackStat.base, newState.attackStat.iv, newState.attackStat.ev, 50, newState.attackStat.nature, false, newState.attackStat.rank, newState.item);
+                // No inputValue for attackStat on defender panel currently.
+            }
+            if (recomputeSpeed) {
+                newState.speedStat.final = calculateStat(newState.speedStat.base, newState.speedStat.iv, newState.speedStat.ev, 50, newState.speedStat.nature, false, newState.speedStat.rank, newState.item);
+                if (!(updates.speedInputValue !== undefined && !updates.speedStat && !updates.item)) {
+                     newState.speedInputValue = newState.speedStat.final.toString();
+                }
             }
             return newState;
         });
@@ -331,36 +438,46 @@ function App() {
         const defNatureMod = getNatureModifierValueFromDetails(natureDetails, 'defense');
         const spDefNatureMod = getNatureModifierValueFromDetails(natureDetails, 'specialDefense');
         const attackNatureMod = getNatureModifierValueFromDetails(natureDetails, 'attack');
+        const speedNatureMod = getNatureModifierValueFromDetails(natureDetails, 'speed');
+
 
         const loadedHpStat: StatCalculation = { base: member.pokemon.baseStats.hp, iv: member.ivs.hp, ev: member.evs.hp, nature: 1.0, rank: 0, final: 0 };
         const loadedDefenseStat: StatCalculation = { base: member.pokemon.baseStats.defense, iv: member.ivs.defense, ev: member.evs.defense, nature: defNatureMod, rank: 0, final: 0 };
         const loadedSpecialDefenseStat: StatCalculation = { base: member.pokemon.baseStats.specialDefense, iv: member.ivs.specialDefense, ev: member.evs.specialDefense, nature: spDefNatureMod, rank: 0, final: 0 };
         const loadedAttackStat: StatCalculation = { base: member.pokemon.baseStats.attack, iv: member.ivs.attack, ev: member.evs.attack, nature: attackNatureMod, rank: 0, final: 0 };
+        const loadedSpeedStat: StatCalculation = { base: member.pokemon.baseStats.speed, iv: member.ivs.speed, ev: member.evs.speed, nature: speedNatureMod, rank: 0, final: 0 };
+
 
         const memberTeraType = member.teraType.toLowerCase() as PokemonType;
 
         const newDefenderStateChanges: Partial<DefenderState> = {
-            pokemon: member.pokemon,
+            pokemon: member.pokemon, // This will trigger full recompute in handleDefenderStateChange
             item: member.item,
             ability: member.ability,
-            hpStat: loadedHpStat,
+            // Let pokemon change handler in handleDefenderStateChange set up initial stats based on new base,
+            // then apply loaded EVs, IVs, nature.
+            // Or, more directly:
+            hpStat: loadedHpStat, // Will be re-calculated with item in handleDefenderStateChange
             defenseStat: loadedDefenseStat,
             specialDefenseStat: loadedSpecialDefenseStat,
             attackStat: loadedAttackStat,
-            hpEv: member.evs.hp,
+            speedStat: loadedSpeedStat,
+            hpEv: member.evs.hp, // Will sync with hpStat.ev
             teraType: memberTeraType,
-            isStellar: false,
-            hasFlowerGift: false,
-            isEnabled: true,
-            isBurned: false,
+            isStellar: false, // Default, can be overridden if member has stellar
+            hasFlowerGift: false, // Default
+            isEnabled: true, // Default
+            isBurned: false, // Default
             protosynthesisBoostedStat: member.protosynthesisBoostedStat ?? null,
             protosynthesisManualTrigger: member.protosynthesisManualTrigger ?? false,
             quarkDriveBoostedStat: member.quarkDriveBoostedStat ?? null,
             quarkDriveManualTrigger: member.quarkDriveManualTrigger ?? false,
         };
 
-        setDefenderUserModifiedTypes(null);
-        handleDefenderStateChange(newDefenderStateChanges);
+        setDefenderUserModifiedTypes(null); 
+        // Call handleDefenderStateChange to process these updates, which will also calculate final stats and inputValues.
+        // It's important that handleDefenderStateChange can handle setting all these at once after a pokemon change.
+        handleDefenderStateChange(newDefenderStateChanges); 
 
         const primaryPokemonType = member.pokemon.types[0].toLowerCase() as PokemonType;
         let shouldBeTerastallized = false;
@@ -403,20 +520,28 @@ function App() {
             nature: getNatureModifierValueFromDetails(natureDetails, 'defense'), rank: 0,
             final: calculateStat(member.pokemon.baseStats.defense, member.ivs.defense, member.evs.defense, member.level, getNatureModifierValueFromDetails(natureDetails, 'defense'), false, 0, member.item)
         };
+        const loadedSpeedStat: StatCalculation = { 
+            base: member.pokemon.baseStats.speed, iv: member.ivs.speed, ev: member.evs.speed,
+            nature: getNatureModifierValueFromDetails(natureDetails, 'speed'), rank: 0,
+            final: calculateStat(member.pokemon.baseStats.speed, member.ivs.speed, member.evs.speed, member.level, getNatureModifierValueFromDetails(natureDetails, 'speed'), false, 0, member.item)
+        };
         const loadedHpEv = member.evs.hp;
         const loadedActualMaxHp = calculateHpForApp(member.pokemon.baseStats.hp, member.ivs.hp, loadedHpEv, member.level);
 
         const newAttacker: AttackerState = {
             pokemon: member.pokemon,
             move: member.moves[0] || null,
+            effectiveMove: null,
             item: member.item,
             ability: member.ability,
             attackStat: loadedAttackStat,
             specialAttackStat: loadedSpecialAttackStat,
             defenseStat: loadedDefenseStat,
+            speedStat: loadedSpeedStat, 
             attackInputValue: loadedAttackStat.final.toString(),
             specialAttackInputValue: loadedSpecialAttackStat.final.toString(),
             defenseInputValue: loadedDefenseStat.final.toString(),
+            speedInputValue: loadedSpeedStat.final.toString(), 
             hpEv: loadedHpEv,
             actualMaxHp: loadedActualMaxHp,
             currentHp: loadedActualMaxHp,
@@ -434,8 +559,7 @@ function App() {
             protosynthesisManualTrigger: member.protosynthesisManualTrigger ?? false,
             quarkDriveBoostedStat: member.quarkDriveBoostedStat ?? null,
             quarkDriveManualTrigger: member.quarkDriveManualTrigger ?? false,
-            moveUiOptionStates: {}, // 追加
-          　effectiveMove: null, // ★★★ 追加:
+            moveUiOptionStates: {},
         };
 
         setActiveAttackers(prevAttackers => {
@@ -443,7 +567,7 @@ function App() {
             if (updatedAttackers.length === 0) {
                 return [newAttacker];
             }
-            updatedAttackers[0] = newAttacker; // 常に最初の攻撃者を置き換える
+            updatedAttackers[0] = newAttacker;
             return updatedAttackers;
         });
 
@@ -470,7 +594,6 @@ function App() {
 useEffect(() => {
     const newDamageResults = activeAttackers.map((attackerState, index) => {
         if (!attackerState.isEnabled || !attackerState.pokemon || !defenderState.pokemon || !attackerState.move || !defenderCurrentTypes.length) {
-            // ★★★ effectiveMove を null にリセット（該当する場合）★★★
             if (attackerState.effectiveMove !== null) {
                  setActiveAttackers(prev => {
                     const newAttackers = [...prev];
@@ -483,10 +606,9 @@ useEffect(() => {
             return null;
         }
 
-        // --- 技の動的プロパティ決定 ---
         const moveContext: MoveDynamicContext = {
             attackerPokemon: attackerState.pokemon,
-            defenderPokemon: defenderState.pokemon, // ★ defenderPokemon が渡されていることを確認
+            defenderPokemon: defenderState.pokemon,
             attackerAbility: attackerState.ability,
             weather: weather,
             field: field,
@@ -494,10 +616,8 @@ useEffect(() => {
         };
         let moveForCalc = getEffectiveMoveProperties(attackerState.move, moveContext);
 
-        // ★★★ effectiveMove の更新 ★★★
-        // attackerState のコピーを作成して直接変更を避ける
         const currentAttackerState = activeAttackers[index];
-        if (currentAttackerState && 
+        if (currentAttackerState &&
             (JSON.stringify(currentAttackerState.effectiveMove) !== JSON.stringify(moveForCalc))) {
             setActiveAttackers(prev => {
                 const newAttackers = [...prev];
@@ -508,12 +628,10 @@ useEffect(() => {
             });
         }
 
-            if (!moveForCalc) { // getEffectiveMoveProperties が null を返す場合
+            if (!moveForCalc) {
                 return null;
             }
-            // --- 技の動的プロパティ決定 ここまで ---
 
-            // HP依存技の威力計算 (変更された可能性のある moveForCalc.power を使用)
             if (HP_DEPENDENT_MOVE_NAMES.includes(moveForCalc.name) && attackerState.actualMaxHp > 0) {
                 const basePower = moveForCalc.power || 0;
                 const calculatedPower = Math.floor((basePower * attackerState.currentHp) / attackerState.actualMaxHp);
@@ -555,33 +673,34 @@ useEffect(() => {
                                                (defenderHasBoosterEnergyForCalc || isElectricFieldActiveForDefender || defenderState.quarkDriveManualTrigger);
 
 
-            const attackerStatsForCalc: { attack: StatCalculation; specialAttack: StatCalculation; defense: StatCalculation; } = {
+            const attackerStatsForCalc: { attack: StatCalculation; specialAttack: StatCalculation; defense: StatCalculation; speed: StatCalculation; } = { 
                 attack: attackerState.attackStat,
                 specialAttack: attackerState.specialAttackStat,
                 defense: attackerState.defenseStat,
+                speed: attackerState.speedStat, 
             };
 
             return calculateDamage(
                 attackerState.pokemon,
                 { ...defenderState.pokemon!, types: defenderCurrentTypes },
-                moveForCalc, // 変更された技情報を渡す
+                moveForCalc,
                 attackerStatsForCalc,
-                { defense: defenderState.defenseStat, specialDefense: defenderState.specialDefenseStat, hp: defenderState.hpStat },
+                { defense: defenderState.defenseStat, specialDefense: defenderState.specialDefenseStat, hp: defenderState.hpStat, speed: defenderState.speedStat }, 
                 field,
                 attackerState.item,
                 currentDefenderItem,
                 attackerState.teraType,
                 attackerState.isStellar,
-                50, // level
+                50,
                 isDoubleBattle,
                 attackerState.isBurned,
                 attackerState.hasHelpingHand,
                 hasReflect,
                 hasLightScreen,
                 attackerState.ability,
-                null, // attacker2Ability (現状考慮外)
+                null, // attacker2Ability - not relevant for single attacker damage line
                 currentDefenderAbility,
-                null, // defender2Ability (重複するので注意、ここでは単体を渡す)
+                null, // defender2Ability - handled by currentDefenderAbility logic above for this line
                 weather,
                 disasters,
                 hasFriendGuard,
@@ -662,7 +781,7 @@ useEffect(() => {
                         <button
                             onClick={() => {
                                 setActiveTab('damage');
-                                setMobileViewMode('attacker'); // ダメージ計算タブに戻った時は攻撃側をデフォルト表示
+                                setMobileViewMode('attacker');
                             }}
                             className={`flex items-center gap-1 md:gap-2 px-3 md:px-6 py-2 md:py-3 rounded-lg transition-colors text-sm md:text-base ${
                                 activeTab === 'damage'
@@ -813,27 +932,27 @@ useEffect(() => {
 
                                     const passCombinedResult = (index === 0 && enabledAttackers.length > 0) ? combinedResultsForDisplay : undefined;
 
-                                    // --- 計算に使用された技情報を取得 (再計算) ---
                                     const moveContextForDisplay: MoveDynamicContext = {
                                         attackerPokemon: attacker.pokemon,
                                         weather: weather,
                                         uiOptionChecked: attacker.moveUiOptionStates,
+                                        // defenderPokemon, attackerAbility, field may not be needed here if moveForCalc is already resolved
                                     };
-                                    let moveUsedInCalc = getEffectiveMoveProperties(attacker.move, moveContextForDisplay);
-                                    // getEffectiveMoveProperties が null を返した場合のフォールバック
-                                    if (!moveUsedInCalc) {
-                                        moveUsedInCalc = { ...attacker.move }; // 元の技情報をコピー
-                                        // 必要であれば、ここで moveUsedInCalc.power や moveUsedInCalc.type にデフォルト値を設定
+                                    let moveUsedInCalc = attacker.effectiveMove || getEffectiveMoveProperties(attacker.move, moveContextForDisplay);
+
+                                    if (!moveUsedInCalc) { // Fallback if effectiveMove is somehow null
+                                        moveUsedInCalc = { ...attacker.move };
                                         if(moveUsedInCalc.power === undefined) moveUsedInCalc.power = 0;
-                                        // type は attacker.move.type が保証されている前提
                                     }
 
 
                                     if (HP_DEPENDENT_MOVE_NAMES.includes(moveUsedInCalc.name) && attacker.actualMaxHp > 0) {
-                                        const basePower = moveUsedInCalc.power || 0;
-                                        moveUsedInCalc.power = Math.max(1, Math.floor((basePower * attacker.currentHp) / attacker.actualMaxHp));
+                                        // Re-calculate power based on currentHp for display if it was dynamic
+                                        // This logic should ideally use the power value that was actually used in the calculation
+                                        // For simplicity, we recalculate here, assuming attacker.currentHp reflects state at calculation time
+                                        const basePowerForDisplay = moves.find(m => m.id === attacker.move?.id)?.power || 0; // Original base power
+                                        moveUsedInCalc.power = Math.max(1, Math.floor((basePowerForDisplay * attacker.currentHp) / attacker.actualMaxHp));
                                     }
-                                    // --- 計算に使用された技情報ここまで ---
 
 
                                     const isFoulPlay = attacker.move.name === "イカサマ";
@@ -905,7 +1024,7 @@ useEffect(() => {
                                             onDoubleBattleChange={handleDoubleBattleChange}
                                             combinedResult={passCombinedResult}
                                             attackerPokemonName={attacker.pokemon.name}
-                                            attackerMoveName={attacker.move.name} // 表示する技名は元の技名
+                                            attackerMoveName={attacker.move.name}
                                             defenderPokemonName={defenderState.pokemon?.name}
                                             hitCount={currentHitCount}
                                             attackerDetails={attackerDetails}

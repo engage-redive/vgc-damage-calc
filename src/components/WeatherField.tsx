@@ -20,26 +20,27 @@ const WeatherField: React.FC<WeatherFieldProps> = ({
   onDisasterChange = () => {},
 }) => {
   const weathers: { value: Weather; label: string; icon: React.ReactNode }[] = [
-    { value: 'none', label: 'なし', },
-    { value: 'sun', label: 'はれ', },
-    { value: 'rain', label: 'あめ', },
-    { value: 'sandstorm', label: 'すな', },
-    { value: 'snow', label: 'ゆき',}
+    { value: 'none', label: 'なし', icon: <Cloud className="w-4 h-4" /> },
+    { value: 'sun', label: 'はれ', icon: <Sun className="w-4 h-4" /> },
+    { value: 'rain', label: 'あめ', icon: <CloudRain className="w-4 h-4" /> },
+    { value: 'sandstorm', label: 'すな', icon: <Wind className="w-4 h-4" /> },
+    { value: 'snow', label: 'ゆき', icon: <Snowflake className="w-4 h-4" /> }
   ];
 
   const fields: { value: Field; label: string; icon: React.ReactNode }[] = [
-    { value: 'none', label: 'なし',},
-    { value: 'electric', label: 'エレキ',},
-    { value: 'grassy', label: 'グラス', },
-    { value: 'psychic', label: 'サイコ', },
-    { value: 'misty', label: 'ミスト',  }
+    { value: 'none', label: 'なし', icon: <Cloud2 className="w-4 h-4" /> },
+    { value: 'electric', label: 'エレキ', icon: <Zap className="w-4 h-4" /> },
+    { value: 'grassy', label: 'グラス', icon: <Flower2 className="w-4 h-4" /> },
+    { value: 'psychic', label: 'サイコ', icon: <Brain className="w-4 h-4" /> },
+    { value: 'misty', label: 'ミスト', icon: <Cloud className="w-4 h-4" /> }
   ];
 
+  // 画像パスを修正
   const disasterButtons: { key: keyof DisasterState; label: string; icon: string }[] = [
-    { key: 'sword', label: '防御▼', icon: '/src/icon/1002.png' },
-    { key: 'ball', label: '特防▼', icon: '/src/icon/1004.png' },
-    { key: 'talisman', label: '攻撃▼', icon: '/src/icon/1001.png' },
-    { key: 'vessel', label: '特攻▼', icon: '/src/icon/1003.png' },
+    { key: 'sword', label: '剣：防御▼', icon: '/icon/1002.png' },
+    { key: 'ball', label: '玉：特防▼', icon: '/icon/1004.png' },
+    { key: 'talisman', label: '札：攻撃▼', icon: '/icon/1001.png' },
+    { key: 'vessel', label: '器：特攻▼', icon: '/icon/1003.png' },
   ];
 
   const handleDisasterToggle = (key: keyof DisasterState) => {
