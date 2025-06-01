@@ -234,7 +234,7 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
     if (selectedPokemon) {
       const value = parseInt(specialDefenseInputValue, 10);
       if (!isNaN(value) && value >= 0) {
-        const rankMultiplier = specialDefenseStat.rank !== 0 ? (specialDefenseStat.rank > 0 ? (2 + specialDefenseStat.rank) / 2 : 2 / (2 - specialDefenseStat.rank)) : 1;
+        const rankMultiplier = specialDefenseStat.rank !== 0 ? (specialDefenseStat.rank > 0 ? (2 + specialDefenseStat.rank) / 2 : 2 / (2 - defenseStat.rank)) : 1;
         const targetBaseValue = Math.round(value / rankMultiplier);
         const closestEv = findClosestEvForBaseValue(targetBaseValue, selectedPokemon.baseStats.specialDefense, specialDefenseStat.nature, specialDefenseStat.iv, false);
         onDefenderStateChange({
@@ -396,7 +396,24 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
 
         {selectedPokemon && (
           <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-300 mb-1">タイプ</label>
+            <div className="flex items-center mb-1">
+              <label className="text-sm font-medium text-gray-300 mr-2">タイプ</label>
+              <input
+                type="checkbox"
+                id="defender1Terastallized"
+                checked={isTerastallized}
+                onChange={(e) => handleTerastallizedToggle(e.target.checked)}
+                className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-gray-900"
+                disabled={!selectedPokemon}
+              />
+              <label
+                htmlFor="defender1Terastallized"
+                className={`ml-1 text-sm ${!selectedPokemon ? 'text-gray-500' : 'text-white'}`}
+              >
+                テラスタル
+              </label>
+            </div>
+            
             <div className="flex items-center space-x-2">
               <div className="relative w-1/2" ref={type1DropdownRef}>
                 <button
@@ -442,13 +459,37 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
             </div>
           </div>
         )}
-        <div className="mt-6">
-          <ItemSelect items={items} selected={selectedItem} onChange={(item) => onDefenderStateChange({ item })} label="持ち物" side="defender" disabled={!selectedPokemon} />
+        {/* Item Select with Grid Layout */}
+        <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 bg-slate-700 rounded-lg mt-1.5 mb-1.5 shadow">
+          <span className="text-sm font-medium text-gray-300 whitespace-nowrap pl-1 w-20">持ち物</span>
+          <div className="w-full">
+            <ItemSelect
+              items={items}
+              selected={selectedItem}
+              onChange={(item) => onDefenderStateChange({ item })}
+              label=""
+              side="defender"
+              disabled={!selectedPokemon}
+            />
+          </div>
         </div>
 
-        <div className="mt-6">
-          <AbilitySelect abilities={abilities} selected={selectedAbility} onChange={handleAbilityChangeForDefender} label="特性" side="defender" disabled={!selectedPokemon}/>
+        {/* Ability Select with Grid Layout */}
+        <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 bg-slate-700 rounded-lg mt-1.5 mb-1.5 shadow">
+          <span className="text-sm font-medium text-gray-300 whitespace-nowrap pl-1 w-20">特性</span>
+          <div className="w-full">
+            <AbilitySelect
+              abilities={abilities}
+              selected={selectedAbility}
+              onChange={handleAbilityChangeForDefender}
+              label=""
+              side="defender"
+              disabled={!selectedPokemon}
+            />
+          </div>
         </div>
+
+        {/* Protosynthesis/QuarkDrive UI blocks are now after the AbilitySelect grid layout */}
         {isProtosynthesisSelectedOnDefender && (
             <div className="mt-4 p-3 bg-gray-700 rounded-md">
               <h5 className="text-sm font-semibold text-yellow-400 mb-2">こだいかっせい 設定</h5>
@@ -515,11 +556,6 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
               </div>
             </div>
           )}
-
-        <div className="mt-4 flex items-center gap-2">
-            <input type="checkbox" id="defender1Terastallized" checked={isTerastallized} onChange={(e) => handleTerastallizedToggle(e.target.checked)} className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-gray-900" disabled={!selectedPokemon} />
-            <label htmlFor="defender1Terastallized" className={`text-sm ${!selectedPokemon ? 'text-gray-500' : 'text-white'}`}>テラスタル</label>
-        </div>
       </div>
 
        {showDefender2 && selectedPokemon && (
@@ -561,12 +597,36 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
           </div>
 
             {isTerastallized && (<div className="mt-2 text-sm text-yellow-400">(防御側1のテラスタル状態を共有)</div>)}
-          <div className="mt-6">
-            <ItemSelect items={items} selected={defender2Item} onChange={onDefender2ItemChange} label="持ち物(2体目用)" side="defender" disabled={!selectedPokemon} />
-          </div>
-          <div className="mt-6">
-            <AbilitySelect abilities={abilities} selected={defender2Ability} onChange={onDefender2AbilityChange} label="Ability (防御側2)" side="defender" disabled={!selectedPokemon} />
-          </div>
+            
+            {/* Item Select for Defender 2 with Grid Layout */}
+            <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 bg-slate-700 rounded-lg mt-1.5 mb-1.5 shadow">
+              <span className="text-sm font-medium text-gray-300 whitespace-nowrap pl-1 w-20">持ち物</span>
+              <div className="w-full">
+                <ItemSelect
+                  items={items}
+                  selected={defender2Item}
+                  onChange={onDefender2ItemChange}
+                  label=""
+                  side="defender"
+                  disabled={!selectedPokemon}
+                />
+              </div>
+            </div>
+
+            {/* Ability Select for Defender 2 with Grid Layout */}
+            <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 bg-slate-700 rounded-lg mt-1.5 mb-1.5 shadow">
+              <span className="text-sm font-medium text-gray-300 whitespace-nowrap pl-1 w-20">特性</span>
+              <div className="w-full">
+                <AbilitySelect
+                  abilities={abilities}
+                  selected={defender2Ability}
+                  onChange={onDefender2AbilityChange}
+                  label=""
+                  side="defender"
+                  disabled={!selectedPokemon}
+                />
+              </div>
+            </div>
           <p className="text-xs text-gray-400 mt-3">※ 防御側2の能力値・ランク・バトル状態は防御側1と共通です。</p>
         </div>
       )}

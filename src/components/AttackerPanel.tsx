@@ -238,13 +238,13 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
         if (attacker.isStellar) determinedType = 'stellar';
         else if (attacker.teraType) determinedType = attacker.teraType;
 
-        if (attacker.teraBlastUserSelectedCategory === 'physical') determinedCategory = 'physical';
-        else if (attacker.teraBlastUserSelectedCategory === 'special') determinedCategory = 'special';
+        if (attacker.teraBlastUserSelectedCategory === 'physical') determinedCategory = MoveCategory.Physical;
+        else if (attacker.teraBlastUserSelectedCategory === 'special') determinedCategory = MoveCategory.Special;
         else {
           if (attacker.pokemon) {
             const finalAttackForCompare = calculateFinalStatForTeraBlast(attacker.pokemon.baseStats.attack, attacker.attackStat || DEFAULT_STAT_CALCULATION);
             const finalSpecialAttackForCompare = calculateFinalStatForTeraBlast(attacker.pokemon.baseStats.specialAttack, attacker.specialAttackStat || DEFAULT_STAT_CALCULATION);
-            determinedCategory = finalAttackForCompare > finalSpecialAttackForCompare ? 'physical' : 'special';
+            determinedCategory = finalAttackForCompare >= finalSpecialAttackForCompare ? MoveCategory.Physical : MoveCategory.Special; // 同値の場合は物理優先
           } else {
             determinedCategory = attacker.move.category as MoveCategory;
           }
@@ -697,148 +697,190 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
       let hpEvSliderToShow = null;
       let hpDependentInputsToShow = null;
       let defenderAttackControlsToShow = null;
-
-      const standardStatInputsJsx = (
-        <div className="space-y-6">
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <label className="text-white font-medium">こうげき</label>
-              <input
-                type="number"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={attacker.attackInputValue}
-                onChange={(e) => handleAttackInputChange(e, index)}
-                onBlur={() => handleAttackInputBlur(index)}
-                className="w-24 bg-gray-700 text-white text-center p-1 rounded-md text-lg"
-                disabled={!attacker.isEnabled || !attacker.pokemon}
-                min="0"
-              />
-            </div>
-            <StatSlider
-              value={attacker.attackStat?.ev || 0}
-              onChange={(ev) => handleAttackEvChange(ev, index)}
-              max={252}
-              step={4}
-              currentStat={attackBaseValueForDisplay}
+      
+      // こうげき入力セクションのJSX
+      const attackInputsJsx = attacker.pokemon ? (
+        <div>
+          <div className="flex justify-between items-center mb-1">
+            <label className="text-white font-medium">こうげき</label>
+            <input
+              type="number"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={attacker.attackInputValue}
+              onChange={(e) => handleAttackInputChange(e, index)}
+              onBlur={() => handleAttackInputBlur(index)}
+              className="w-24 bg-gray-700 text-white text-center p-1 rounded-md text-lg"
               disabled={!attacker.isEnabled || !attacker.pokemon}
+              min="0"
             />
-            <div className="flex justify-between items-start mt-2">
-              <div>
-                <label className="text-sm text-gray-400">性格補正</label>
-                <div className="flex gap-1 mt-1">
-                  {[0.9, 1.0, 1.1].map((n) => (
-                    <button
-                      key={n}
-                      onClick={() => handleAttackNatureChange(n as NatureModifier, index)}
-                      className={`px-3 py-1 text-xs rounded-md transition-colors ${(attacker.attackStat?.nature || 1.0) === n ? 'bg-blue-600 text-white font-semibold' : 'bg-gray-600 hover:bg-gray-500'}`}
-                      disabled={!attacker.isEnabled || !attacker.pokemon}
-                    >
-                      x{n.toFixed(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="text-right">
-                <span className="text-sm text-gray-400">努力値: {attacker.attackStat?.ev || 0}</span>
-                <div className="flex gap-1 mt-1 justify-end">
-                    <button
-                        onClick={() => handleAttackEvChange(0, index)}
-                        className="w-12 py-1 text-xs rounded-md bg-gray-600 hover:bg-gray-500 transition-colors"
-                        disabled={!attacker.isEnabled || !attacker.pokemon}
-                    >
-                        0
-                    </button>
-                    <button
-                        onClick={() => handleAttackEvChange(252, index)}
-                        className="w-12 py-1 text-xs rounded-md bg-gray-600 hover:bg-gray-500 transition-colors"
-                        disabled={!attacker.isEnabled || !attacker.pokemon}
-                    >
-                        252
-                    </button>
-                </div>
+          </div>
+          <StatSlider
+            value={attacker.attackStat?.ev || 0}
+            onChange={(ev) => handleAttackEvChange(ev, index)}
+            max={252}
+            step={4}
+            currentStat={attackBaseValueForDisplay}
+            disabled={!attacker.isEnabled || !attacker.pokemon}
+          />
+          <div className="flex justify-between items-start mt-2">
+            <div>
+              <label className="text-sm text-gray-400">性格補正</label>
+              <div className="flex gap-1 mt-1">
+                {[0.9, 1.0, 1.1].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => handleAttackNatureChange(n as NatureModifier, index)}
+                    className={`px-3 py-1 text-xs rounded-md transition-colors ${(attacker.attackStat?.nature || 1.0) === n ? 'bg-blue-600 text-white font-semibold' : 'bg-gray-600 hover:bg-gray-500'}`}
+                    disabled={!attacker.isEnabled || !attacker.pokemon}
+                  >
+                    x{n.toFixed(1)}
+                  </button>
+                ))}
               </div>
             </div>
-            <div className="mt-4">
-              <RankSelector
-                value={attacker.attackStat?.rank || 0}
-                onChange={(rank) => handleAttackRankChange(rank, index)}
-                label="こうげきランク"
-                disabled={!attacker.isEnabled || !attacker.pokemon}
-              />
+            <div className="text-right">
+              <span className="text-sm text-gray-400">努力値: {attacker.attackStat?.ev || 0}</span>
+              <div className="flex gap-1 mt-1 justify-end">
+                  <button
+                      onClick={() => handleAttackEvChange(0, index)}
+                      className="w-12 py-1 text-xs rounded-md bg-gray-600 hover:bg-gray-500 transition-colors"
+                      disabled={!attacker.isEnabled || !attacker.pokemon}
+                  >
+                      0
+                  </button>
+                  <button
+                      onClick={() => handleAttackEvChange(252, index)}
+                      className="w-12 py-1 text-xs rounded-md bg-gray-600 hover:bg-gray-500 transition-colors"
+                      disabled={!attacker.isEnabled || !attacker.pokemon}
+                  >
+                      252
+                  </button>
+              </div>
             </div>
           </div>
-
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <label className="text-white font-medium">とくこう</label>
-              <input
-                type="number"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={attacker.specialAttackInputValue}
-                onChange={(e) => handleSpecialAttackInputChange(e, index)}
-                onBlur={() => handleSpecialAttackInputBlur(index)}
-                className="w-24 bg-gray-700 text-white text-center p-1 rounded-md text-lg"
-                disabled={!attacker.isEnabled || !attacker.pokemon}
-                min="0"
-              />
-            </div>
-            <StatSlider
-              value={attacker.specialAttackStat?.ev || 0}
-              onChange={(ev) => handleSpecialAttackEvChange(ev, index)}
-              max={252}
-              step={4}
-              currentStat={specialAttackBaseValueForDisplay}
+          <div className="mt-4">
+            <RankSelector
+              value={attacker.attackStat?.rank || 0}
+              onChange={(rank) => handleAttackRankChange(rank, index)}
+              label="こうげきランク"
               disabled={!attacker.isEnabled || !attacker.pokemon}
             />
-            <div className="flex justify-between items-start mt-2">
-              <div>
-                <label className="text-sm text-gray-400">性格補正</label>
-                <div className="flex gap-1 mt-1">
-                  {[0.9, 1.0, 1.1].map((n) => (
-                    <button
-                      key={n}
-                      onClick={() => handleSpecialAttackNatureChange(n as NatureModifier, index)}
-                      className={`px-3 py-1 text-xs rounded-md transition-colors ${(attacker.specialAttackStat?.nature || 1.0) === n ? 'bg-blue-600 text-white font-semibold' : 'bg-gray-600 hover:bg-gray-500'}`}
-                      disabled={!attacker.isEnabled || !attacker.pokemon}
-                    >
-                      x{n.toFixed(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="text-right">
-                <span className="text-sm text-gray-400">努力値: {attacker.specialAttackStat?.ev || 0}</span>
-                <div className="flex gap-1 mt-1 justify-end">
-                    <button
-                        onClick={() => handleSpecialAttackEvChange(0, index)}
-                        className="w-12 py-1 text-xs rounded-md bg-gray-600 hover:bg-gray-500 transition-colors"
-                        disabled={!attacker.isEnabled || !attacker.pokemon}
-                    >
-                        0
-                    </button>
-                    <button
-                        onClick={() => handleSpecialAttackEvChange(252, index)}
-                        className="w-12 py-1 text-xs rounded-md bg-gray-600 hover:bg-gray-500 transition-colors"
-                        disabled={!attacker.isEnabled || !attacker.pokemon}
-                    >
-                        252
-                    </button>
-                </div>
-              </div>
-            </div>
-            <div className="mt-4">
-              <RankSelector
-                value={attacker.specialAttackStat?.rank || 0}
-                onChange={(rank) => handleSpecialAttackRankChange(rank, index)}
-                label="とくこうランク"
-                disabled={!attacker.isEnabled || !attacker.pokemon}
-              />
-            </div>
           </div>
         </div>
-      );
+      ) : null;
+
+      // とくこう入力セクションのJSX
+      const specialAttackInputsJsx = attacker.pokemon ? (
+        <div>
+          <div className="flex justify-between items-center mb-1">
+            <label className="text-white font-medium">とくこう</label>
+            <input
+              type="number"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={attacker.specialAttackInputValue}
+              onChange={(e) => handleSpecialAttackInputChange(e, index)}
+              onBlur={() => handleSpecialAttackInputBlur(index)}
+              className="w-24 bg-gray-700 text-white text-center p-1 rounded-md text-lg"
+              disabled={!attacker.isEnabled || !attacker.pokemon}
+              min="0"
+            />
+          </div>
+          <StatSlider
+            value={attacker.specialAttackStat?.ev || 0}
+            onChange={(ev) => handleSpecialAttackEvChange(ev, index)}
+            max={252}
+            step={4}
+            currentStat={specialAttackBaseValueForDisplay}
+            disabled={!attacker.isEnabled || !attacker.pokemon}
+          />
+          <div className="flex justify-between items-start mt-2">
+            <div>
+              <label className="text-sm text-gray-400">性格補正</label>
+              <div className="flex gap-1 mt-1">
+                {[0.9, 1.0, 1.1].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => handleSpecialAttackNatureChange(n as NatureModifier, index)}
+                    className={`px-3 py-1 text-xs rounded-md transition-colors ${(attacker.specialAttackStat?.nature || 1.0) === n ? 'bg-blue-600 text-white font-semibold' : 'bg-gray-600 hover:bg-gray-500'}`}
+                    disabled={!attacker.isEnabled || !attacker.pokemon}
+                  >
+                    x{n.toFixed(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-sm text-gray-400">努力値: {attacker.specialAttackStat?.ev || 0}</span>
+              <div className="flex gap-1 mt-1 justify-end">
+                  <button
+                      onClick={() => handleSpecialAttackEvChange(0, index)}
+                      className="w-12 py-1 text-xs rounded-md bg-gray-600 hover:bg-gray-500 transition-colors"
+                      disabled={!attacker.isEnabled || !attacker.pokemon}
+                  >
+                      0
+                  </button>
+                  <button
+                      onClick={() => handleSpecialAttackEvChange(252, index)}
+                      className="w-12 py-1 text-xs rounded-md bg-gray-600 hover:bg-gray-500 transition-colors"
+                      disabled={!attacker.isEnabled || !attacker.pokemon}
+                  >
+                      252
+                  </button>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4">
+            <RankSelector
+              value={attacker.specialAttackStat?.rank || 0}
+              onChange={(rank) => handleSpecialAttackRankChange(rank, index)}
+              label="とくこうランク"
+              disabled={!attacker.isEnabled || !attacker.pokemon}
+            />
+          </div>
+        </div>
+      ) : null;
+
+      // 表示するステータス入力セクションを決定
+      let currentStatInputsToRender;
+      let attackSectionContent = null;
+      let specialAttackSectionContent = null;
+
+      const selectedMove = attacker.move;
+      const isTeraBurstSelected = selectedMove?.isTeraBlast;
+
+      if (isTeraBurstSelected) {
+          attackSectionContent = attackInputsJsx;
+          specialAttackSectionContent = specialAttackInputsJsx;
+      } else if (selectedMove) {
+          const moveCategory = selectedMove.category;
+          if (moveCategory === MoveCategory.Physical) {
+              attackSectionContent = attackInputsJsx;
+          } else if (moveCategory === MoveCategory.Special) {
+              specialAttackSectionContent = specialAttackInputsJsx;
+          }
+          // Status技の場合は両方の Content は null のまま (何も表示しない)
+      } else { // 技未選択の場合
+          attackSectionContent = attackInputsJsx;
+          specialAttackSectionContent = specialAttackInputsJsx;
+      }
+
+      if (attackSectionContent && specialAttackSectionContent) {
+          currentStatInputsToRender = (
+              <div className="space-y-6">
+                  {attackSectionContent}
+                  {specialAttackSectionContent}
+              </div>
+          );
+      } else if (attackSectionContent) {
+          currentStatInputsToRender = attackSectionContent;
+      } else if (specialAttackSectionContent) {
+          currentStatInputsToRender = specialAttackSectionContent;
+      } else {
+          currentStatInputsToRender = null; // どちらも表示しない場合
+      }
+
 
       if (moveName === "イカサマ") { // 技名で判定（ID 'foulplay' でも可）
         statInputsSection = <FoulPlayDisplay />;
@@ -898,7 +940,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                 </div>
             );
         }
-        statInputsSection = standardStatInputsJsx;
+        statInputsSection = currentStatInputsToRender;
       } else if (moveName === "ボディプレス") {
         statInputsSection = (
           <BodyPressDefenseInputs
@@ -913,14 +955,14 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
           />
         );
       } else {
-        statInputsSection = standardStatInputsJsx;
+        statInputsSection = currentStatInputsToRender;
       }
 
     return (
       <div key={index} className={`bg-gray-800 rounded-lg p-4 mb-4 ${!attacker.isEnabled ? 'opacity-60' : ''}`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <h3 className="text-lg font-semibold text-white">攻撃側 {index + 1}</h3>
+            <h5 className="text-lg font-semibold text-white">攻撃側 {index + 1}</h5>
             <div className="flex items-center">
               <input type="checkbox" checked={attacker.isEnabled} onChange={() => toggleAttacker(index)} className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-gray-900" />
               <span className="ml-2 text-sm text-gray-300">有効</span>
@@ -955,7 +997,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
              </div>
           )}
 
-          <PokemonSelect pokemon={pokemonList} selected={attacker.pokemon} onChange={(p) => handlePokemonChange(p, index)} label="ポケモン" disabled={!attacker.isEnabled}/>
+          <PokemonSelect pokemon={pokemonList} selected={attacker.pokemon} onChange={(p) => handlePokemonChange(p, index)} label="" disabled={!attacker.isEnabled}/>
 
           <div className="my-4">
             <MoveSelect
@@ -1039,29 +1081,64 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
           )}
 
           <div className="mt-6">
-            <h4 className="text-sm font-semibold text-gray-300 mb-3">能力値設定</h4>
             {statInputsSection}
             {defenderAttackControlsToShow}
           </div>
 
-          <div className="mt-6">
-            <ItemSelect items={items} selected={attacker.item} onChange={(i) => handleItemChange(i, index)} label="持ち物" side="attacker" disabled={!attacker.isEnabled || !attacker.pokemon} />
+          {/* Item Select with Grid Layout */}
+          <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 bg-slate-700  rounded-lg mt-1.5 mb-1.5 shadow">
+            <span className="text-sm font-medium text-gray-300 whitespace-nowrap pl-1 w-20">持ち物</span>
+            <div className="w-full">
+              <ItemSelect
+                items={items}
+                selected={attacker.item}
+                onChange={(i) => handleItemChange(i, index)}
+                label="" // Pass empty label
+                side="attacker"
+                disabled={!attacker.isEnabled || !attacker.pokemon}
+              />
+            </div>
           </div>
 
-          <div className="mt-6">
-            <AbilitySelect
-              abilities={abilities}
-              selected={attacker.ability}
-              onChange={(a) => handleAbilityChange(a, index)}
-              label="特性"
-              side="attacker"
-              disabled={!attacker.isEnabled || !attacker.pokemon}
-            />
+          {/* Ability Select with Grid Layout */}
+          <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 bg-slate-700  rounded-lg mt-1.5　mb-1.5　shadow">
+            <span className="text-sm font-medium text-gray-300 whitespace-nowrap pl-1 w-20">特性</span>
+            <div className="w-full">
+              <AbilitySelect
+                abilities={abilities}
+                selected={attacker.ability}
+                onChange={(a) => handleAbilityChange(a, index)}
+                label="" // Pass empty label
+                side="attacker"
+                disabled={!attacker.isEnabled || !attacker.pokemon}
+                 protosynthesisConfig={ isProtosynthesisSelected ? {
+                    manualTrigger: attacker.protosynthesisManualTrigger,
+                    boostedStat: attacker.protosynthesisBoostedStat,
+                } : undefined}
+                onProtosynthesisConfigChange={isProtosynthesisSelected ? (config) => {
+                  updateAttackerState(index, {
+                    protosynthesisManualTrigger: config.manualTrigger,
+                    protosynthesisBoostedStat: config.boostedStat,
+                  });
+                } : undefined}
+                quarkDriveConfig={isQuarkDriveSelected ? {
+                  manualTrigger: attacker.quarkDriveManualTrigger,
+                  boostedStat: attacker.quarkDriveBoostedStat,
+                } : undefined}
+                onQuarkDriveConfigChange={isQuarkDriveSelected ? (config) => {
+                  updateAttackerState(index, {
+                    quarkDriveManualTrigger: config.manualTrigger,
+                    quarkDriveBoostedStat: config.boostedStat,
+                  });
+                } : undefined}
+              />
+            </div>
           </div>
+          
           {isProtosynthesisSelected && (
-            <div className="mt-4 p-3 bg-gray-700 rounded-md">
+            <div className="mt-4 p-3 bg-gray-700 ">
               <h5 className="text-sm font-semibold text-yellow-400 mb-2">こだいかっせい 設定</h5>
-              <div className="mb-2">
+              <div className="mb-1">
                 <label htmlFor={`proto-stat-${index}`} className="block text-xs font-medium text-gray-300 mb-1">上昇する能力:</label>
                 <select
                   id={`proto-stat-${index}`}
@@ -1155,7 +1232,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
   };
 
   return (
-    <div className="bg-gray-900 p-4 rounded-lg shadow-lg">
+    <div className="bg-gray-900 rounded-lg shadow-lg">
       {attackers.map((attacker, index) => renderAttackerSection(attacker, index))}
       {attackers.length < 2 && (
         <div className="mt-4 flex justify-end">

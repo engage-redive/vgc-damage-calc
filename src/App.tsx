@@ -615,14 +615,14 @@ function App() {
                             mobileViewMode === 'attacker' ? 'text-red-400' : 'text-gray-300 hover:text-white'
                         }`}
                     >
-                        <Zap size={18} /> <span className="ml-1">攻撃</span>
+                      <span className="ml-1">攻撃</span>
                         {mobileViewMode === 'attacker' && (<div className="absolute bottom-0 left-0 w-full h-1 bg-yellow-400"></div>)}
                     </button>
                     <button
                         onClick={() => setMobileViewMode('defender')}
                         className={`flex-1 flex items-center justify-center px-2 py-1 transition-colors text-sm relative focus:outline-none ${mobileViewMode === 'defender' ? 'text-blue-400' : 'text-gray-300 hover:text-white'}`}
                     >
-                        <Shield size={18} /> <span className="ml-1">防御</span>
+                         <span className="ml-1">防御</span>
                         {mobileViewMode === 'defender' && (<div className="absolute bottom-0 left-0 w-full h-1 bg-yellow-400"></div>)}
                     </button>
                 </div>
@@ -631,7 +631,7 @@ function App() {
             <header className={`w-full ${activeTab !== 'damage' ? 'pt-0' : (mobileViewMode === 'attacker' || mobileViewMode === 'defender' ? 'pt-[56px] md:pt-0' : 'pt-0')}`}>
                 <div className="max-w-7xl mx-auto py-2 md:py-4 px-2 md:px-8">
                     <div className="hidden md:flex justify-between items-center mb-6">
-                        <h1 className="text-3xl font-bold text-white">ポケモンツール</h1>
+                        <h1 className="text-3xl font-bold text-white">VGCダメージ計算器</h1>
                         <div className="flex items-center space-x-2">
                             <button
                                 onClick={() => alert("ポケモン入れ替え機能は現在無効です。")}

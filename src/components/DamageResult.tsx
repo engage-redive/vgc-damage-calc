@@ -579,7 +579,7 @@ const DamageResult: React.FC<DamageResultProps> = ({
                             {attackerDetails.moveCategory === 'physical' ? '物理' : attackerDetails.moveCategory === 'special' ? '特殊' : '変化'}
                         </span></li>
                       )}
-                      <li>攻撃/特攻の値: <span className="font-semibold text-white">{attackerDetails.offensiveStatValue}</span></li>
+                      <li>攻撃/　特攻の値: <span className="font-semibold text-white">{attackerDetails.offensiveStatValue}</span></li>
                       <li>攻撃/特攻ランク: <span className="font-semibold text-white">{attackerDetails.offensiveStatRank >= 0 ? `+${attackerDetails.offensiveStatRank}` : attackerDetails.offensiveStatRank}</span></li>
                       {attackerDetails.teraType && !attackerDetails.isStellar && <li>テラスタル: <span className="font-semibold text-white">{getTypeNameJpFromModal(attackerDetails.teraType)}</span></li>}
                       {attackerDetails.isStellar && <li>テラスタル: <span className="font-semibold text-pink-400">{getTypeNameJpFromModal(PokemonType.Stellar)}</span></li>}

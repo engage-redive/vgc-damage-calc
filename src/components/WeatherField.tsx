@@ -19,20 +19,20 @@ const WeatherField: React.FC<WeatherFieldProps> = ({
   disasters = { sword: false, ball: false, vessel: false, talisman: false },
   onDisasterChange = () => {},
 }) => {
-  const weathers: { value: Weather; label: string; icon: React.ReactNode }[] = [
-    { value: 'none', label: 'なし', icon: <Cloud className="w-4 h-4" /> },
-    { value: 'sun', label: 'はれ', icon: <Sun className="w-4 h-4" /> },
-    { value: 'rain', label: 'あめ', icon: <CloudRain className="w-4 h-4" /> },
-    { value: 'sandstorm', label: 'すな', icon: <Wind className="w-4 h-4" /> },
-    { value: 'snow', label: 'ゆき', icon: <Snowflake className="w-4 h-4" /> }
+  const weathers: { value: Weather; label: string;}[] = [
+    { value: 'none', label: 'なし', },
+    { value: 'sun', label: 'はれ',  },
+    { value: 'rain', label: 'あめ', },
+    { value: 'sandstorm', label: 'すな', },
+    { value: 'snow', label: 'ゆき', }
   ];
 
   const fields: { value: Field; label: string; icon: React.ReactNode }[] = [
-    { value: 'none', label: 'なし', icon: <Cloud2 className="w-4 h-4" /> },
-    { value: 'electric', label: 'エレキ', icon: <Zap className="w-4 h-4" /> },
-    { value: 'grassy', label: 'グラス', icon: <Flower2 className="w-4 h-4" /> },
-    { value: 'psychic', label: 'サイコ', icon: <Brain className="w-4 h-4" /> },
-    { value: 'misty', label: 'ミスト', icon: <Cloud className="w-4 h-4" /> }
+    { value: 'none', label: 'なし', },
+    { value: 'electric', label: 'エレキ', },
+    { value: 'grassy', label: 'グラス',  },
+    { value: 'psychic', label: 'サイコ', },
+    { value: 'misty', label: 'ミスト', }
   ];
 
   // 画像パスを修正

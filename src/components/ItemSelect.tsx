@@ -53,7 +53,7 @@ const ItemSelect: React.FC<ItemSelectProps> = ({
   );
 
   const options = useMemo(() => [
-    { id: '__no-item__', name: '未設定', description: 'No item selected.' }, // Placeholder for "No Item"
+    { id: '__no-item__', name: '持ち物', description: 'No item selected.' }, // Placeholder for "No Item"
     ...filteredItems,
   ], [filteredItems]);
 
@@ -160,7 +160,7 @@ const ItemSelect: React.FC<ItemSelectProps> = ({
           aria-controls={isOpen ? listboxId : undefined}
         >
           <span className="block truncate">
-            {selected ? selected.name : '未設定'}
+            {selected ? selected.name : '持ち物無し'}
           </span>
           <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
             <ChevronDown className="h-4 w-4 text-gray-400" aria-hidden="true" />
