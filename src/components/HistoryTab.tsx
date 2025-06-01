@@ -26,7 +26,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({ loggedEntries, onDeleteLog, onC
   return (
     <div className="p-2 md:p-4">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold text-white">計算履歴</h2>
+        <h2 className="text-2xl font-semibold text-white">履歴(詳細を押すと自動保存)</h2>
         {loggedEntries.length > 0 && (
             <button
                 onClick={() => {

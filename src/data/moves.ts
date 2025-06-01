@@ -128,7 +128,13 @@ export const moves: Move[] = [
   category: "physical",
   power: 55,
   accuracy: 100,
-  pp: 15
+  pp: 15,
+    dynamicEffectId: "Boost", // 追加
+    uiOption: {               // 追加
+      type: "checkbox",
+      label: "持ち物を持っていない場合、威力が2倍",
+      key: "TargetStatused", // 
+    },
 },
 {
   id: "acupressure",
@@ -376,7 +382,13 @@ export const moves: Move[] = [
   category: "physical",
   power: 60,
   accuracy: 100,
-  pp: 10
+  pp: 10,
+    dynamicEffectId: "Boost", // 追加
+    uiOption: {               // 追加
+      type: "checkbox",
+      label: "相手がそのターンダメージを受けていた時、威力が2倍",
+      key: "TargetStatused", // 
+    },
 },
 {
   id: "astonish",
@@ -785,7 +797,13 @@ export const moves: Move[] = [
   category: "physical",
   power: 85,
   accuracy: 100,
-  pp: 10
+  pp: 10,
+    dynamicEffectId: "Boost", // 追加
+    uiOption: {               // 追加
+      type: "checkbox",
+      label: "まだ行動していないポケモンに威力が2倍",
+      key: "TargetStatused", // 
+    },
 },
 {
   id: "boltstrike",
@@ -904,7 +922,13 @@ export const moves: Move[] = [
   category: "special",
   power: 65,
   accuracy: 100,
-  pp: 10
+  pp: 10,
+    dynamicEffectId: "Boost", // 追加
+    uiOption: {               // 追加
+      type: "checkbox",
+      label: "相手のHPが最大HPの1/2以下の場合、威力が2倍",
+      key: "TargetStatused", // AttackerStateで管理するキー
+    },
 },
 {
   id: "brutalswing",
@@ -2342,7 +2366,13 @@ export const moves: Move[] = [
   category: "physical",
   power: 70,
   accuracy: 100,
-  pp: 20
+  pp: 20,
+    dynamicEffectId: "Boost", // 追加
+    uiOption: {               // 追加
+      type: "checkbox",
+      label: "状態異常の場合、威力が2倍",
+      key: "TargetStatused", // 計算間違ってるから後で直す
+    },
 },
 {
   id: "fairylock",
@@ -2581,7 +2611,13 @@ export const moves: Move[] = [
   category: "physical",
   power: 85,
   accuracy: 100,
-  pp: 10
+  pp: 10,
+    dynamicEffectId: "Boost", // 追加
+    uiOption: {               // 追加
+      type: "checkbox",
+      label: "まだ行動していないポケモンに威力が2倍",
+      key: "TargetStatused", // 
+    },
 },
 {
   id: "fissure",
@@ -5906,7 +5942,13 @@ export const moves: Move[] = [
   category: "physical",
   power: 40,
   accuracy: 100,
-  pp: 20
+  pp: 20,
+    dynamicEffectId: "Boost", // 追加
+    uiOption: {               // 追加
+      type: "checkbox",
+      label: "交代しようとした場合、威力を2倍",
+      key: "TargetStatused", // 
+    },
 },
 {
   id: "pyroball",
@@ -8627,11 +8669,11 @@ export const moves: Move[] = [
     power: 65,
     accuracy: 100,
     pp: 10,
-    dynamicEffectId: "hexBoost", // 追加
+    dynamicEffectId: "Boost", // 追加
     uiOption: {               // 追加
       type: "checkbox",
       label: "相手が状態異常 (威力2倍)",
-      key: "hexTargetStatused", // AttackerStateで管理するキー
+      key: "TargetStatused", // AttackerStateで管理するキー
     },
   },
 {

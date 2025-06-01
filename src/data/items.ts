@@ -1,6 +1,15 @@
 import { Item, PokemonType } from '../types';
 
 export const items: Item[] = [
+      {
+    id: "cornerstonemask",
+    name: "タイプ強化x1.2倍",
+    nameEn: "Aaaa",
+    effect: {
+          side: 'attacker',
+            type: 'none',
+  },
+    },
   {
     id: "choice Band",
     name: "こだわりハチマキ",
@@ -2476,14 +2485,14 @@ export const items: Item[] = [
     nameEn: "Zoom Lens",
     effect: {}
   },
-    {
+      {
     id: "dracoplate",
     name: "りゅうのプレート",
     nameEn: "Draco Plate",
     typeEnhance: PokemonType.Dragon, // true → PokemonType.Dragon
     effect: {
       type: 'none',
-      side: 'attacker'
+
     }
   },
   {
@@ -2493,7 +2502,7 @@ export const items: Item[] = [
     typeEnhance: PokemonType.Fire,
     effect: {
       type: 'none',
-      side: 'attacker'
+
     }
   },
   {
@@ -2503,7 +2512,7 @@ export const items: Item[] = [
     typeEnhance: PokemonType.Water,
     effect: {
       type: 'none',
-      side: 'attacker'
+
     }
   },
   {
@@ -2513,7 +2522,7 @@ export const items: Item[] = [
     typeEnhance: PokemonType.Electric,
     effect: {
       type: 'none',
-      side: 'attacker'
+
     }
   },
   {
@@ -2523,7 +2532,7 @@ export const items: Item[] = [
     typeEnhance: PokemonType.Grass,
     effect: {
       type: 'none',
-      side: 'attacker'
+
     }
   },
   {
@@ -2533,7 +2542,7 @@ export const items: Item[] = [
     typeEnhance: PokemonType.Ice,
     effect: {
       type: 'none',
-      side: 'attacker'
+
     }
   },
   {
@@ -2543,7 +2552,7 @@ export const items: Item[] = [
     typeEnhance: PokemonType.Fighting,
     effect: {
       type: 'none',
-      side: 'attacker'
+
     }
   },
   {
@@ -2553,7 +2562,7 @@ export const items: Item[] = [
     typeEnhance: PokemonType.Poison,
     effect: {
       type: 'none',
-      side: 'attacker'
+
     }
   },
   {
@@ -2563,7 +2572,7 @@ export const items: Item[] = [
     typeEnhance: PokemonType.Ground,
     effect: {
       type: 'none',
-      side: 'attacker'
+
     }
   },
   {
@@ -2573,7 +2582,7 @@ export const items: Item[] = [
     typeEnhance: PokemonType.Flying,
     effect: {
       type: 'none',
-      side: 'attacker'
+
     }
   },
   {
@@ -2583,7 +2592,7 @@ export const items: Item[] = [
     typeEnhance: PokemonType.Psychic,
     effect: {
       type: 'none',
-      side: 'attacker'
+
     }
   },
   {
@@ -2593,7 +2602,7 @@ export const items: Item[] = [
     typeEnhance: PokemonType.Bug,
     effect: {
       type: 'none',
-      side: 'attacker'
+
     }
   },
   {
@@ -2603,7 +2612,7 @@ export const items: Item[] = [
     typeEnhance: PokemonType.Rock,
     effect: {
       type: 'none',
-      side: 'attacker'
+
     }
   },
   {
@@ -2613,7 +2622,7 @@ export const items: Item[] = [
     typeEnhance: PokemonType.Ghost,
     effect: {
       type: 'none',
-      side: 'attacker'
+
     }
   },
   {
@@ -2623,7 +2632,7 @@ export const items: Item[] = [
     typeEnhance: PokemonType.Dark,
     effect: {
       type: 'none',
-      side: 'attacker'
+
     }
   },
   {
@@ -2633,7 +2642,7 @@ export const items: Item[] = [
     typeEnhance: PokemonType.Steel,
     effect: {
       type: 'none',
-      side: 'attacker'
+
     }
   },
   {
@@ -2643,11 +2652,9 @@ export const items: Item[] = [
     typeEnhance: PokemonType.Fairy,
     effect: {
       type: 'none',
-      side: 'attacker'
+
     }
   },
-
-  // その他のタイプ強化アイテム
   {
     id: "charcoal",
     name: "もくたん",
@@ -2655,7 +2662,7 @@ export const items: Item[] = [
     typeEnhance: PokemonType.Fire,
     effect: {
       type: 'none',
-      side: 'attacker'
+
     }
   },
   {
@@ -2665,7 +2672,6 @@ export const items: Item[] = [
     typeEnhance: PokemonType.Water,
     effect: {
       type: 'none',
-      side: 'attacker'
     }
   },
   {
@@ -2675,17 +2681,7 @@ export const items: Item[] = [
     typeEnhance: PokemonType.Electric,
     effect: {
       type: 'none',
-      side: 'attacker'
     }
   },
-  {
-    id: "miracle_seed",
-    name: "きせきのタネ",
-    nameEn: "Miracle Seed",
-    typeEnhance: PokemonType.Grass,
-    effect: {
-      type: 'none',
-      side: 'attacker'
-    }
-  },
+
 ];

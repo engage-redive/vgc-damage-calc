@@ -7,9 +7,9 @@ import {
   DisasterState,
   AttackerDetailsForModal,
   DefenderDetailsForModal,
-  MoveCategory, // 追加: 技カテゴリ表示のため
+  MoveCategory,
 } from '../types';
-import { X, ChevronUp, ChevronDown, Save } from 'lucide-react'; // Save アイコン追加
+import { X, ChevronUp, ChevronDown } from 'lucide-react'; // Save アイコンを削除
 
 interface DamageResultProps {
   result: DamageCalculation | null;
@@ -33,7 +33,7 @@ interface DamageResultProps {
   field?: Field | null;
   disasters?: DisasterState;
   resultIdSuffix: string;
-  onSaveLog?: () => void; // ★ログ保存用コールバック関数を追加
+  onSaveLog?: () => void;
 }
 
 const TYPE_NAME_JP_MODAL: Record<string, string> = {
@@ -50,7 +50,7 @@ const TYPE_COLORS_MODAL: Record<string, string> = {
   stellar: '#7A7AE6',
 };
 
-const WEATHER_NAME_JP: Record<string, string> = { // Weather型に合わせる
+const WEATHER_NAME_JP: Record<string, string> = {
   'none': 'なし',
   'sun': 'はれ',
   'rain': 'あめ',
@@ -58,10 +58,9 @@ const WEATHER_NAME_JP: Record<string, string> = { // Weather型に合わせる
   'snow': 'ゆき',
   'harsh_sunlight': 'おおひでり',
   'heavy_rain': 'おおあめ',
-  // 'strong_winds': 'らんきりゅう', // Weather型にstrong_windsがない場合は削除
 };
 
-const FIELD_NAME_JP: Record<string, string> = { // Field型に合わせる
+const FIELD_NAME_JP: Record<string, string> = {
   'none': 'なし',
   'electric': 'エレキフィールド',
   'grassy': 'グラスフィールド',
@@ -113,7 +112,7 @@ const DamageResult: React.FC<DamageResultProps> = ({
   field,
   disasters,
   resultIdSuffix,
-  onSaveLog, // ★props受け取り
+  onSaveLog,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCombinedDetailsExpanded, setIsCombinedDetailsExpanded] = useState(true);
@@ -347,11 +346,16 @@ const DamageResult: React.FC<DamageResultProps> = ({
   const uniqueDoubleBattleId = `doubleBattle-${resultIdSuffix}`;
   const uniqueCriticalModeId = `criticalMode-${resultIdSuffix}`;
 
+  // ★ ログ保存処理をモーダルを開くときに呼び出すため、この関数は残すが、ボタンからは呼び出さない
   const handleSaveLog = () => {
     if (onSaveLog) {
       onSaveLog();
-      // setIsModalOpen(false); // Optionally close modal after saving
     }
+  };
+
+  const openModalAndSaveLog = () => {
+    setIsModalOpen(true);
+    handleSaveLog(); // ★ モーダルを開くと同時にログ保存
   };
 
   return (
@@ -497,7 +501,7 @@ const DamageResult: React.FC<DamageResultProps> = ({
                 </label>
               </div>
               <button
-                onClick={() => setIsModalOpen(true)}
+                onClick={openModalAndSaveLog} // ★ 修正: モーダルを開きログ保存する関数を呼び出す
                 className="text-xs md:text-sm text-blue-400 hover:underline disabled:text-gray-500 disabled:no-underline"
                 disabled={!attackerDetails || !defenderDetails}
               >
@@ -573,7 +577,6 @@ const DamageResult: React.FC<DamageResultProps> = ({
                     </div>
                     <ul className="space-y-1 text-sm text-gray-300">
                       <li>技の威力: <span className="font-semibold text-white">{attackerDetails.movePower}</span></li>
-                      {/* 技カテゴリ表示の例 (attackerDetails.moveCategory があれば) */}
                       {attackerDetails.moveCategory && (
                         <li>技カテゴリ: <span className="font-semibold text-white">
                             {attackerDetails.moveCategory === 'physical' ? '物理' : attackerDetails.moveCategory === 'special' ? '特殊' : '変化'}
@@ -611,7 +614,6 @@ const DamageResult: React.FC<DamageResultProps> = ({
                         </div>
                     </div>
                     <ul className="space-y-1 text-sm text-gray-300">
-                      {/* 防御側最大HP表示の例 (defenderDetails.maxHp があれば) */}
                       {defenderDetails.maxHp && <li>最大HP: <span className="font-semibold text-white">{defenderDetails.maxHp}</span></li>}
                       <li>防御/特防の値: <span className="font-semibold text-white">{defenderDetails.defensiveStatValue}</span></li>
                       <li>防御/特防ランク: <span className="font-semibold text-white">{defenderDetails.defensiveStatRank >= 0 ? `+${defenderDetails.defensiveStatRank}` : defenderDetails.defensiveStatRank}</span></li>
@@ -678,18 +680,11 @@ const DamageResult: React.FC<DamageResultProps> = ({
                   </div>
                 </div>
 
-                <div className="mt-8 flex space-x-2">
-                    <button
-                        onClick={handleSaveLog}
-                        disabled={!onSaveLog}
-                        className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors flex items-center justify-center disabled:opacity-50"
-                    >
-                        <Save size={18} className="mr-2"/>
-                        ログ保存
-                    </button>
+                {/* ★ ログ保存ボタンを削除し、閉じるボタンのみにする */}
+                <div className="mt-8">
                     <button
                         onClick={() => setIsModalOpen(false)}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors"
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors"
                     >
                         閉じる
                     </button>

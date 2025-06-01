@@ -591,7 +591,6 @@ function App() {
             const updatedEntries = [newLogEntry, ...prevEntries];
             return updatedEntries.length > MAX_LOG_ENTRIES ? updatedEntries.slice(0, MAX_LOG_ENTRIES) : updatedEntries;
         });
-        alert("計算結果をログに保存しました。");
     };
 
     const handleDeleteLog = (logId: string) => {

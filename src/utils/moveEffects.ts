@@ -13,7 +13,7 @@ import type { Pokemon, MoveDynamicContext, MoveDynamicProperties } from '../type
 
 
 const effectHandlers: Record<string, (baseMove: Move, context: MoveDynamicContext) => MoveDynamicProperties> = {
-  hexBoost: (baseMove, context) => {
+  Boost: (baseMove, context) => {
     if (context.uiOptionChecked && baseMove.uiOption && context.uiOptionChecked[baseMove.uiOption.key]) {
       return { power: (baseMove.power || 0) * 2 };
     }
