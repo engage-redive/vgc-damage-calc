@@ -21,12 +21,16 @@ import {
     DefenderState,
     ProtosynthesisBoostTarget,
     AttackerState,
-    TeamMemberForAttackerLoad, // Assuming this is now in types.ts
-    TeamMemberForDefenderLoad, // Assuming this is now in types.ts
+    TeamMemberForAttackerLoad,
+    TeamMemberForDefenderLoad,
     MoveDynamicContext,
     AttackerDetailsForModal,
     DefenderDetailsForModal,
     LoggedDamageEntry,
+    AttackerStateSnapshotForLog, // 追加
+    DefenderStateSnapshotForLog, // 追加
+    GlobalStatesSnapshotForLog,  // 追加
+    StatCalculationSnapshot,     // 追加
 } from './types';
 import { calculateStat, calculateDamage } from './utils/calculator';
 import { getEffectiveMoveProperties } from './utils/moveEffects';
@@ -77,6 +81,7 @@ function App() {
             const storedLogs = localStorage.getItem(LOG_STORAGE_KEY);
             if (storedLogs) {
                 const parsedLogs: LoggedDamageEntry[] = JSON.parse(storedLogs);
+                // スナップショットデータがない古いログ形式との互換性のため、一旦そのまま読み込む
                 setLoggedEntries(parsedLogs);
             }
         } catch (error) {
@@ -285,7 +290,6 @@ function App() {
     };
 
     const handleDefenderOffensiveStatChange = (updates: Partial<Pick<StatCalculation, 'ev' | 'rank'>>) => {
-        // DefenderState の attackStat を更新
         handleDefenderStateChange({ attackStat: { ...defenderState.attackStat, ...updates } });
     };
 
@@ -440,19 +444,18 @@ function App() {
                 moveForCalc.power = Math.max(1, calculatedPower);
             }
 
-            // ★★★ イカサマ対応: 攻撃ステータスの差し替え ★★★
             let attackStatToUseForCalc: StatCalculation;
-            if (attackerState.move.id === 'foulplay') { // 技IDで判定 (より堅牢)
+            if (attackerState.move.id === 'foulplay') {
                 attackStatToUseForCalc = defenderState.attackStat;
             } else {
                 attackStatToUseForCalc = attackerState.attackStat;
             }
 
             const attackerStatsForCalc: { attack: StatCalculation; specialAttack: StatCalculation; defense: StatCalculation; speed: StatCalculation; } = {
-                attack: attackStatToUseForCalc, // ★ イカサマの場合は防御側の攻撃、それ以外は攻撃側の攻撃
+                attack: attackStatToUseForCalc,
                 specialAttack: attackerState.specialAttackStat,
                 defense: attackerState.defenseStat,
-                speed: attackerState.speedStat, // calculateDamageに渡すが、直接は使われないかも
+                speed: attackerState.speedStat,
             };
 
             const attackerTeraBlastConfig = {
@@ -478,8 +481,8 @@ function App() {
 
             return calculateDamage(
                 attackerState.pokemon, { ...defenderState.pokemon!, types: defenderCurrentTypes }, moveForCalc,
-                attackerStatsForCalc, // ★ 差し替えられた可能性のあるステータスを使用
-                { defense: defenderState.defenseStat, specialDefense: defenderState.specialDefenseStat, hp: defenderState.hpStat, speed: defenderState.speedStat, attack: defenderState.attackStat }, // ★ defenderStatsにattackを追加
+                attackerStatsForCalc,
+                { defense: defenderState.defenseStat, specialDefense: defenderState.specialDefenseStat, hp: defenderState.hpStat, speed: defenderState.speedStat, attack: defenderState.attackStat },
                 field, attackerState.item, currentDefenderItem, attackerState.teraType, attackerState.isStellar, 50,
                 isDoubleBattle, attackerState.isBurned, attackerState.hasHelpingHand, hasReflect, hasLightScreen,
                 attackerState.ability, null, currentDefenderAbility, null, weather, disasters, hasFriendGuard,
@@ -493,7 +496,7 @@ function App() {
         });
         setDamageResults(newDamageResults);
     }, [
-        activeAttackers, defenderState, // ★ defenderState全体を依存配列に入れることでattackStatの変更も検知
+        activeAttackers, defenderState,
         defenderCurrentTypes, isDoubleBattle, hasReflect,
         hasLightScreen, weather, field, disasters, hasFriendGuard, defenderIsTerastallized,
         defender2Item, defender2Ability
@@ -505,6 +508,10 @@ function App() {
             ? [defenderState.pokemon.types[0], defenderState.pokemon.types[1] || undefined]
             : [PokemonType.Normal, undefined]
         );
+
+    const createStatSnapshot = (stat: StatCalculation): StatCalculationSnapshot => ({
+        iv: stat.iv, ev: stat.ev, nature: stat.nature, rank: stat.rank,
+    });
 
     const handleSaveLogEntry = (attackerIdx: number) => {
         const attacker = activeAttackers[attackerIdx];
@@ -528,14 +535,14 @@ function App() {
         else if (attacker.teraType) attackerDisplayTypesForLog = [attacker.teraType];
         else attackerDisplayTypesForLog = attacker.pokemon.types as [PokemonType, PokemonType?];
 
-        const isFoulPlayLog = attacker.move.id === "foulplay"; // IDで判定
+        const isFoulPlayLog = attacker.move.id === "foulplay";
         const moveCategoryForLog = attacker.teraBlastDeterminedCategory || attacker.move.category as MoveCategory;
         let offensiveStatValueLog = 0, offensiveStatRankLog = 0, defensiveStatValueLog = 0, defensiveStatRankLog = 0;
         let defensiveStatTypeLog: 'defense' | 'specialDefense' = 'defense';
 
         if (isFoulPlayLog) {
-            offensiveStatValueLog = defenderState.attackStat.final; // ★ 相手の攻撃力
-            offensiveStatRankLog = defenderState.attackStat.rank;    // ★ 相手の攻撃ランク
+            offensiveStatValueLog = defenderState.attackStat.final;
+            offensiveStatRankLog = defenderState.attackStat.rank;
             defensiveStatValueLog = defenderState.defenseStat.final;
             defensiveStatRankLog = defenderState.defenseStat.rank;
             defensiveStatTypeLog = 'defense';
@@ -578,14 +585,73 @@ function App() {
             hasFriendGuard: hasFriendGuard, displayTypes: defenderCurrentTypes,
         };
         const currentHitCountLog = attacker.selectedHitCount || (attacker.move.multihit === '2-5' ? 1 : (typeof attacker.move.multihit === 'number' ? attacker.move.multihit : 1));
+
+        // Create snapshots for logging
+        const attackerStateSnapshot: AttackerStateSnapshotForLog = {
+            pokemonId: attacker.pokemon.id,
+            moveId: attacker.move.id,
+            itemId: attacker.item?.id || null,
+            abilityId: attacker.ability?.id || null,
+            attackStat: createStatSnapshot(attacker.attackStat),
+            specialAttackStat: createStatSnapshot(attacker.specialAttackStat),
+            defenseStat: createStatSnapshot(attacker.defenseStat),
+            speedStat: createStatSnapshot(attacker.speedStat),
+            hpEv: attacker.hpEv,
+            currentHp: attacker.currentHp,
+            teraType: attacker.teraType,
+            isStellar: attacker.isStellar,
+            isBurned: attacker.isBurned,
+            hasHelpingHand: attacker.hasHelpingHand,
+            hasFlowerGift: attacker.hasFlowerGift,
+            teraBlastUserSelectedCategory: attacker.teraBlastUserSelectedCategory,
+            selectedHitCount: attacker.selectedHitCount,
+            protosynthesisBoostedStat: attacker.protosynthesisBoostedStat,
+            protosynthesisManualTrigger: attacker.protosynthesisManualTrigger,
+            quarkDriveBoostedStat: attacker.quarkDriveBoostedStat,
+            quarkDriveManualTrigger: attacker.quarkDriveManualTrigger,
+            moveUiOptionStates: attacker.moveUiOptionStates,
+        };
+
+        const defenderStateSnapshot: DefenderStateSnapshotForLog = {
+            pokemonId: defenderState.pokemon.id,
+            itemId: currentDefenderItemForLog?.id || null, // Use item potentially from defender2
+            abilityId: currentDefenderAbilityForLog?.id || null, // Use ability potentially from defender2
+            hpStat: createStatSnapshot(defenderState.hpStat),
+            defenseStat: createStatSnapshot(defenderState.defenseStat),
+            specialDefenseStat: createStatSnapshot(defenderState.specialDefenseStat),
+            attackStat: createStatSnapshot(defenderState.attackStat),
+            speedStat: createStatSnapshot(defenderState.speedStat),
+            hpEv: defenderState.hpEv,
+            teraType: defenderState.teraType,
+            isStellar: defenderState.isStellar,
+            isBurned: defenderState.isBurned,
+            hasFlowerGift: defenderState.hasFlowerGift,
+            userModifiedTypes: defenderUserModifiedTypes,
+            protosynthesisBoostedStat: defenderState.protosynthesisBoostedStat,
+            protosynthesisManualTrigger: defenderState.protosynthesisManualTrigger,
+            quarkDriveBoostedStat: defenderState.quarkDriveBoostedStat,
+            quarkDriveManualTrigger: defenderState.quarkDriveManualTrigger,
+        };
+
+        const globalStatesSnapshot: GlobalStatesSnapshotForLog = {
+            isDoubleBattle: isDoubleBattle,
+            weather: weather,
+            field: field,
+            disasters: JSON.parse(JSON.stringify(disasters)), // Deep copy
+            hasReflect: hasReflect,
+            hasLightScreen: hasLightScreen,
+            hasFriendGuard: hasFriendGuard,
+            defenderIsTerastallized: defenderIsTerastallized,
+        };
+
         const newLogEntry: LoggedDamageEntry = {
             id: `${Date.now()}-${attackerIdx}`, timestamp: Date.now(),
             attackerDetails: logAttackerDetails, defenderDetails: logDefenderDetails,
-            result: JSON.parse(JSON.stringify(result)), defenderOriginalHP: defenderState.hpStat.final,
+            result: JSON.parse(JSON.stringify(result)),
+            defenderOriginalHP: defenderState.hpStat.final,
             attackerPokemonName: attacker.pokemon.name, attackerMoveName: attacker.move.name,
             defenderPokemonName: defenderState.pokemon.name, hitCount: currentHitCountLog,
-            isDoubleBattle: isDoubleBattle, weather: weather !== 'none' ? weather : null,
-            field: field !== 'none' ? field : null, disasters: JSON.parse(JSON.stringify(disasters)),
+            attackerStateSnapshot, defenderStateSnapshot, globalStatesSnapshot,
         };
         setLoggedEntries(prevEntries => {
             const updatedEntries = [newLogEntry, ...prevEntries];
@@ -600,6 +666,155 @@ function App() {
     const handleClearAllLogs = () => {
         setLoggedEntries([]);
     };
+
+    const restoreStatCalculation = (snapshot: StatCalculationSnapshot, baseStatValue: number, isHp: boolean = false, item: Item | null): StatCalculation => {
+        const final = calculateStat(baseStatValue, snapshot.iv, snapshot.ev, 50, snapshot.nature, isHp, snapshot.rank, item);
+        return {
+            base: baseStatValue, // Base is derived from pokemon data
+            iv: snapshot.iv,
+            ev: snapshot.ev,
+            nature: snapshot.nature,
+            rank: snapshot.rank,
+            final: final,
+        };
+    };
+
+    const handleLoadLogEntry = (logId: string) => {
+        const logEntry = loggedEntries.find(entry => entry.id === logId);
+        if (!logEntry || !logEntry.attackerStateSnapshot || !logEntry.defenderStateSnapshot || !logEntry.globalStatesSnapshot) {
+            alert("選択されたログの読み込みに失敗しました。ログデータが不完全か、古い形式の可能性があります。");
+            return;
+        }
+
+        const { attackerStateSnapshot, defenderStateSnapshot, globalStatesSnapshot } = logEntry;
+
+        // Restore Attacker
+        const attackerPokemon = pokedex.find(p => p.id === attackerStateSnapshot.pokemonId);
+        const attackerMove = moves.find(m => m.id === attackerStateSnapshot.moveId);
+        const attackerItem = items.find(i => i.id === attackerStateSnapshot.itemId);
+        const attackerAbility = abilities.find(a => a.id === attackerStateSnapshot.abilityId);
+
+        if (!attackerPokemon || !attackerMove) {
+            alert("攻撃側のポケモンまたは技の情報の復元に失敗しました。");
+            return;
+        }
+
+        const loadedAttackerAttackStat = restoreStatCalculation(attackerStateSnapshot.attackStat, attackerPokemon.baseStats.attack, false, attackerItem);
+        const loadedAttackerSpAttackStat = restoreStatCalculation(attackerStateSnapshot.specialAttackStat, attackerPokemon.baseStats.specialAttack, false, attackerItem);
+        const loadedAttackerDefenseStat = restoreStatCalculation(attackerStateSnapshot.defenseStat, attackerPokemon.baseStats.defense, false, attackerItem);
+        const loadedAttackerSpeedStat = restoreStatCalculation(attackerStateSnapshot.speedStat, attackerPokemon.baseStats.speed, false, attackerItem);
+        const loadedAttackerActualMaxHp = calculateHpForApp(attackerPokemon.baseStats.hp, attackerStateSnapshot.attackStat.iv, attackerStateSnapshot.hpEv, 50); // IVはattackStatから仮で取得。HP用のIVを保存するなら修正
+
+        const newAttackerState: AttackerState = {
+            pokemon: attackerPokemon,
+            move: attackerMove,
+            effectiveMove: null, // Will be recalculated
+            item: attackerItem || null,
+            ability: attackerAbility || null,
+            attackStat: loadedAttackerAttackStat,
+            specialAttackStat: loadedAttackerSpAttackStat,
+            defenseStat: loadedAttackerDefenseStat,
+            speedStat: loadedAttackerSpeedStat,
+            attackInputValue: loadedAttackerAttackStat.final.toString(),
+            specialAttackInputValue: loadedAttackerSpAttackStat.final.toString(),
+            defenseInputValue: loadedAttackerDefenseStat.final.toString(),
+            speedInputValue: loadedAttackerSpeedStat.final.toString(),
+            hpEv: attackerStateSnapshot.hpEv,
+            actualMaxHp: loadedAttackerActualMaxHp,
+            currentHp: Math.min(attackerStateSnapshot.currentHp, loadedAttackerActualMaxHp),
+            teraType: attackerStateSnapshot.teraType,
+            isStellar: attackerStateSnapshot.isStellar,
+            isBurned: attackerStateSnapshot.isBurned,
+            hasHelpingHand: attackerStateSnapshot.hasHelpingHand,
+            hasFlowerGift: attackerStateSnapshot.hasFlowerGift,
+            isEnabled: true,
+            teraBlastUserSelectedCategory: attackerStateSnapshot.teraBlastUserSelectedCategory,
+            teraBlastDeterminedType: null, // Will be recalculated
+            teraBlastDeterminedCategory: null, // Will be recalculated
+            selectedHitCount: attackerStateSnapshot.selectedHitCount,
+            protosynthesisBoostedStat: attackerStateSnapshot.protosynthesisBoostedStat,
+            protosynthesisManualTrigger: attackerStateSnapshot.protosynthesisManualTrigger,
+            quarkDriveBoostedStat: attackerStateSnapshot.quarkDriveBoostedStat,
+            quarkDriveManualTrigger: attackerStateSnapshot.quarkDriveManualTrigger,
+            moveUiOptionStates: attackerStateSnapshot.moveUiOptionStates || {},
+        };
+
+        // Restore Defender
+        const defenderPokemon = pokedex.find(p => p.id === defenderStateSnapshot.pokemonId);
+        const defenderItem = items.find(i => i.id === defenderStateSnapshot.itemId);
+        const defenderAbility = abilities.find(a => a.id === defenderStateSnapshot.abilityId);
+
+        if (!defenderPokemon) {
+            alert("防御側のポケモンの情報の復元に失敗しました。");
+            return;
+        }
+
+        const loadedDefenderHpStat = restoreStatCalculation(defenderStateSnapshot.hpStat, defenderPokemon.baseStats.hp, true, defenderItem);
+        const loadedDefenderDefenseStat = restoreStatCalculation(defenderStateSnapshot.defenseStat, defenderPokemon.baseStats.defense, false, defenderItem);
+        const loadedDefenderSpDefenseStat = restoreStatCalculation(defenderStateSnapshot.specialDefenseStat, defenderPokemon.baseStats.specialDefense, false, defenderItem);
+        const loadedDefenderAttackStat = restoreStatCalculation(defenderStateSnapshot.attackStat, defenderPokemon.baseStats.attack, false, defenderItem);
+        const loadedDefenderSpeedStat = restoreStatCalculation(defenderStateSnapshot.speedStat, defenderPokemon.baseStats.speed, false, defenderItem);
+
+        const newDefenderState: DefenderState = {
+            pokemon: defenderPokemon,
+            item: defenderItem || null,
+            ability: defenderAbility || null,
+            hpStat: loadedDefenderHpStat,
+            defenseStat: loadedDefenderDefenseStat,
+            specialDefenseStat: loadedDefenderSpDefenseStat,
+            attackStat: loadedDefenderAttackStat,
+            speedStat: loadedDefenderSpeedStat,
+            hpInputValue: loadedDefenderHpStat.final.toString(),
+            defenseInputValue: loadedDefenderDefenseStat.final.toString(),
+            specialDefenseInputValue: loadedDefenderSpDefenseStat.final.toString(),
+            speedInputValue: loadedDefenderSpeedStat.final.toString(),
+            hpEv: defenderStateSnapshot.hpEv,
+            actualMaxHp: loadedDefenderHpStat.final,
+            teraType: defenderStateSnapshot.teraType,
+            isStellar: defenderStateSnapshot.isStellar,
+            isBurned: defenderStateSnapshot.isBurned,
+            hasFlowerGift: defenderStateSnapshot.hasFlowerGift,
+            isEnabled: true,
+            protosynthesisBoostedStat: defenderStateSnapshot.protosynthesisBoostedStat,
+            protosynthesisManualTrigger: defenderStateSnapshot.protosynthesisManualTrigger,
+            quarkDriveBoostedStat: defenderStateSnapshot.quarkDriveBoostedStat,
+            quarkDriveManualTrigger: defenderStateSnapshot.quarkDriveManualTrigger,
+        };
+
+        // Apply restored states
+        setActiveAttackers(prev => {
+            const newAttackers = [...prev];
+            newAttackers[0] = newAttackerState;
+            // Reset second attacker if it exists
+            if (newAttackers.length > 1) {
+                newAttackers[1] = defaultInitialAttackerState; // Or a more specific reset logic
+                newAttackers[1].isEnabled = false;
+            }
+            return newAttackers;
+        });
+        setDefenderState(newDefenderState);
+        setDefenderUserModifiedTypes(defenderStateSnapshot.userModifiedTypes);
+
+        // Restore global states
+        setIsDoubleBattle(globalStatesSnapshot.isDoubleBattle);
+        setWeather(globalStatesSnapshot.weather);
+        setField(globalStatesSnapshot.field);
+        setDisasters(globalStatesSnapshot.disasters);
+        setHasReflect(globalStatesSnapshot.hasReflect);
+        setHasLightScreen(globalStatesSnapshot.hasLightScreen);
+        setHasFriendGuard(globalStatesSnapshot.hasFriendGuard);
+        setDefenderIsTerastallized(globalStatesSnapshot.defenderIsTerastallized);
+
+        // Reset Defender 2 specific states
+        setDefender2Item(null);
+        setDefender2Ability(null);
+
+        // Switch to damage tab and scroll to top
+        setActiveTab('damage');
+        setMobileViewMode('attacker'); // Default to attacker view on mobile
+        window.scrollTo(0, 0);
+    };
+
 
     return (
         <div className="min-h-screen bg-gray-900 text-white flex flex-col">
@@ -686,7 +901,12 @@ function App() {
                     <TeamManager pokemon={pokedex} moves={moves} items={items} abilities={abilities} natures={natures} onLoadAsDefender={handleLoadTeamMemberAsDefender} onLoadAsAttacker={handleLoadTeamMemberAsAttacker} />
                 </div>
                 <div style={{ display: activeTab === 'history' ? 'block' : 'none' }}>
-                    <HistoryTab loggedEntries={loggedEntries} onDeleteLog={handleDeleteLog} onClearAllLogs={handleClearAllLogs} />
+                    <HistoryTab
+                        loggedEntries={loggedEntries}
+                        onDeleteLog={handleDeleteLog}
+                        onClearAllLogs={handleClearAllLogs}
+                        onLoadLog={handleLoadLogEntry} // ★ 追加
+                    />
                 </div>
             </main>
 
@@ -730,7 +950,7 @@ function App() {
                                     else if (attacker.teraType) attackerDisplayTypes = [attacker.teraType];
                                     else attackerDisplayTypes = attacker.pokemon.types as [PokemonType, PokemonType?];
 
-                                    const isFoulPlay = attacker.move.id === "foulplay"; // IDで判定
+                                    const isFoulPlay = attacker.move.id === "foulplay";
                                     const moveCategoryForDisplay = attacker.teraBlastDeterminedCategory || attacker.move.category as MoveCategory;
 
                                     let offensiveStatValue = 0, offensiveStatRank = 0;
@@ -739,8 +959,8 @@ function App() {
 
 
                                     if (isFoulPlay) {
-                                        offensiveStatValue = defenderState.attackStat.final; // ★ イカサマ時は相手の攻撃力
-                                        offensiveStatRank = defenderState.attackStat.rank;   // ★ イカサマ時は相手の攻撃ランク
+                                        offensiveStatValue = defenderState.attackStat.final;
+                                        offensiveStatRank = defenderState.attackStat.rank;
                                         defenderDefensiveStatValue = defenderState.defenseStat.final;
                                         defenderDefensiveStatRank = defenderState.defenseStat.rank;
                                         defenderDefensiveStatType = 'defense';

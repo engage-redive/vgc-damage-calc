@@ -161,20 +161,92 @@ export interface BattleStats {
 export type ProtosynthesisBoostTarget = 'attack' | 'defense' | 'specialAttack' | 'specialDefense' | 'speed' | null;
 export type QuarkDriveBoostTarget = 'attack' | 'defense' | 'specialAttack' | 'specialDefense' | 'speed' | null;
 
+// --- AttackerStateとDefenderStateのスナップショット用インターフェース (IDで保存) ---
+export interface StatCalculationSnapshot {
+  iv: number;
+  ev: number;
+  nature: NatureModifier;
+  rank: number;
+  // base と final はロード時に再計算するため不要
+}
+
+export interface AttackerStateSnapshotForLog {
+  pokemonId: string | number | null;
+  moveId: string | null;
+  itemId: string | null;
+  abilityId: string | null;
+  attackStat: StatCalculationSnapshot;
+  specialAttackStat: StatCalculationSnapshot;
+  defenseStat: StatCalculationSnapshot;
+  speedStat: StatCalculationSnapshot;
+  hpEv: number;
+  currentHp: number;
+  // actualMaxHp はロード時に再計算
+  teraType: PokemonType | null;
+  isStellar: boolean;
+  isBurned: boolean;
+  hasHelpingHand: boolean;
+  hasFlowerGift: boolean; // 念のため追加
+  teraBlastUserSelectedCategory: 'physical' | 'special' | 'auto';
+  selectedHitCount: number | null;
+  protosynthesisBoostedStat: ProtosynthesisBoostTarget | null;
+  protosynthesisManualTrigger: boolean;
+  quarkDriveBoostedStat: QuarkDriveBoostTarget | null;
+  quarkDriveManualTrigger: boolean;
+  moveUiOptionStates: { [key: string]: boolean };
+}
+
+export interface DefenderStateSnapshotForLog {
+  pokemonId: string | number | null;
+  itemId: string | null;
+  abilityId: string | null;
+  hpStat: StatCalculationSnapshot;
+  defenseStat: StatCalculationSnapshot;
+  specialDefenseStat: StatCalculationSnapshot;
+  attackStat: StatCalculationSnapshot; // イカサマ用
+  speedStat: StatCalculationSnapshot;
+  hpEv: number;
+  // actualMaxHp はロード時に再計算
+  teraType: PokemonType | null;
+  isStellar: boolean; // DefenderStateには元々あったが、ログに含めるように明示
+  isBurned: boolean; // DefenderStateには元々あったが、ログに含めるように明示
+  hasFlowerGift: boolean; // 念のため追加
+  userModifiedTypes: [PokemonType, PokemonType?] | null; // ユーザーが手動変更したタイプ
+  // isEnabled は常に true としてロードされるため不要
+  protosynthesisBoostedStat: ProtosynthesisBoostTarget | null;
+  protosynthesisManualTrigger: boolean;
+  quarkDriveBoostedStat: QuarkDriveBoostTarget | null;
+  quarkDriveManualTrigger: boolean;
+}
+
+export interface GlobalStatesSnapshotForLog {
+    isDoubleBattle: boolean;
+    weather: Weather;
+    field: Field;
+    disasters: DisasterState;
+    hasReflect: boolean;
+    hasLightScreen: boolean;
+    hasFriendGuard: boolean;
+    defenderIsTerastallized: boolean;
+}
+
+// --- ここまでスナップショット用インターフェース ---
+
+
 export interface AttackerState {
   pokemon: Pokemon | null;
   move: Move | null;
-  effectiveMove: Move | null;
+  effectiveMove: Move | null; // 計算時に動的に決定される技情報
   item: Item | null;
   ability: Ability | null;
   attackStat: StatCalculation;
   specialAttackStat: StatCalculation;
   defenseStat: StatCalculation;
   speedStat: StatCalculation;
-  attackInputValue: string;
-  specialAttackInputValue: string;
-  defenseInputValue: string;
-  speedInputValue: string;
+  attackInputValue: string; // UI表示用
+  specialAttackInputValue: string; // UI表示用
+  defenseInputValue: string; // UI表示用
+  speedInputValue: string; // UI表示用
   hpEv: number;
   actualMaxHp: number;
   currentHp: number;
@@ -185,14 +257,14 @@ export interface AttackerState {
   hasFlowerGift: boolean;
   isEnabled: boolean;
   teraBlastUserSelectedCategory: 'physical' | 'special' | 'auto';
-  teraBlastDeterminedType: TeraBurstEffectiveType | null;
-  teraBlastDeterminedCategory: MoveCategory | null;
-  selectedHitCount: number | null;
+  teraBlastDeterminedType: TeraBurstEffectiveType | null; // テラバーストの実際のタイプ
+  teraBlastDeterminedCategory: MoveCategory | null; // テラバーストの実際のカテゴリ
+  selectedHitCount: number | null; // 連続技の選択回数
   protosynthesisBoostedStat: ProtosynthesisBoostTarget | null;
   protosynthesisManualTrigger: boolean;
   quarkDriveBoostedStat: QuarkDriveBoostTarget | null;
   quarkDriveManualTrigger: boolean;
-  moveUiOptionStates: { [key: string]: boolean };
+  moveUiOptionStates: { [key: string]: boolean }; // 技固有UIオプションの状態
 }
 
 export interface DefenderState {
@@ -202,19 +274,19 @@ export interface DefenderState {
   hpStat: StatCalculation;
   defenseStat: StatCalculation;
   specialDefenseStat: StatCalculation;
-  attackStat: StatCalculation;
+  attackStat: StatCalculation; // イカサマ用
   speedStat: StatCalculation;
-  hpInputValue: string;
-  defenseInputValue: string;
-  specialDefenseInputValue: string;
-  speedInputValue: string;
-  hpEv: number;
-  actualMaxHp: number;
+  hpInputValue: string; // UI表示用
+  defenseInputValue: string; // UI表示用
+  specialDefenseInputValue: string; // UI表示用
+  speedInputValue: string; // UI表示用
+  hpEv: number; // HP努力値 (hpStat.evと同期)
+  actualMaxHp: number; // 実際の最大HP (hpStat.finalと同期)
   teraType: PokemonType | null;
   isStellar: boolean;
   isBurned: boolean;
   hasFlowerGift: boolean;
-  isEnabled: boolean;
+  isEnabled: boolean; // 常にtrueだが型定義としては保持
   protosynthesisBoostedStat: ProtosynthesisBoostTarget | null;
   protosynthesisManualTrigger: boolean;
   quarkDriveBoostedStat: QuarkDriveBoostTarget | null;
@@ -301,16 +373,20 @@ export interface DefenderDetailsForModal {
 export interface LoggedDamageEntry {
   id: string;
   timestamp: number;
-  attackerDetails: AttackerDetailsForModal;
-  defenderDetails: DefenderDetailsForModal;
+  attackerDetails: AttackerDetailsForModal; // モーダル表示用の既存情報
+  defenderDetails: DefenderDetailsForModal; // モーダル表示用の既存情報
   result: DamageCalculation;
-  defenderOriginalHP: number;
-  attackerPokemonName: string;
-  attackerMoveName: string;
-  defenderPokemonName: string;
-  hitCount: number;
-  isDoubleBattle: boolean;
-  weather: Weather | null;
-  field: Field | null;
-  disasters: DisasterState;
+  defenderOriginalHP: number; // モーダル表示用 (defenderStateSnapshot.hpStat から再計算可能)
+  attackerPokemonName: string; // モーダル表示用
+  attackerMoveName: string; // モーダル表示用
+  defenderPokemonName: string; // モーダル表示用
+  hitCount: number; // モーダル表示用 (attackerStateSnapshot.selectedHitCount から取得可能)
+
+  // --- 計算再現用のスナップショット情報 ---
+  attackerStateSnapshot: AttackerStateSnapshotForLog;
+  defenderStateSnapshot: DefenderStateSnapshotForLog;
+  globalStatesSnapshot: GlobalStatesSnapshotForLog;
+
+  // isDoubleBattle, weather, field, disasters は globalStatesSnapshot に移動
+  // これらは元々モーダル表示用にも使われていたが、再現時には globalStatesSnapshot から取得
 }

@@ -5,15 +5,13 @@ import {
   Weather,
   Field,
   DisasterState,
-  AttackerDetailsForModal,
-  DefenderDetailsForModal,
-  DamageCalculation,
-  MoveCategory,
+  // AttackerDetailsForModal, // モーダル表示用の型は LoggedDamageEntry 内に含まれる
+  // DefenderDetailsForModal, // モーダル表示用の型は LoggedDamageEntry 内に含まれる
+  // DamageCalculation, // LoggedDamageEntry 内に含まれる
+  // MoveCategory, // LoggedDamageEntry 内に含まれる
 } from '../types';
-import { X, Trash2, Info } from 'lucide-react';
+import { X, Trash2, Info, RotateCcw } from 'lucide-react'; // RotateCcw アイコンを追加
 
-// --- 定数・ユーティリティ関数 (TYPE_NAME_JP_HISTORY, TYPE_COLORS_HISTORYなど) ---
-// (前回のコードから変更なしのため、ここでは省略します。実際のファイルには含めてください)
 const TYPE_NAME_JP_HISTORY: Record<string, string> = {
   normal: 'ノーマル', fire: 'ほのお', water: 'みず', electric: 'でんき', grass: 'くさ', ice: 'こおり',
   fighting: 'かくとう', poison: 'どく', ground: 'じめん', flying: 'ひこう', psychic: 'エスパー', bug: 'むし',
@@ -164,8 +162,6 @@ const getKOTextHistory = (
     return `乱数${minUsagesToKO}発 (${formatPercentageHistory(koChanceVal)}%)`;
 };
 
-
-// ★★★ HPバーの色決定関数 (DamageResult.tsxからコピー) ★★★
 const getHpBarColorByRemainingHp = (remainingPercentage: number) => {
   if (remainingPercentage <= 25) return 'bg-red-500';
   if (remainingPercentage <= 50) return 'bg-yellow-500';
@@ -177,15 +173,14 @@ const getHpRangeBarColorByRemainingHp = (remainingPercentage: number) => {
   if (remainingPercentage <= 50) return 'bg-yellow-700';
   return 'bg-green-700';
 };
-// ★★★ ここまでHPバーの色決定関数 ★★★
-
 
 interface LogCardProps {
   logEntry: LoggedDamageEntry;
   onDelete: (logId: string) => void;
+  onLoad: (logId: string) => void; // ★ 追加
 }
 
-const LogCard: React.FC<LogCardProps> = ({ logEntry, onDelete }) => {
+const LogCard: React.FC<LogCardProps> = ({ logEntry, onDelete, onLoad }) => { // ★ onLoad を追加
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const {
@@ -193,43 +188,43 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry, onDelete }) => {
     timestamp,
     attackerDetails,
     defenderDetails,
-    result, // This is DamageCalculation type
+    result,
     defenderOriginalHP,
     attackerPokemonName,
     attackerMoveName,
     defenderPokemonName,
     hitCount,
-    isDoubleBattle,
-    weather,
-    field,
-    disasters,
+    globalStatesSnapshot, // isDoubleBattle はここから取得
   } = logEntry;
 
-  // --- HPバー表示用の計算 (DamageResult.tsxのロジックを適用) ---
-  // ログには急所モードの状態は保存していないため、通常ダメージを基準にする
-  // (もし急所モードもログに保存して切り替えたい場合は、logEntryにその情報が必要)
-  const currentDisplayMinPercentageInLog = result.minPercentage; // 通常ダメージの最小割合
-  const currentDisplayMaxPercentageInLog = result.maxPercentage; // 通常ダメージの最大割合
+  const isDoubleBattle = globalStatesSnapshot?.isDoubleBattle || false; // 古いログ形式考慮
 
-  // ダメージ割合を0%から100%の範囲にクランプ
+  const currentDisplayMinPercentageInLog = result.minPercentage;
+  const currentDisplayMaxPercentageInLog = result.maxPercentage;
+
   const clampedCurrentDisplayMinPercentageInLog = Math.min(100, currentDisplayMinPercentageInLog);
   const clampedCurrentDisplayMaxPercentageInLog = Math.min(100, currentDisplayMaxPercentageInLog);
 
-  // 残りHP割合の計算
   const actualRemainingHPMinPercentageInLog = Math.max(0, 100 - clampedCurrentDisplayMaxPercentageInLog);
   const actualRemainingHPMaxPercentageInLog = Math.max(0, 100 - clampedCurrentDisplayMinPercentageInLog);
-  // --- HPバー表示用の計算ここまで ---
-
 
   const minDamageDisplay = result.minDamage * hitCount;
   const maxDamageDisplay = result.maxDamage * hitCount;
-  // minPercentageDisplay と maxPercentageDisplay は result から直接使用
   const koTextDisplay = getKOTextHistory(
     result.normalDamages,
     defenderOriginalHP,
     hitCount,
     calculateKOChanceForHistory
   );
+
+  const handleLoadClick = () => {
+    if (logEntry.attackerStateSnapshot && logEntry.defenderStateSnapshot && logEntry.globalStatesSnapshot) {
+        onLoad(id);
+        setIsModalOpen(false); // モーダルが開いていれば閉じる
+    } else {
+        alert("このログは古い形式のため、計算を復元できません。");
+    }
+  };
 
   return (
     <div className="bg-gray-800 p-4 rounded-lg shadow-md mb-4">
@@ -289,8 +284,7 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry, onDelete }) => {
         </div>
       </div>
       
-      {/* ★★★ HPバー (DamageResult.tsx と同じロジックで表示) ★★★ */}
-      <div className="w-full h-3 bg-white rounded-full overflow-hidden mb-1"> {/* 背景を白に */}
+      <div className="w-full h-3 bg-white rounded-full overflow-hidden mb-1">
         <div className="h-full relative">
           {actualRemainingHPMinPercentageInLog > 0 && (
             <div
@@ -311,19 +305,28 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry, onDelete }) => {
       </div>
       <div className="flex justify-between text-xs text-gray-400 mb-3">
         <span>残りHP (最大HP: {defenderOriginalHP})</span>
-        {/* <span>{defenderOriginalHP}</span> */} {/* HPの数値を右に表示したい場合 */}
       </div>
-      {/* ★★★ HPバーここまで ★★★ */}
+
+      {/* ★ ボタンコンテナを追加して横並びにする */}
+      <div className="mt-2 flex items-center justify-center space-x-4">
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="text-sm text-blue-400 hover:underline flex items-center"
+        >
+          <Info size={16} className="mr-1"/> 詳細を見る
+        </button>
+        {/* ★ ログを復元ボタンを追加 */}
+        <button
+          onClick={handleLoadClick}
+          className="text-sm text-green-400 hover:underline flex items-center disabled:text-gray-500 disabled:no-underline"
+          disabled={!logEntry.attackerStateSnapshot || !logEntry.defenderStateSnapshot || !logEntry.globalStatesSnapshot}
+          title={(!logEntry.attackerStateSnapshot || !logEntry.defenderStateSnapshot || !logEntry.globalStatesSnapshot) ? "古い形式のログは復元できません" : "この計算を復元"}
+        >
+          <RotateCcw size={16} className="mr-1"/> この計算をロード
+        </button>
+      </div>
 
 
-      <button
-        onClick={() => setIsModalOpen(true)}
-        className="w-full mt-2 text-sm text-blue-400 hover:underline flex items-center justify-center"
-      >
-        <Info size={16} className="mr-1"/> 詳細を見る
-      </button>
-
-      {/* 詳細モーダル (変更なしのため省略) */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4">
           <div className="bg-gray-800 rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 relative">
@@ -439,14 +442,15 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry, onDelete }) => {
                 </ul>
               </div>
             </div>
-
-            {(weather || field || (disasters && Object.values(disasters).some(d => d))) && (
+            
+            {/* globalStatesSnapshot から天候などを表示 */}
+            {(globalStatesSnapshot?.weather || globalStatesSnapshot?.field || (globalStatesSnapshot?.disasters && Object.values(globalStatesSnapshot.disasters).some(d => d))) && (
               <div className="mt-6 pt-4 border-t border-gray-700">
                 <h3 className="text-lg font-medium text-indigo-400 mb-3">フィールド状態</h3>
                 <ul className="space-y-1 text-sm text-gray-300">
-                  {weather && <li>天候: <span className="font-semibold text-white">{WEATHER_NAME_JP_HISTORY[weather as keyof typeof WEATHER_NAME_JP_HISTORY] || weather}</span></li>}
-                  {field && <li>フィールド: <span className="font-semibold text-white">{FIELD_NAME_JP_HISTORY[field as keyof typeof FIELD_NAME_JP_HISTORY] || field}</span></li>}
-                  {disasters && Object.entries(disasters).map(([key, value]) => 
+                  {globalStatesSnapshot?.weather && globalStatesSnapshot.weather !== 'none' && <li>天候: <span className="font-semibold text-white">{WEATHER_NAME_JP_HISTORY[globalStatesSnapshot.weather as keyof typeof WEATHER_NAME_JP_HISTORY] || globalStatesSnapshot.weather}</span></li>}
+                  {globalStatesSnapshot?.field && globalStatesSnapshot.field !== 'none' && <li>フィールド: <span className="font-semibold text-white">{FIELD_NAME_JP_HISTORY[globalStatesSnapshot.field as keyof typeof FIELD_NAME_JP_HISTORY] || globalStatesSnapshot.field}</span></li>}
+                  {globalStatesSnapshot?.disasters && Object.entries(globalStatesSnapshot.disasters).map(([key, value]) => 
                     value && <li key={key}>災い: <span className="font-semibold text-red-400">{DISASTER_MAP_HISTORY[key as keyof DisasterState]}</span></li>
                   )}
                 </ul>
@@ -493,12 +497,23 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry, onDelete }) => {
               </div>
             </div>
 
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="mt-8 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors"
-            >
-              閉じる
-            </button>
+            <div className="mt-8 flex space-x-3">
+                {/* ★ ログを復元ボタンをモーダル内に追加 */}
+                <button
+                    onClick={handleLoadClick}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors flex items-center justify-center disabled:bg-gray-500"
+                    disabled={!logEntry.attackerStateSnapshot || !logEntry.defenderStateSnapshot || !logEntry.globalStatesSnapshot}
+                    title={(!logEntry.attackerStateSnapshot || !logEntry.defenderStateSnapshot || !logEntry.globalStatesSnapshot) ? "古い形式のログは復元できません" : "この計算を復元"}
+                >
+                    <RotateCcw size={16} className="mr-2"/> この計算をロード
+                </button>
+                <button
+                    onClick={() => setIsModalOpen(false)}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors"
+                >
+                    閉じる
+                </button>
+            </div>
           </div>
         </div>
       )}
