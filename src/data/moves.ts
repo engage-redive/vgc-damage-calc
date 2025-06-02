@@ -5887,7 +5887,7 @@ export const moves: Move[] = [
 },
 {
   id: "psyshieldbash",
-  name: "サイコシールドバッシュ",
+  name: "バリアーラッシュ",
   nameEn: "Psyshield Bash",
   type: "psychic",
   category: "physical",
@@ -5904,7 +5904,8 @@ export const moves: Move[] = [
   category: "special",
   power: 80,
   accuracy: 100,
-  pp: 10
+  pp: 10,
+  dynamicEffectId: "calcDefForSpecial" // 追加
 },
 {
   id: "psystrike",
@@ -5914,7 +5915,8 @@ export const moves: Move[] = [
   category: "special",
   power: 100,
   accuracy: 100,
-  pp: 10
+  pp: 10,
+  dynamicEffectId: "calcDefForSpecial" // 追加
 },
 {
   id: "psywave",
@@ -8007,16 +8009,6 @@ export const moves: Move[] = [
   power: 75,
   accuracy: 100,
   pp: 10
-},
-{
-  id: "terastarstorm",
-  name: "テラクラスター",
-  nameEn: "Tera Starstorm",
-  type: "normal",
-  category: "special",
-  power: 120,
-  accuracy: 100,
-  pp: 5
 },
 {
   id: "terrainpulse",
