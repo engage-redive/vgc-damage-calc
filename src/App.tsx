@@ -914,7 +914,7 @@ function App() {
             <div style={{ display: activeTab === 'damage' ? 'block' : 'none' }}>
                 <footer className="fixed bottom-0 left-0 w-full bg-gray-800 border-t border-gray-700 shadow-lg z-10 max-h-[calc(80vh-4rem)] overflow-y-auto">
                     <div className="max-w-7xl mx-auto">
-                        <div className="space-y-1.5 p-1.5">
+                        <div className="space-y-2.5 p-2.5">
                             {(() => {
                                 const enabledAttackers = activeAttackers.filter(a => a.isEnabled);
                                 // --- 有効な攻撃者の数をカウント ---
