@@ -1,5 +1,17 @@
-import { Move, PokemonType, MoveCategory, MoveUiOption } from '../types'; // ★ Ensure correct import
+import { Move, PokemonType, MoveCategory, MoveUiOption } from '../types'; 
 export const moves: Move[] = [
+{
+  id: "terastarstorm",
+  name: "テラクラスター",
+  nameEn: "Tera Starstorm",
+  type: PokemonType.Normal, // 基本タイプはノーマル
+  category: MoveCategory.Special, // 基本カテゴリは特殊
+  power: 120,
+  accuracy: 100,
+  pp: 5,
+  isSpread: false, // 基本は単体攻撃
+  dynamicEffectId: "terastarstormEffects" // ★ 専用効果ID
+},
  {
     id: "terablast",
     name: "テラバースト",

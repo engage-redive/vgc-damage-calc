@@ -137,6 +137,7 @@ function App() {
         hpEv: initialDefaultHpEv, actualMaxHp: initialDefaultActualMaxHp, currentHp: initialDefaultActualMaxHp,
         teraType: null, isStellar: false, isBurned: false, hasHelpingHand: false, hasFlowerGift: false, isEnabled: true,
         teraBlastUserSelectedCategory: 'auto', teraBlastDeterminedType: null, teraBlastDeterminedCategory: null,
+        starstormDeterminedCategory: null, // ★ 追加
         selectedHitCount: null, protosynthesisBoostedStat: null, protosynthesisManualTrigger: false,
         quarkDriveBoostedStat: null, quarkDriveManualTrigger: false, moveUiOptionStates: {},
     };
@@ -390,6 +391,7 @@ function App() {
             hpEv: loadedHpEv, actualMaxHp: loadedActualMaxHp, currentHp: loadedActualMaxHp, teraType: member.teraType,
             isStellar: false, isBurned: false, hasHelpingHand: false, hasFlowerGift: false, isEnabled: true,
             teraBlastUserSelectedCategory: 'auto', teraBlastDeterminedType: null, teraBlastDeterminedCategory: null,
+            starstormDeterminedCategory: null, // ★ 追加
             selectedHitCount: (member.moves[0] && typeof member.moves[0].multihit === 'number' && member.moves[0].multihit > 1) ? member.moves[0].multihit : null,
             protosynthesisBoostedStat: member.protosynthesisBoostedStat ?? null,
             protosynthesisManualTrigger: member.protosynthesisManualTrigger ?? false,
@@ -432,6 +434,12 @@ function App() {
                 uiOptionChecked: attackerState.moveUiOptionStates,
             };
             let moveForCalc = getEffectiveMoveProperties(attackerState.move, moveContext);
+
+            // ★ テラクラスターのカテゴリ適用
+            if (moveForCalc && attackerState.move?.id === "terastarstorm" && attackerState.pokemon?.id === "1024-s" && attackerState.starstormDeterminedCategory) {
+                moveForCalc = { ...moveForCalc, category: attackerState.starstormDeterminedCategory };
+            }
+
             const currentAttackerState = activeAttackers[index];
             if (currentAttackerState && (JSON.stringify(currentAttackerState.effectiveMove) !== JSON.stringify(moveForCalc))) {
                 setActiveAttackers(prev => {
@@ -539,7 +547,16 @@ function App() {
         else attackerDisplayTypesForLog = attacker.pokemon.types as [PokemonType, PokemonType?];
 
         const isFoulPlayLog = attacker.move.id === "foulplay";
-        const moveCategoryForLog = attacker.teraBlastDeterminedCategory || attacker.move.category as MoveCategory;
+        let moveCategoryForLog = attacker.move.category as MoveCategory; // デフォルト
+
+        // テラバーストまたはテラクラスターのカテゴリを決定
+        if (attacker.move.isTeraBlast && attacker.teraBlastDeterminedCategory) {
+            moveCategoryForLog = attacker.teraBlastDeterminedCategory;
+        } else if (attacker.move.id === "terastarstorm" && attacker.pokemon.id === "1024-s" && attacker.starstormDeterminedCategory) {
+            moveCategoryForLog = attacker.starstormDeterminedCategory;
+        }
+
+
         let offensiveStatValueLog = 0, offensiveStatRankLog = 0, defensiveStatValueLog = 0, defensiveStatRankLog = 0;
         let defensiveStatTypeLog: 'defense' | 'specialDefense' = 'defense';
 
@@ -606,6 +623,7 @@ function App() {
             hasHelpingHand: attacker.hasHelpingHand,
             hasFlowerGift: attacker.hasFlowerGift,
             teraBlastUserSelectedCategory: attacker.teraBlastUserSelectedCategory,
+            starstormDeterminedCategory: attacker.starstormDeterminedCategory, // ★ 追加
             selectedHitCount: attacker.selectedHitCount,
             protosynthesisBoostedStat: attacker.protosynthesisBoostedStat,
             protosynthesisManualTrigger: attacker.protosynthesisManualTrigger,
@@ -732,6 +750,7 @@ function App() {
             teraBlastUserSelectedCategory: attackerStateSnapshot.teraBlastUserSelectedCategory,
             teraBlastDeterminedType: null,
             teraBlastDeterminedCategory: null,
+            starstormDeterminedCategory: attackerStateSnapshot.starstormDeterminedCategory || null, // ★ 追加
             selectedHitCount: attackerStateSnapshot.selectedHitCount,
             protosynthesisBoostedStat: attackerStateSnapshot.protosynthesisBoostedStat,
             protosynthesisManualTrigger: attackerStateSnapshot.protosynthesisManualTrigger,
@@ -947,6 +966,12 @@ function App() {
                                     let moveUsedInCalc = attacker.effectiveMove || getEffectiveMoveProperties(attacker.move, moveContextForDisplay);
                                     if (!moveUsedInCalc) moveUsedInCalc = { ...attacker.move, power: attacker.move.power || 0 };
 
+                                    // ★ テラクラスターのカテゴリ適用（表示用、DamageResultに渡すため）
+                                    if (moveUsedInCalc && attacker.move?.id === "terastarstorm" && attacker.pokemon?.id === "1024-s" && attacker.starstormDeterminedCategory) {
+                                        moveUsedInCalc = { ...moveUsedInCalc, category: attacker.starstormDeterminedCategory };
+                                    }
+
+
                                     if (HP_DEPENDENT_MOVE_NAMES.includes(moveUsedInCalc.name) && attacker.actualMaxHp > 0) {
                                         const basePowerForDisplay = moves.find(m => m.id === attacker.move?.id)?.power || 0;
                                         moveUsedInCalc.power = Math.max(1, Math.floor((basePowerForDisplay * attacker.currentHp) / attacker.actualMaxHp));
@@ -958,7 +983,15 @@ function App() {
                                     else attackerDisplayTypes = attacker.pokemon.types as [PokemonType, PokemonType?];
 
                                     const isFoulPlay = attacker.move.id === "foulplay";
-                                    const moveCategoryForDisplay = attacker.teraBlastDeterminedCategory || attacker.move.category as MoveCategory;
+                                    let moveCategoryForDisplay = attacker.move.category as MoveCategory; // デフォルト
+
+                                    // テラバーストまたはテラクラスターのカテゴリを決定
+                                    if (attacker.move.isTeraBlast && attacker.teraBlastDeterminedCategory) {
+                                        moveCategoryForDisplay = attacker.teraBlastDeterminedCategory;
+                                    } else if (attacker.move.id === "terastarstorm" && attacker.pokemon.id === "1024-s" && attacker.starstormDeterminedCategory) {
+                                        moveCategoryForDisplay = attacker.starstormDeterminedCategory;
+                                    }
+
 
                                     let offensiveStatValue = 0, offensiveStatRank = 0;
                                     let defenderDefensiveStatValue = 0, defenderDefensiveStatRank = 0;

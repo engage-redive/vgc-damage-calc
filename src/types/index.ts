@@ -1,5 +1,3 @@
-// types.ts or index.ts
-
 export interface Pokemon {
   id: string | number;
   name: string;
@@ -188,6 +186,7 @@ export interface AttackerStateSnapshotForLog {
   hasHelpingHand: boolean;
   hasFlowerGift: boolean; // 念のため追加
   teraBlastUserSelectedCategory: 'physical' | 'special' | 'auto';
+  starstormDeterminedCategory: MoveCategory | null; // ★ テラクラスター用カテゴリ
   selectedHitCount: number | null;
   protosynthesisBoostedStat: ProtosynthesisBoostTarget | null;
   protosynthesisManualTrigger: boolean;
@@ -259,6 +258,7 @@ export interface AttackerState {
   teraBlastUserSelectedCategory: 'physical' | 'special' | 'auto';
   teraBlastDeterminedType: TeraBurstEffectiveType | null; // テラバーストの実際のタイプ
   teraBlastDeterminedCategory: MoveCategory | null; // テラバーストの実際のカテゴリ
+  starstormDeterminedCategory: MoveCategory | null; // ★ テラクラスターの実際のカテゴリ
   selectedHitCount: number | null; // 連続技の選択回数
   protosynthesisBoostedStat: ProtosynthesisBoostTarget | null;
   protosynthesisManualTrigger: boolean;

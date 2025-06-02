@@ -73,7 +73,7 @@ const calculateFinalStatWithRank = (
   return baseStatVal;
 };
 
-const calculateFinalStatForTeraBlast = (
+const calculateFinalStatForTeraBlast = ( // This can be reused for Starstorm category determination
     pokemonBaseStat: number, statCalc: StatCalculation
 ): number => {
     if (!pokemonBaseStat) return 0;
@@ -151,12 +151,11 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
     const defaultSpeedStatBase = defaultPokemon?.baseStats.speed || 0;
     const defaultHpBase = defaultPokemon?.baseStats.hp || 0;
     
-    // 新規作成時のデフォルト努力値
     const initialAttackEv = 252;
     const initialSpecialAttackEv = 252;
-    const initialOtherEv = 0; // HP, Defense, Speed
+    const initialOtherEv = 0; 
     
-    const initialActualMaxHp = defaultPokemon ? calculateHp(defaultHpBase, 31, initialOtherEv, 50) : 1; // HP EVは0で計算
+    const initialActualMaxHp = defaultPokemon ? calculateHp(defaultHpBase, 31, initialOtherEv, 50) : 1;
 
     const defaultAttackStat: StatCalculation = {
         base: defaultAttackStatBase,
@@ -205,7 +204,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
       specialAttackInputValue: defaultSpecialAttackStat.final.toString(),
       defenseInputValue: defaultDefenseStat.final.toString(),
       speedInputValue: defaultSpeedStat.final.toString(),
-      hpEv: initialOtherEv, // HP EV も 0 スタート
+      hpEv: initialOtherEv,
       actualMaxHp: initialActualMaxHp,
       currentHp: initialActualMaxHp,
       teraType: null,
@@ -217,6 +216,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
       teraBlastUserSelectedCategory: 'auto',
       teraBlastDeterminedType: null,
       teraBlastDeterminedCategory: null,
+      starstormDeterminedCategory: null, // ★ 追加
       selectedHitCount: null,
       protosynthesisBoostedStat: null,
       protosynthesisManualTrigger: false,
@@ -228,47 +228,65 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
 
   useEffect(() => {
     const newAttackersArray = attackers.map(attacker => {
+      let updatedAttacker = { ...attacker };
+
+      // Tera Blast Logic
       if (!attacker.move?.isTeraBlast) {
         if (attacker.teraBlastDeterminedType !== null || attacker.teraBlastDeterminedCategory !== null || attacker.teraBlastUserSelectedCategory !== 'auto') {
-          return { ...attacker, teraBlastDeterminedType: null, teraBlastDeterminedCategory: null, teraBlastUserSelectedCategory: 'auto' };
-        }
-        return attacker;
-      }
-
-      let determinedType: TeraBurstEffectiveType | null = null;
-      let determinedCategory: MoveCategory | null = attacker.move.category as MoveCategory;
-      const isTerastallized = attacker.teraType !== null || attacker.isStellar;
-
-      if (isTerastallized) {
-        if (attacker.isStellar) determinedType = 'stellar';
-        else if (attacker.teraType) determinedType = attacker.teraType;
-
-        if (attacker.teraBlastUserSelectedCategory === 'physical') determinedCategory = MoveCategory.Physical;
-        else if (attacker.teraBlastUserSelectedCategory === 'special') determinedCategory = MoveCategory.Special;
-        else {
-          if (attacker.pokemon) {
-            const finalAttackForCompare = calculateFinalStatForTeraBlast(attacker.pokemon.baseStats.attack, attacker.attackStat || DEFAULT_STAT_CALCULATION);
-            const finalSpecialAttackForCompare = calculateFinalStatForTeraBlast(attacker.pokemon.baseStats.specialAttack, attacker.specialAttackStat || DEFAULT_STAT_CALCULATION);
-            determinedCategory = finalAttackForCompare >= finalSpecialAttackForCompare ? MoveCategory.Physical : MoveCategory.Special; // 同値の場合は物理優先
-          } else {
-            determinedCategory = attacker.move.category as MoveCategory;
-          }
+          updatedAttacker = { ...updatedAttacker, teraBlastDeterminedType: null, teraBlastDeterminedCategory: null, teraBlastUserSelectedCategory: 'auto' };
         }
       } else {
-        determinedType = PokemonType.Normal;
-        determinedCategory = attacker.move.category as MoveCategory;
+        let determinedType: TeraBurstEffectiveType | null = null;
+        let determinedCategory: MoveCategory | null = attacker.move.category as MoveCategory;
+        const isTerastallized = attacker.teraType !== null || attacker.isStellar;
+
+        if (isTerastallized) {
+          if (attacker.isStellar) determinedType = 'stellar';
+          else if (attacker.teraType) determinedType = attacker.teraType;
+
+          if (attacker.teraBlastUserSelectedCategory === 'physical') determinedCategory = MoveCategory.Physical;
+          else if (attacker.teraBlastUserSelectedCategory === 'special') determinedCategory = MoveCategory.Special;
+          else {
+            if (attacker.pokemon) {
+              const finalAttackForCompare = calculateFinalStatForTeraBlast(attacker.pokemon.baseStats.attack, attacker.attackStat || DEFAULT_STAT_CALCULATION);
+              const finalSpecialAttackForCompare = calculateFinalStatForTeraBlast(attacker.pokemon.baseStats.specialAttack, attacker.specialAttackStat || DEFAULT_STAT_CALCULATION);
+              determinedCategory = finalAttackForCompare >= finalSpecialAttackForCompare ? MoveCategory.Physical : MoveCategory.Special;
+            } else {
+              determinedCategory = attacker.move.category as MoveCategory;
+            }
+          }
+        } else {
+          determinedType = PokemonType.Normal;
+          determinedCategory = attacker.move.category as MoveCategory;
+        }
+
+        if (attacker.teraBlastDeterminedType !== determinedType || attacker.teraBlastDeterminedCategory !== determinedCategory) {
+            updatedAttacker = { ...updatedAttacker, teraBlastDeterminedType: determinedType, teraBlastDeterminedCategory: determinedCategory };
+        }
       }
 
-      if (attacker.teraBlastDeterminedType !== determinedType || attacker.teraBlastDeterminedCategory !== determinedCategory) {
-          return { ...attacker, teraBlastDeterminedType: determinedType, teraBlastDeterminedCategory: determinedCategory };
+      // Starstorm Logic
+      if (attacker.move?.id === "terastarstorm" && attacker.pokemon?.id === "1024-s") {
+        if (attacker.pokemon && attacker.attackStat && attacker.specialAttackStat) {
+            const finalAttack = attacker.attackStat.final;
+            const finalSpecialAttack = attacker.specialAttackStat.final;
+            const newStarstormCategory = finalAttack > finalSpecialAttack ? MoveCategory.Physical : MoveCategory.Special;
+            if (attacker.starstormDeterminedCategory !== newStarstormCategory) {
+                updatedAttacker = { ...updatedAttacker, starstormDeterminedCategory: newStarstormCategory };
+            }
+        }
+      } else {
+        if (attacker.starstormDeterminedCategory !== null) {
+            updatedAttacker = { ...updatedAttacker, starstormDeterminedCategory: null };
+        }
       }
-      return attacker;
+      return updatedAttacker;
     });
 
     if (JSON.stringify(newAttackersArray) !== JSON.stringify(attackers)) {
         onSetAttackers(newAttackersArray);
     }
-  }, [attackers, onSetAttackers]);
+  }, [attackers, onSetAttackers]); // Make sure all dependencies are included
 
   const updateAttackerState = useCallback((index: number, updates: Partial<AttackerState>) => {
     const newAttackers = [...attackers];
@@ -279,7 +297,12 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
 
     if (updates.move || updates.pokemon) {
         tempAttacker.effectiveMove = null;
+        // ★ リセット starstormDeterminedCategory if move or pokemon changes
+        if (updates.move?.id !== "terastarstorm" || updates.pokemon?.id !== "1024-s") {
+            tempAttacker.starstormDeterminedCategory = null;
+        }
     }
+
 
     if (updates.pokemon !== undefined && updates.pokemon !== currentAttacker.pokemon) {
         const newPokemon = updates.pokemon;
@@ -289,12 +312,11 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
         const baseSpeed = newPokemon?.baseStats.speed || 0;
         const baseHp = newPokemon?.baseStats.hp || 0;
 
-        // ポケモン変更時のデフォルト努力値設定
         const initialAttackEv = 252;
         const initialSpecialAttackEv = 252;
-        const initialOtherEv = 0; // HP, Defense, Speed
+        const initialOtherEv = 0; 
         
-        tempAttacker.hpEv = initialOtherEv; // HP努力値も0にリセット
+        tempAttacker.hpEv = initialOtherEv;
         const newActualMaxHp = newPokemon ? calculateHp(baseHp, 31, tempAttacker.hpEv, 50) : 1;
         tempAttacker.actualMaxHp = newActualMaxHp;
         tempAttacker.currentHp = newActualMaxHp;
@@ -353,6 +375,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
         tempAttacker.teraBlastUserSelectedCategory = 'auto';
         tempAttacker.teraBlastDeterminedType = null;
         tempAttacker.teraBlastDeterminedCategory = null;
+        tempAttacker.starstormDeterminedCategory = null; // ★ リセット
 
     } else {
         if (updates.hpEv !== undefined && tempAttacker.pokemon) {
@@ -449,6 +472,10 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
         } else if (updates.move?.isTeraBlast && !currentAttacker.move?.isTeraBlast) {
              tempAttacker.teraBlastUserSelectedCategory = 'auto';
         }
+        // ★ リセット starstormDeterminedCategory if move changes
+        if (updates.move?.id !== "terastarstorm") {
+            tempAttacker.starstormDeterminedCategory = null;
+        }
         const newMove = updates.move;
         if (newMove && typeof newMove.multihit === 'number' && newMove.multihit > 1) {
             tempAttacker.selectedHitCount = newMove.multihit;
@@ -480,11 +507,11 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
   const toggleAttacker = (index: number) => updateAttackerState(index, { isEnabled: !attackers[index].isEnabled });
 
   const handlePokemonChange = (pokemon: Pokemon | null, index: number) => {
-    updateAttackerState(index, { pokemon, teraType: null, isStellar: false, move: null, item: null, ability: null, effectiveMove: null });
+    updateAttackerState(index, { pokemon, teraType: null, isStellar: false, move: null, item: null, ability: null, effectiveMove: null, starstormDeterminedCategory: null });
   };
 
   const handleMoveChange = (move: Move | null, index: number) => {
-    updateAttackerState(index, { move, effectiveMove: null, teraBlastDeterminedCategory: null, teraBlastDeterminedType: null, selectedHitCount: null, moveUiOptionStates: {} });
+    updateAttackerState(index, { move, effectiveMove: null, teraBlastDeterminedCategory: null, teraBlastDeterminedType: null, starstormDeterminedCategory: null, selectedHitCount: null, moveUiOptionStates: {} });
   };
 
   const handleHitCountChange = (count: number | null, index: number) => {
@@ -699,6 +726,13 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
       const showTeraBlastSettings = attacker.move?.isTeraBlast &&
                                 (attacker.teraType !== null || attacker.isStellar) &&
                                 attacker.isEnabled;
+      
+      // ★ Show Starstorm specific category info if applicable
+      const showStarstormCategoryInfo = attacker.move?.id === "terastarstorm" &&
+                                        attacker.pokemon?.id === "1024-s" &&
+                                        attacker.starstormDeterminedCategory &&
+                                        attacker.isEnabled;
+
 
       const isProtosynthesisSelected = attacker.ability?.id === 'protosynthesis' && attacker.isEnabled && attacker.pokemon;
       const isQuarkDriveSelected = attacker.ability?.id === 'quark_drive' && attacker.isEnabled && attacker.pokemon;
@@ -709,7 +743,6 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
       let hpDependentInputsToShow = null;
       let defenderAttackControlsToShow = null;
       
-      // こうげき入力セクションのJSX
       const attackInputsJsx = attacker.pokemon ? (
         <div>
           <div className="flex justify-between items-center mb-1">
@@ -781,7 +814,6 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
         </div>
       ) : null;
 
-      // とくこう入力セクションのJSX
       const specialAttackInputsJsx = attacker.pokemon ? (
         <div>
           <div className="flex justify-between items-center mb-1">
@@ -853,15 +885,16 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
         </div>
       ) : null;
 
-      // 表示するステータス入力セクションを決定
       let currentStatInputsToRender;
       let attackSectionContent = null;
       let specialAttackSectionContent = null;
 
       const selectedMove = attacker.move;
       const isTeraBurstSelected = selectedMove?.isTeraBlast;
+      const isStarstormSelectedByTerapagosStellar = selectedMove?.id === "terastarstorm" && attacker.pokemon?.id === "1024-s";
 
-      if (isTeraBurstSelected) {
+
+      if (isTeraBurstSelected || isStarstormSelectedByTerapagosStellar) { // テラバーストまたはテラパゴス(ステラ)のテラクラスター
           attackSectionContent = attackInputsJsx;
           specialAttackSectionContent = specialAttackInputsJsx;
       } else if (selectedMove) {
@@ -871,8 +904,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
           } else if (moveCategory === MoveCategory.Special) {
               specialAttackSectionContent = specialAttackInputsJsx;
           }
-          // Status技の場合は両方の Content は null のまま (何も表示しない)
-      } else { // 技未選択の場合
+      } else { 
           attackSectionContent = attackInputsJsx;
           specialAttackSectionContent = specialAttackInputsJsx;
       }
@@ -889,11 +921,11 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
       } else if (specialAttackSectionContent) {
           currentStatInputsToRender = specialAttackSectionContent;
       } else {
-          currentStatInputsToRender = null; // どちらも表示しない場合
+          currentStatInputsToRender = null; 
       }
 
 
-      if (moveName === "イカサマ") { // 技名で判定（ID 'foulplay' でも可）
+      if (moveName === "イカサマ") { 
         statInputsSection = <FoulPlayDisplay />;
         hpEvSliderToShow = null;
         hpDependentInputsToShow = null;
@@ -902,23 +934,23 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
             <div className="mt-3">
               <StatSlider
                 label="相手のこうげき努力値"
-                value={defenderAttackStatForFoulPlay.ev} // App.tsxから渡される防御側の攻撃EV
+                value={defenderAttackStatForFoulPlay.ev} 
                 max={252}
                 step={4}
                 onChange={(newEv) => {
                   let validEv = Math.floor(newEv / 4) * 4;
                   validEv = Math.max(0, Math.min(validEv, 252));
-                  onDefenderOffensiveStatChange({ ev: validEv }); // App.tsxのdefenderState.attackStat.evを更新
+                  onDefenderOffensiveStatChange({ ev: validEv }); 
                 }}
                 disabled={!attacker.isEnabled || !attacker.pokemon || defenderAttackStatForFoulPlay.base === 0}
-                currentStat={defenderAttackStatForFoulPlay.final} // App.tsxから渡される防御側の最終攻撃力
-                baseStat={defenderAttackStatForFoulPlay.base}   // App.tsxから渡される防御側の攻撃種族値
+                currentStat={defenderAttackStatForFoulPlay.final} 
+                baseStat={defenderAttackStatForFoulPlay.base}   
               />
             </div>
             <div className="mt-3">
               <RankSelector
-                value={defenderAttackStatForFoulPlay.rank} // App.tsxから渡される防御側の攻撃ランク
-                onChange={(newRank) => onDefenderOffensiveStatChange({ rank: newRank })} // App.tsxのdefenderState.attackStat.rankを更新
+                value={defenderAttackStatForFoulPlay.rank} 
+                onChange={(newRank) => onDefenderOffensiveStatChange({ rank: newRank })} 
                 label="相手のこうげきランク"
                 disabled={!attacker.isEnabled || !attacker.pokemon || defenderAttackStatForFoulPlay.base === 0}
               />
@@ -1082,6 +1114,14 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                 onCategorySelect={(cat) => handleTeraBlastCategorySelect(cat, index)}
             />
           )}
+          
+          {/* ★ テラクラスターのカテゴリ表示 */}
+          {showStarstormCategoryInfo && (
+            <div className="mt-2 text-sm text-gray-300">
+                テラクラスター計算カテゴリ: <span className="font-semibold text-white">{attacker.starstormDeterminedCategory === MoveCategory.Physical ? '物理' : '特殊'}</span>
+            </div>
+          )}
+
 
           {hpDependentInputsToShow && (
             <div className="mt-6">
@@ -1096,7 +1136,6 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
             {defenderAttackControlsToShow}
           </div>
 
-          {/* Item Select with Grid Layout */}
           <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 bg-slate-700  rounded-lg mt-1.5 mb-1.5 shadow">
             <span className="text-sm font-medium text-gray-300 whitespace-nowrap pl-1 w-20">持ち物</span>
             <div className="w-full">
@@ -1104,14 +1143,13 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                 items={items}
                 selected={attacker.item}
                 onChange={(i) => handleItemChange(i, index)}
-                label="" // Pass empty label
+                label="" 
                 side="attacker"
                 disabled={!attacker.isEnabled || !attacker.pokemon}
               />
             </div>
           </div>
 
-          {/* Ability Select with Grid Layout */}
           <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 bg-slate-700  rounded-lg mt-1.5　mb-1.5　shadow">
             <span className="text-sm font-medium text-gray-300 whitespace-nowrap pl-1 w-20">特性</span>
             <div className="w-full">
@@ -1119,7 +1157,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                 abilities={abilities}
                 selected={attacker.ability}
                 onChange={(a) => handleAbilityChange(a, index)}
-                label="" // Pass empty label
+                label="" 
                 side="attacker"
                 disabled={!attacker.isEnabled || !attacker.pokemon}
                  protosynthesisConfig={ isProtosynthesisSelected ? {
