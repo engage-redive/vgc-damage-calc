@@ -632,7 +632,6 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
       )}
 
       <div className="bg-gray-800 rounded-lg p-4 mb-4">
-        <div className="flex items-center justify-between mb-4"><h3 className="text-lg font-semibold text-white">能力値設定</h3></div>
         <div className="space-y-6">
           <div>
             <div className="flex justify-between items-center mb-1">
@@ -828,7 +827,6 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
       </div>
 
       <div className="bg-gray-800 rounded-lg p-4 mb-4">
-        <div className="flex items-center justify-between mb-4"><h3 className="text-lg font-semibold text-white">バトル状態 (防御側共通)</h3></div>
         <div className="mt-2 space-y-2">
           <div className="flex items-center gap-2">
             <input type="checkbox" id="reflect" checked={hasReflect} onChange={(e) => onReflectChange(e.target.checked)} className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-gray-900" />

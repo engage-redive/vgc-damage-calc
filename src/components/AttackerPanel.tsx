@@ -150,40 +150,45 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
     const defaultDefenseStatBase = defaultPokemon?.baseStats.defense || 0;
     const defaultSpeedStatBase = defaultPokemon?.baseStats.speed || 0;
     const defaultHpBase = defaultPokemon?.baseStats.hp || 0;
-    const initialHpEv = 0;
-    const initialActualMaxHp = defaultPokemon ? calculateHp(defaultHpBase, 31, initialHpEv, 50) : 1;
+    
+    // 新規作成時のデフォルト努力値
+    const initialAttackEv = 252;
+    const initialSpecialAttackEv = 252;
+    const initialOtherEv = 0; // HP, Defense, Speed
+    
+    const initialActualMaxHp = defaultPokemon ? calculateHp(defaultHpBase, 31, initialOtherEv, 50) : 1; // HP EVは0で計算
 
     const defaultAttackStat: StatCalculation = {
         base: defaultAttackStatBase,
         iv: 31,
-        ev: 0,
+        ev: initialAttackEv,
         nature: 1.0,
         rank: 0,
-        final: calculateBaseStatValue(defaultAttackStatBase, 31, 0, 50, 1.0)
+        final: calculateBaseStatValue(defaultAttackStatBase, 31, initialAttackEv, 50, 1.0)
     };
     const defaultSpecialAttackStat: StatCalculation = {
         base: defaultSpAttackStatBase,
         iv: 31,
-        ev: 0,
+        ev: initialSpecialAttackEv,
         nature: 1.0,
         rank: 0,
-        final: calculateBaseStatValue(defaultSpAttackStatBase, 31, 0, 50, 1.0)
+        final: calculateBaseStatValue(defaultSpAttackStatBase, 31, initialSpecialAttackEv, 50, 1.0)
     };
     const defaultDefenseStat: StatCalculation = {
         base: defaultDefenseStatBase,
         iv: 31,
-        ev: 0,
+        ev: initialOtherEv,
         nature: 1.0,
         rank: 0,
-        final: calculateBaseStatValue(defaultDefenseStatBase, 31, 0, 50, 1.0)
+        final: calculateBaseStatValue(defaultDefenseStatBase, 31, initialOtherEv, 50, 1.0)
     };
     const defaultSpeedStat: StatCalculation = {
         base: defaultSpeedStatBase,
         iv: 31,
-        ev: 0,
+        ev: initialOtherEv,
         nature: 1.0,
         rank: 0,
-        final: calculateBaseStatValue(defaultSpeedStatBase, 31, 0, 50, 1.0)
+        final: calculateBaseStatValue(defaultSpeedStatBase, 31, initialOtherEv, 50, 1.0)
     };
 
     return {
@@ -200,7 +205,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
       specialAttackInputValue: defaultSpecialAttackStat.final.toString(),
       defenseInputValue: defaultDefenseStat.final.toString(),
       speedInputValue: defaultSpeedStat.final.toString(),
-      hpEv: initialHpEv,
+      hpEv: initialOtherEv, // HP EV も 0 スタート
       actualMaxHp: initialActualMaxHp,
       currentHp: initialActualMaxHp,
       teraType: null,
@@ -284,6 +289,12 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
         const baseSpeed = newPokemon?.baseStats.speed || 0;
         const baseHp = newPokemon?.baseStats.hp || 0;
 
+        // ポケモン変更時のデフォルト努力値設定
+        const initialAttackEv = 252;
+        const initialSpecialAttackEv = 252;
+        const initialOtherEv = 0; // HP, Defense, Speed
+        
+        tempAttacker.hpEv = initialOtherEv; // HP努力値も0にリセット
         const newActualMaxHp = newPokemon ? calculateHp(baseHp, 31, tempAttacker.hpEv, 50) : 1;
         tempAttacker.actualMaxHp = newActualMaxHp;
         tempAttacker.currentHp = newActualMaxHp;
@@ -291,34 +302,34 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
         tempAttacker.attackStat = {
             base: baseAttack,
             iv: 31,
-            ev: 0,
+            ev: initialAttackEv,
             nature: 1.0,
             rank: 0,
-            final: calculateBaseStatValue(baseAttack, 31, 0, 50, 1.0)
+            final: calculateBaseStatValue(baseAttack, 31, initialAttackEv, 50, 1.0)
         };
         tempAttacker.specialAttackStat = {
             base: baseSpAttack,
             iv: 31,
-            ev: 0,
+            ev: initialSpecialAttackEv,
             nature: 1.0,
             rank: 0,
-            final: calculateBaseStatValue(baseSpAttack, 31, 0, 50, 1.0)
+            final: calculateBaseStatValue(baseSpAttack, 31, initialSpecialAttackEv, 50, 1.0)
         };
         tempAttacker.defenseStat = {
             base: baseDefense,
             iv: 31,
-            ev: 0,
+            ev: initialOtherEv,
             nature: 1.0,
             rank: 0,
-            final: calculateBaseStatValue(baseDefense, 31, 0, 50, 1.0)
+            final: calculateBaseStatValue(baseDefense, 31, initialOtherEv, 50, 1.0)
         };
         tempAttacker.speedStat = {
             base: baseSpeed,
             iv: 31,
-            ev: 0,
+            ev: initialOtherEv,
             nature: 1.0,
             rank: 0,
-            final: calculateBaseStatValue(baseSpeed, 31, 0, 50, 1.0)
+            final: calculateBaseStatValue(baseSpeed, 31, initialOtherEv, 50, 1.0)
         };
 
         if (updates.move === undefined) tempAttacker.move = null;

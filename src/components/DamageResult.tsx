@@ -9,7 +9,7 @@ import {
   DefenderDetailsForModal,
   MoveCategory,
 } from '../types';
-import { X, ChevronUp, ChevronDown } from 'lucide-react'; // Save アイコンを削除
+import { X, ChevronUp, ChevronDown } from 'lucide-react';
 
 interface DamageResultProps {
   result: DamageCalculation | null;
@@ -34,6 +34,10 @@ interface DamageResultProps {
   disasters?: DisasterState;
   resultIdSuffix: string;
   onSaveLog?: () => void;
+  // --- App.tsx から渡される新しい props ---
+  showIndividualAttackResults: boolean;
+  onToggleShowIndividualAttackResults: () => void;
+  // --- ここまで ---
 }
 
 const TYPE_NAME_JP_MODAL: Record<string, string> = {
@@ -113,9 +117,11 @@ const DamageResult: React.FC<DamageResultProps> = ({
   disasters,
   resultIdSuffix,
   onSaveLog,
+  showIndividualAttackResults, // 親から受け取る
+  onToggleShowIndividualAttackResults, // 親から受け取る
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isCombinedDetailsExpanded, setIsCombinedDetailsExpanded] = useState(true);
+  // isCombinedDetailsExpanded を削除し、親の state (showIndividualAttackResults) を使用
   const [isCriticalModeActive, setIsCriticalModeActive] = useState(false);
 
   if (!result || !result.normalDamages || !result.criticalDamages) {
@@ -145,15 +151,9 @@ const DamageResult: React.FC<DamageResultProps> = ({
   const actualRemainingHPMinPercentage = Math.max(0, 100 - clampedCurrentDisplayMaxPercentage);
   const actualRemainingHPMaxPercentage = Math.max(0, 100 - clampedCurrentDisplayMinPercentage);
   
-  let showCombinedResultSection = false;
-  if (combinedResult) {
-    const isCombinedFromThisAttackerOnly =
-      combinedResult.minDamage === multiHitMinDamage &&
-      combinedResult.maxDamage === multiHitMaxDamage;
-    if (!isCombinedFromThisAttackerOnly) {
-      showCombinedResultSection = true;
-    }
-  }
+  // combinedResult が渡された場合、それは最初の攻撃者の結果であり、「合計ダメージ」セクションを表示する
+  const shouldDisplayCombinedResultSection = !!combinedResult;
+
 
   const getDamageColor = (percentage: number) => {
     if (percentage >= 100) return 'text-red-500';
@@ -346,7 +346,6 @@ const DamageResult: React.FC<DamageResultProps> = ({
   const uniqueDoubleBattleId = `doubleBattle-${resultIdSuffix}`;
   const uniqueCriticalModeId = `criticalMode-${resultIdSuffix}`;
 
-  // ★ ログ保存処理をモーダルを開くときに呼び出すため、この関数は残すが、ボタンからは呼び出さない
   const handleSaveLog = () => {
     if (onSaveLog) {
       onSaveLog();
@@ -355,66 +354,68 @@ const DamageResult: React.FC<DamageResultProps> = ({
 
   const openModalAndSaveLog = () => {
     setIsModalOpen(true);
-    handleSaveLog(); // ★ モーダルを開くと同時にログ保存
+    handleSaveLog();
   };
 
   return (
     <div className="p-1 bg-gray-800 rounded-lg transition-all duration-300">
-      {showCombinedResultSection && combinedResult && (
+      {shouldDisplayCombinedResultSection && combinedResult && (
         <div className="mb-2">
           <div className="flex justify-between items-center mb-1">
             <p className="text-sm font-medium text-white">合計ダメージ</p>
+            {/* ボタンは combinedResult がある場合 (最初の攻撃者の結果) にのみ表示 */}
+            {/* 親から渡された関数を呼び出す */}
             <button
-              onClick={() => setIsCombinedDetailsExpanded(!isCombinedDetailsExpanded)}
+              onClick={onToggleShowIndividualAttackResults}
               className="text-gray-400 hover:text-white p-1 -m-1"
-              aria-label={isCombinedDetailsExpanded ? "合計詳細を折りたたむ" : "合計詳細を展開する"}
+              aria-label={showIndividualAttackResults ? "個別の攻撃結果を非表示にする" : "個別の攻撃結果を表示する"}
             >
-              {isCombinedDetailsExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+              {showIndividualAttackResults ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
             </button>
           </div>
-          {isCombinedDetailsExpanded && (
-            <>
-              <p className="text-white font-medium mb-1 text-sm">
-                <span className={getDamageColor(combinedResult.minPercentage)}>
-                  {combinedResult.minDamage}
-                </span>
-                {' - '}
-                <span className={getDamageColor(combinedResult.maxPercentage)}>
-                  {combinedResult.maxDamage}
-                </span>
-                <span className="text-xs text-gray-400 ml-1">
-                  ({formatPercentage(combinedResult.minPercentage)}% - {formatPercentage(combinedResult.maxPercentage)}%)
-                </span>
-                <span className="text-xs text-gray-300 ml-1 font-semibold">
-                  {getCombinedKORangeText(combinedResult.minDamage, combinedResult.maxDamage, defenderHP)}
-                </span>
-              </p>
-              <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden mb-1">
-                <div className="h-full relative">
-                  <div
-                    className={`absolute h-full ${getOriginalDamageBarColor(combinedResult.minPercentage)}`}
-                    style={{ width: `${Math.min(100, combinedResult.minPercentage)}%` }}
-                  />
-                  <div
-                    className={`absolute h-full ${getOriginalDamageBarColor(combinedResult.maxPercentage)} opacity-50`}
-                    style={{
-                      width: `${Math.max(0, Math.min(100, combinedResult.maxPercentage) - Math.min(100, combinedResult.minPercentage))}%`,
-                      left: `${Math.min(100, combinedResult.minPercentage)}%`
-                    }}
-                  />
-                </div>
+          {/* 合計ダメージの詳細は常に表示 (combinedResult があれば) */}
+          <>
+            <p className="text-white font-medium mb-1 text-sm">
+              <span className={getDamageColor(combinedResult.minPercentage)}>
+                {combinedResult.minDamage}
+              </span>
+              {' - '}
+              <span className={getDamageColor(combinedResult.maxPercentage)}>
+                {combinedResult.maxDamage}
+              </span>
+              <span className="text-xs text-gray-400 ml-1">
+                ({formatPercentage(combinedResult.minPercentage)}% - {formatPercentage(combinedResult.maxPercentage)}%)
+              </span>
+              <span className="text-xs text-gray-300 ml-1 font-semibold">
+                {getCombinedKORangeText(combinedResult.minDamage, combinedResult.maxDamage, defenderHP)}
+              </span>
+            </p>
+            <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden mb-1">
+              <div className="h-full relative">
+                <div
+                  className={`absolute h-full ${getOriginalDamageBarColor(combinedResult.minPercentage)}`}
+                  style={{ width: `${Math.min(100, combinedResult.minPercentage)}%` }}
+                />
+                <div
+                  className={`absolute h-full ${getOriginalDamageBarColor(combinedResult.maxPercentage)} opacity-50`}
+                  style={{
+                    width: `${Math.max(0, Math.min(100, combinedResult.maxPercentage) - Math.min(100, combinedResult.minPercentage))}%`,
+                    left: `${Math.min(100, combinedResult.minPercentage)}%`
+                  }}
+                />
               </div>
-              <div className="flex justify-between text-xs text-gray-400">
-                <span>0</span>
-                <span>{defenderHP}</span>
-              </div>
-            </>
-          )}
+            </div>
+            <div className="flex justify-between text-xs text-gray-400">
+              <span>0</span>
+              <span>{defenderHP}</span>
+            </div>
+          </>
         </div>
       )}
 
-      {(!showCombinedResultSection || isCombinedDetailsExpanded) && result && (
-        <div className={`pt-1 ${showCombinedResultSection && isCombinedDetailsExpanded ? 'border-t border-gray-700 mt-2 pt-2' : ''}`}>
+      {/* 個別の攻撃結果セクションの表示条件を親から渡された prop に変更 */}
+      {showIndividualAttackResults && result && (
+        <div className={`pt-1 ${shouldDisplayCombinedResultSection ? 'border-t border-gray-700 mt-2 pt-2' : ''}`}>
           <div className="w-full h-3 bg-white rounded-full overflow-hidden mb-1">
             <div className="h-full relative">
               {actualRemainingHPMinPercentage > 0 && (
@@ -501,7 +502,7 @@ const DamageResult: React.FC<DamageResultProps> = ({
                 </label>
               </div>
               <button
-                onClick={openModalAndSaveLog} // ★ 修正: モーダルを開きログ保存する関数を呼び出す
+                onClick={openModalAndSaveLog}
                 className="text-xs md:text-sm text-blue-400 hover:underline disabled:text-gray-500 disabled:no-underline"
                 disabled={!attackerDetails || !defenderDetails}
               >
@@ -680,7 +681,6 @@ const DamageResult: React.FC<DamageResultProps> = ({
                   </div>
                 </div>
 
-                {/* ★ ログ保存ボタンを削除し、閉じるボタンのみにする */}
                 <div className="mt-8">
                     <button
                         onClick={() => setIsModalOpen(false)}

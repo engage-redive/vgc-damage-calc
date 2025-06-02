@@ -14941,7 +14941,7 @@ export const pokedex: Pokemon[] = [
   },
   {
     "id": 875,
-    "name": "コオリッポ (アイスフェイス)",
+    "name": "コオリッポ (アイス)",
     "nameEn": "Eiscue",
     "types": ["ice"],
     "baseStats": {
@@ -17541,6 +17541,40 @@ export const pokedex: Pokemon[] = [
     "height": 0.2,
     "weight": 6.5
   },
+ {
+    "id": "1024-t",
+    "name": "テラパゴス (テラスタル)",
+    "nameEn": "Terapagos",
+    "types": ["normal"],
+    "baseStats": {
+      "hp": 95,
+      "attack": 95,
+      "defense": 110,
+      "specialAttack": 105,
+      "specialDefense": 110,
+      "speed": 85
+    },
+    "abilities": ["Tera Shell"],
+    "height": 0.3,
+    "weight": 16
+  },
+{
+    "id": "1024-s",
+    "name": "テラパゴス (ステラ)",
+    "nameEn": "Terapagos",
+    "types": ["normal"],
+    "baseStats": {
+      "hp": 160,
+      "attack": 105,
+      "defense": 110,
+      "specialAttack": 130,
+      "specialDefense": 110,
+      "speed": 85
+    },
+    "abilities": ["Teraform Zero"],
+    "height": 1.7,
+    "weight": 77
+  },
   {
     "id": 1025,
     "name": "モモワロウ",
@@ -17731,7 +17765,7 @@ export const pokedex: Pokemon[] = [
   
   {
     "id": "888-c",
-    "name": "ザシアン (おうのけん)",
+    "name": "ザシアン (けんのおう)",
     "nameEn": "Zacian-Crowned",
     "types": ["fairy", "steel"],
     "baseStats": {
@@ -17748,7 +17782,7 @@ export const pokedex: Pokemon[] = [
   },
   {
     "id": "889-c",
-    "name": "ザマゼンタ (おうのたて)",
+    "name": "ザマゼンタ (たてのおう)",
     "nameEn": "Zamazenta-Crowned",
     "types": ["fighting", "steel"],
     "baseStats": {
@@ -18171,5 +18205,310 @@ export const pokedex: Pokemon[] = [
     "height": 10.9,
     "weight": 415.6
   },
-
+ {
+    "id": "964-hero",
+    "name": "イルカマン（マイティ）",
+    "nameEn": "Palafin-Hero",
+    "types": ["Water"],
+    "baseStats": {
+      "hp": 100,
+      "attack": 160,
+      "defense": 97,
+      "specialAttack": 106,
+      "specialDefense": 87,
+      "speed": 100
+    },
+    "abilities": ["Zero to Hero"],
+    "height": 1.8,
+    "weight": 97.4
+  },
+   {
+    "id": "902-f",
+    "name": "イダイトウ（メス）",
+    "nameEn": "Basculegion-F",
+    "types": ["Water", "Ghost"],
+    "baseStats": {
+      "hp": 120,
+      "attack": 92,
+      "defense": 65,
+      "specialAttack": 100,
+      "specialDefense": 75,
+      "speed": 78
+    },
+    "abilities": ["Swift Swim", "Adaptability", "Mold Breaker"],
+    "height": 3,
+    "weight": 110
+  },
+  {
+    "id": "741-pompom",
+    "name": "オドリドリ（ぱちぱち）",
+    "nameEn": "Oricorio-Pom-Pom",
+    "types": ["Electric", "Flying"],
+    "baseStats": {
+      "hp": 75,
+      "attack": 70,
+      "defense": 70,
+      "specialAttack": 98,
+      "specialDefense": 70,
+      "speed": 93
+    },
+    "abilities": ["Dancer"],
+    "height": 0.6,
+    "weight": 3.4
+  },
+  {
+    "id": "741-pau",
+    "name": "オドリドリ（ふらふら）",
+    "nameEn": "Oricorio-Pa'u",
+    "types": ["Psychic", "Flying"],
+    "baseStats": {
+      "hp": 75,
+      "attack": 70,
+      "defense": 70,
+      "specialAttack": 98,
+      "specialDefense": 70,
+      "speed": 93
+    },
+    "abilities": ["Dancer"],
+    "height": 0.6,
+    "weight": 3.4
+  },
+   {
+    "id": "741-sensu",
+    "name": "オドリドリ（まいまい）",
+    "nameEn": "Oricorio-Sensu",
+    "types": ["Ghost", "Flying"],
+    "baseStats": {
+      "hp": 75,
+      "attack": 70,
+      "defense": 70,
+      "specialAttack": 98,
+      "specialDefense": 70,
+      "speed": 93
+    },
+    "abilities": ["Dancer"],
+    "height": 0.6,
+    "weight": 3.4
+  },
+   {
+    "id": "646-black",
+    "name": "キュレム（ブラック）",
+    "nameEn": "Kyurem-Black",
+    "types": ["Dragon", "Ice"],
+    "baseStats": {
+      "hp": 125,
+      "attack": 170,
+      "defense": 100,
+      "specialAttack": 120,
+      "specialDefense": 90,
+      "speed": 95
+    },
+    "abilities": ["Teravolt"],
+    "height": 3.3,
+    "weight": 325
+  },
+   {
+    "id": "646-white",
+    "name": "キュレム（ホワイト）",
+    "nameEn": "Kyurem-White",
+    "types": ["Dragon", "Ice"],
+    "baseStats": {
+      "hp": 125,
+      "attack": 120,
+      "defense": 90,
+      "specialAttack": 170,
+      "specialDefense": 100,
+      "speed": 95
+    },
+    "abilities": ["Turboblaze"],
+    "height": 3.6,
+    "weight": 325
+  },
+   {
+    "id": "487-origin",
+    "name": "ギラティナ（オリジン）",
+    "nameEn": "Giratina-Origin",
+    "types": ["Ghost", "Dragon"],
+    "baseStats": {
+      "hp": 150,
+      "attack": 120,
+      "defense": 100,
+      "specialAttack": 120,
+      "specialDefense": 100,
+      "speed": 90
+    },
+    "abilities": ["Levitate"],
+    "height": 6.9,
+    "weight": 650
+  },
+   {
+    "id": "875-noice",
+    "name": "コオリッポ（ナイスフェイス）",
+    "nameEn": "Eiscue-Noice",
+    "types": ["Ice"],
+    "baseStats": {
+      "hp": 75,
+      "attack": 80,
+      "defense": 70,
+      "specialAttack": 65,
+      "specialDefense": 50,
+      "speed": 130
+    },
+    "abilities": ["Ice Face"],
+    "height": 1.4,
+    "weight": 89
+  },
+   {
+    "id": "483-origin",
+    "name": "ディアルガ（オリジン）",
+    "nameEn": "Dialga-Origin",
+    "types": ["Steel", "Dragon"],
+    "baseStats": {
+      "hp": 100,
+      "attack": 100,
+      "defense": 120,
+      "specialAttack": 150,
+      "specialDefense": 120,
+      "speed": 90
+    },
+    "abilities": ["Pressure", "Telepathy"],
+    "height": 7,
+    "weight": 850
+  },
+   {
+    "id": "484-origin",
+    "name": "パルキア（オリジン）",
+    "nameEn": "Palkia-Origin",
+    "types": ["Water", "Dragon"],
+    "baseStats": {
+      "hp": 90,
+      "attack": 100,
+      "defense": 100,
+      "specialAttack": 150,
+      "specialDefense": 120,
+      "speed": 120
+    },
+    "abilities": ["Pressure", "Telepathy"],
+    "height": 6.3,
+    "weight": 660
+  },
+   {
+    "id": "800-duskmane",
+    "name": "ネクロズマ（たそがれのたてがみ）",
+    "nameEn": "Necrozma-Dusk-Mane",
+    "types": ["Psychic", "Steel"],
+    "baseStats": {
+      "hp": 97,
+      "attack": 157,
+      "defense": 127,
+      "specialAttack": 113,
+      "specialDefense": 109,
+      "speed": 77
+    },
+    "abilities": ["Prism Armor"],
+    "height": 3.8,
+    "weight": 460
+  },
+   {
+    "id": "800-dawnwings",
+    "name": "ネクロズマ（あかつきのつばさ）",
+    "nameEn": "Necrozma-Dawn-Wings",
+    "types": ["Psychic", "Ghost"],
+    "baseStats": {
+      "hp": 97,
+      "attack": 113,
+      "defense": 109,
+      "specialAttack": 157,
+      "specialDefense": 127,
+      "speed": 77
+    },
+    "abilities": ["Prism Armor"],
+    "height": 4.2,
+    "weight": 350
+  },
+   {
+    "id": "800-ultra",
+    "name": "ネクロズマ（ウルトラ）",
+    "nameEn": "Necrozma-Ultra",
+    "types": ["Psychic", "Dragon"],
+    "baseStats": {
+      "hp": 97,
+      "attack": 167,
+      "defense": 97,
+      "specialAttack": 167,
+      "specialDefense": 97,
+      "speed": 129
+    },
+    "abilities": ["Neuroforce"],
+    "height": 7.5,
+    "weight": 230
+  },
+   {
+    "id": "745-midnight",
+    "name": "ルガルガン（まよなか）",
+    "nameEn": "Lycanroc-Midnight",
+    "types": ["Rock"],
+    "baseStats": {
+      "hp": 85,
+      "attack": 115,
+      "defense": 75,
+      "specialAttack": 55,
+      "specialDefense": 75,
+      "speed": 82
+    },
+    "abilities": ["Keen Eye", "Vital Spirit", "No Guard"],
+    "height": 1.1,
+    "weight": 25
+  },
+   {
+    "id": "745-dusk",
+    "name": "ルガルガン（たそがれ）",
+    "nameEn": "Lycanroc-Dusk",
+    "types": ["Rock"],
+    "baseStats": {
+      "hp": 75,
+      "attack": 117,
+      "defense": 65,
+      "specialAttack": 55,
+      "specialDefense": 65,
+      "speed": 110
+    },
+    "abilities": ["Tough Claws"],
+    "height": 0.8,
+    "weight": 25
+  },
+  {
+    "id": "746-school",
+    "name": "ヨワシ（むれ）",
+    "nameEn": "Wishiwashi-School",
+    "types": ["Water"],
+    "baseStats": {
+      "hp": 45,
+      "attack": 140,
+      "defense": 130,
+      "specialAttack": 140,
+      "specialDefense": 135,
+      "speed": 30
+    },
+    "abilities": ["Schooling"],
+    "height": 8.2,
+    "weight": 78.6
+  },
+  {
+    "id": "678-f",
+    "name": "ニャオニクス（メス）",
+    "nameEn": "Meowstic-F",
+    "types": ["Psychic"],
+    "baseStats": {
+      "hp": 74,
+      "attack": 48,
+      "defense": 76,
+      "specialAttack": 83,
+      "specialDefense": 81,
+      "speed": 104
+    },
+    "abilities": ["Keen Eye", "Infiltrator", "Competitive"],
+    "height": 0.6,
+    "weight": 8.5
+  },
 ];

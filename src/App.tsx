@@ -27,16 +27,16 @@ import {
     AttackerDetailsForModal,
     DefenderDetailsForModal,
     LoggedDamageEntry,
-    AttackerStateSnapshotForLog, // 追加
-    DefenderStateSnapshotForLog, // 追加
-    GlobalStatesSnapshotForLog,  // 追加
-    StatCalculationSnapshot,     // 追加
+    AttackerStateSnapshotForLog,
+    DefenderStateSnapshotForLog,
+    GlobalStatesSnapshotForLog,
+    StatCalculationSnapshot,
 } from './types';
 import { calculateStat, calculateDamage } from './utils/calculator';
 import { getEffectiveMoveProperties } from './utils/moveEffects';
 import AttackerPanel from './components/AttackerPanel';
 import DefenderPanel from './components/DefenderPanel';
-import DamageResult from './components/DamageResult';
+import DamageResult from './components/DamageResult'; // ここは変更なし
 import WeatherField from './components/WeatherField';
 import TeamManager from './components/TeamManager';
 import HistoryTab from './components/HistoryTab';
@@ -76,12 +76,15 @@ function App() {
     const [defender2Ability, setDefender2Ability] = useState<Ability | null>(null);
     const [loggedEntries, setLoggedEntries] = useState<LoggedDamageEntry[]>([]);
 
+    // --- 新しい state の導入 ---
+    const [showAllIndividualAttackResults, setShowAllIndividualAttackResults] = useState(true);
+    // --- ここまで ---
+
     useEffect(() => {
         try {
             const storedLogs = localStorage.getItem(LOG_STORAGE_KEY);
             if (storedLogs) {
                 const parsedLogs: LoggedDamageEntry[] = JSON.parse(storedLogs);
-                // スナップショットデータがない古いログ形式との互換性のため、一旦そのまま読み込む
                 setLoggedEntries(parsedLogs);
             }
         } catch (error) {
@@ -586,7 +589,6 @@ function App() {
         };
         const currentHitCountLog = attacker.selectedHitCount || (attacker.move.multihit === '2-5' ? 1 : (typeof attacker.move.multihit === 'number' ? attacker.move.multihit : 1));
 
-        // Create snapshots for logging
         const attackerStateSnapshot: AttackerStateSnapshotForLog = {
             pokemonId: attacker.pokemon.id,
             moveId: attacker.move.id,
@@ -614,8 +616,8 @@ function App() {
 
         const defenderStateSnapshot: DefenderStateSnapshotForLog = {
             pokemonId: defenderState.pokemon.id,
-            itemId: currentDefenderItemForLog?.id || null, // Use item potentially from defender2
-            abilityId: currentDefenderAbilityForLog?.id || null, // Use ability potentially from defender2
+            itemId: currentDefenderItemForLog?.id || null,
+            abilityId: currentDefenderAbilityForLog?.id || null,
             hpStat: createStatSnapshot(defenderState.hpStat),
             defenseStat: createStatSnapshot(defenderState.defenseStat),
             specialDefenseStat: createStatSnapshot(defenderState.specialDefenseStat),
@@ -637,7 +639,7 @@ function App() {
             isDoubleBattle: isDoubleBattle,
             weather: weather,
             field: field,
-            disasters: JSON.parse(JSON.stringify(disasters)), // Deep copy
+            disasters: JSON.parse(JSON.stringify(disasters)),
             hasReflect: hasReflect,
             hasLightScreen: hasLightScreen,
             hasFriendGuard: hasFriendGuard,
@@ -670,7 +672,7 @@ function App() {
     const restoreStatCalculation = (snapshot: StatCalculationSnapshot, baseStatValue: number, isHp: boolean = false, item: Item | null): StatCalculation => {
         const final = calculateStat(baseStatValue, snapshot.iv, snapshot.ev, 50, snapshot.nature, isHp, snapshot.rank, item);
         return {
-            base: baseStatValue, // Base is derived from pokemon data
+            base: baseStatValue,
             iv: snapshot.iv,
             ev: snapshot.ev,
             nature: snapshot.nature,
@@ -688,7 +690,6 @@ function App() {
 
         const { attackerStateSnapshot, defenderStateSnapshot, globalStatesSnapshot } = logEntry;
 
-        // Restore Attacker
         const attackerPokemon = pokedex.find(p => p.id === attackerStateSnapshot.pokemonId);
         const attackerMove = moves.find(m => m.id === attackerStateSnapshot.moveId);
         const attackerItem = items.find(i => i.id === attackerStateSnapshot.itemId);
@@ -703,12 +704,12 @@ function App() {
         const loadedAttackerSpAttackStat = restoreStatCalculation(attackerStateSnapshot.specialAttackStat, attackerPokemon.baseStats.specialAttack, false, attackerItem);
         const loadedAttackerDefenseStat = restoreStatCalculation(attackerStateSnapshot.defenseStat, attackerPokemon.baseStats.defense, false, attackerItem);
         const loadedAttackerSpeedStat = restoreStatCalculation(attackerStateSnapshot.speedStat, attackerPokemon.baseStats.speed, false, attackerItem);
-        const loadedAttackerActualMaxHp = calculateHpForApp(attackerPokemon.baseStats.hp, attackerStateSnapshot.attackStat.iv, attackerStateSnapshot.hpEv, 50); // IVはattackStatから仮で取得。HP用のIVを保存するなら修正
+        const loadedAttackerActualMaxHp = calculateHpForApp(attackerPokemon.baseStats.hp, attackerStateSnapshot.attackStat.iv, attackerStateSnapshot.hpEv, 50);
 
         const newAttackerState: AttackerState = {
             pokemon: attackerPokemon,
             move: attackerMove,
-            effectiveMove: null, // Will be recalculated
+            effectiveMove: null,
             item: attackerItem || null,
             ability: attackerAbility || null,
             attackStat: loadedAttackerAttackStat,
@@ -729,8 +730,8 @@ function App() {
             hasFlowerGift: attackerStateSnapshot.hasFlowerGift,
             isEnabled: true,
             teraBlastUserSelectedCategory: attackerStateSnapshot.teraBlastUserSelectedCategory,
-            teraBlastDeterminedType: null, // Will be recalculated
-            teraBlastDeterminedCategory: null, // Will be recalculated
+            teraBlastDeterminedType: null,
+            teraBlastDeterminedCategory: null,
             selectedHitCount: attackerStateSnapshot.selectedHitCount,
             protosynthesisBoostedStat: attackerStateSnapshot.protosynthesisBoostedStat,
             protosynthesisManualTrigger: attackerStateSnapshot.protosynthesisManualTrigger,
@@ -739,7 +740,6 @@ function App() {
             moveUiOptionStates: attackerStateSnapshot.moveUiOptionStates || {},
         };
 
-        // Restore Defender
         const defenderPokemon = pokedex.find(p => p.id === defenderStateSnapshot.pokemonId);
         const defenderItem = items.find(i => i.id === defenderStateSnapshot.itemId);
         const defenderAbility = abilities.find(a => a.id === defenderStateSnapshot.abilityId);
@@ -781,13 +781,11 @@ function App() {
             quarkDriveManualTrigger: defenderStateSnapshot.quarkDriveManualTrigger,
         };
 
-        // Apply restored states
         setActiveAttackers(prev => {
             const newAttackers = [...prev];
             newAttackers[0] = newAttackerState;
-            // Reset second attacker if it exists
             if (newAttackers.length > 1) {
-                newAttackers[1] = defaultInitialAttackerState; // Or a more specific reset logic
+                newAttackers[1] = defaultInitialAttackerState;
                 newAttackers[1].isEnabled = false;
             }
             return newAttackers;
@@ -795,7 +793,6 @@ function App() {
         setDefenderState(newDefenderState);
         setDefenderUserModifiedTypes(defenderStateSnapshot.userModifiedTypes);
 
-        // Restore global states
         setIsDoubleBattle(globalStatesSnapshot.isDoubleBattle);
         setWeather(globalStatesSnapshot.weather);
         setField(globalStatesSnapshot.field);
@@ -805,15 +802,19 @@ function App() {
         setHasFriendGuard(globalStatesSnapshot.hasFriendGuard);
         setDefenderIsTerastallized(globalStatesSnapshot.defenderIsTerastallized);
 
-        // Reset Defender 2 specific states
         setDefender2Item(null);
         setDefender2Ability(null);
 
-        // Switch to damage tab and scroll to top
         setActiveTab('damage');
-        setMobileViewMode('attacker'); // Default to attacker view on mobile
+        setMobileViewMode('attacker');
         window.scrollTo(0, 0);
     };
+
+    // --- 新しい state をトグルする関数 ---
+    const toggleShowAllIndividualAttackResults = () => {
+        setShowAllIndividualAttackResults(prev => !prev);
+    };
+    // --- ここまで ---
 
 
     return (
@@ -905,7 +906,7 @@ function App() {
                         loggedEntries={loggedEntries}
                         onDeleteLog={handleDeleteLog}
                         onClearAllLogs={handleClearAllLogs}
-                        onLoadLog={handleLoadLogEntry} // ★ 追加
+                        onLoadLog={handleLoadLogEntry}
                     />
                 </div>
             </main>
@@ -913,17 +914,23 @@ function App() {
             <div style={{ display: activeTab === 'damage' ? 'block' : 'none' }}>
                 <footer className="fixed bottom-0 left-0 w-full bg-gray-800 border-t border-gray-700 shadow-lg z-10 max-h-[calc(80vh-4rem)] overflow-y-auto">
                     <div className="max-w-7xl mx-auto">
-                        <div className="space-y-4 p-4">
+                        <div className="">
                             {(() => {
                                 const enabledAttackers = activeAttackers.filter(a => a.isEnabled);
+                                // --- 有効な攻撃者の数をカウント ---
+                                const numberOfEnabledAttackers = enabledAttackers.length;
+                                // --- ここまで ---
+
                                 const enabledDamageResultsWithNulls = damageResults.filter((_, i) => activeAttackers[i]?.isEnabled);
                                 const enabledDamageResults = enabledDamageResultsWithNulls.filter(r => r !== null) as DamageCalculation[];
 
 
                                 const combinedResultsForDisplay =
-                                    enabledAttackers.length > 0 &&
-                                    enabledDamageResults.length === enabledDamageResultsWithNulls.length
-                                    ? calculateCombinedDamage(enabledDamageResults, enabledAttackers.filter(a => a.isEnabled))
+                                    // --- 有効な攻撃者が複数いる場合のみ合計を計算 ---
+                                    numberOfEnabledAttackers > 1 &&
+                                    // --- ここまで ---
+                                    enabledDamageResults.length === enabledDamageResultsWithNulls.length // Ensure all enabled attackers have results
+                                    ? calculateCombinedDamage(enabledDamageResults, enabledAttackers) // Pass only enabled attackers
                                     : null;
 
                                 return damageResults.map((result, index) => {
@@ -1017,7 +1024,10 @@ function App() {
                                             defenderHP={defenderState.hpStat.final}
                                             isDoubleBattle={isDoubleBattle}
                                             onDoubleBattleChange={handleDoubleBattleChange}
-                                            combinedResult={(index === 0 && enabledAttackers.length > 0) ? combinedResultsForDisplay : undefined}
+                                            // --- combinedResult を渡す条件を変更 ---
+                                            // 最初の攻撃者 (index === 0) かつ有効な攻撃者が複数いる場合のみ combinedResult を渡す
+                                            combinedResult={(index === 0 && numberOfEnabledAttackers > 1) ? combinedResultsForDisplay : undefined}
+                                            // --- ここまで ---
                                             attackerPokemonName={attacker.pokemon.name}
                                             attackerMoveName={attacker.move.name}
                                             attackerMoveNameForDisplay={moveUsedInCalc.name}
@@ -1029,6 +1039,8 @@ function App() {
                                             field={field !== 'none' ? field : null}
                                             disasters={disasters}
                                             onSaveLog={() => handleSaveLogEntry(index)}
+                                            showIndividualAttackResults={showAllIndividualAttackResults}
+                                            onToggleShowIndividualAttackResults={toggleShowAllIndividualAttackResults}
                                         />
                                     );
                                 });
