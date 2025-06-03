@@ -1,4 +1,4 @@
-// MoveSelect.tsx (修正後)
+// MoveSelect.tsx
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Move, PokemonType } from '../types'; // パスをプロジェクトに合わせて調整
 import { Search, X } from 'lucide-react';
@@ -40,30 +40,30 @@ interface MoveSelectProps {
   moves: Move[];
   selected: Move | null;
   onChange: (move: Move | null) => void;
-  label: string; // AttackerPanel側のGridレイアウトではこのlabelは使われない想定
+  label: string;
   onToggleTera: () => void;
   currentAttackerTeraType: PokemonType | null;
   isStellar: boolean;
   onToggleStellar: () => void;
   disabled?: boolean;
-  // AttackerPanelのGridレイアウトで使う場合、classNameやplaceholderは不要になるか、
-  // もしこのMoveSelectコンポーネント自体をラップするなら必要になる
   className?: string;
   placeholder?: string;
+  loadedMoves?: (Move | null)[] | null; // チームからロードされた技
 }
 
 const MoveSelect: React.FC<MoveSelectProps> = ({
   moves,
   selected,
   onChange,
-  label, // このlabelはMoveSelect内部の表示では使わない想定（AttackerPanel側で表示するため）
+  label,
   onToggleTera,
   currentAttackerTeraType,
   isStellar,
   onToggleStellar,
   disabled = false,
-  className, // 親から渡されるクラス名
-  placeholder = "わざを検索または選択...", // デフォルトのプレースホルダー
+  className,
+  placeholder = "わざを検索または選択...",
+  loadedMoves,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -90,9 +90,12 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
     const searchTermLower = inputValue.toLowerCase();
     const searchTermHiragana = toHiragana(searchTermLower);
 
-    return moves
-      .filter(move => move.category !== 'status')
-      .filter(move => {
+    const nonStatusMoves = moves.filter(move => move.category !== 'status');
+
+    let results: Move[];
+
+    // フィルター関数
+    const filterFn = (move: Move) => {
         if (!searchTermLower) return true;
 
         const moveNameJp = move.name;
@@ -118,8 +121,46 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
           }
         }
         return false;
-      });
-  }, [moves, inputValue]);
+    };
+
+    if (searchTermLower) {
+        // 検索語がある場合はまずフィルター
+        results = nonStatusMoves.filter(filterFn);
+    } else {
+        // 検索語がない場合は全技
+        results = [...nonStatusMoves];
+    }
+    
+    // ソート処理: loadedMoves に含まれる技を先頭に
+    if (loadedMoves && loadedMoves.length > 0) {
+        const validLoadedMoves = loadedMoves.filter(m => m !== null) as Move[];
+        const loadedMoveIdsInOrder = validLoadedMoves.map(m => m.id);
+        const loadedMoveIdSet = new Set(loadedMoveIdsInOrder);
+
+        results.sort((a, b) => {
+            const aIsLoaded = loadedMoveIdSet.has(a.id);
+            const bIsLoaded = loadedMoveIdSet.has(b.id);
+
+            if (aIsLoaded && !bIsLoaded) return -1;
+            if (!aIsLoaded && bIsLoaded) return 1;
+            
+            if (aIsLoaded && bIsLoaded) {
+                // 両方 loaded の場合、loadedMoves 内の順序を維持
+                const indexOfA = loadedMoveIdsInOrder.indexOf(a.id);
+                const indexOfB = loadedMoveIdsInOrder.indexOf(b.id);
+                return indexOfA - indexOfB;
+            }
+            
+            // loaded ではない技同士は名前順 (日本語基準)
+            return a.name.localeCompare(b.name, 'ja');
+        });
+    } else {
+        // loadedMoves がない場合は名前順 (日本語基準)
+        results.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+    }
+
+    return results;
+  }, [moves, inputValue, loadedMoves]);
 
   useEffect(() => {
     if (!isOpen || disabled) return;
@@ -325,7 +366,7 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
     </>
   );
 
-  const renderSearchInputComponent = (isMobileModalInput = false) => ( // モバイルモーダル内の入力かどうかのフラグを追加
+  const renderSearchInputComponent = (isMobileModalInput = false) => (
     <div className="relative">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search className="h-4 w-4 text-gray-400" aria-hidden="true" />
@@ -340,9 +381,8 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
             onChange={handleInputChange}
             onFocus={() => {
               if (!disabled && !isOpen) {
-                // スマホのモーダル内の入力欄の場合は、フォーカス時に値をクリアしない
                 if (typeof window !== 'undefined' && window.innerWidth < 640 && !isMobileModalInput) {
-                  setInputValue('');
+                  if (!selected) setInputValue(''); // 選択されていない場合のみクリア
                 }
                 setIsOpen(true);
               }
@@ -373,19 +413,11 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
   );
 
   return (
-    // classNameをこのルートdivに適用。AttackerPanelのGridレイアウトで使われることを想定し、mb-4などは削除
     <div className={`w-full ${className || ''} ${disabled ? 'opacity-70' : ''}`}>
-      {/* 
-        AttackerPanelのGridレイアウトでは、このMoveSelectコンポーネントの 'label' prop は使用せず、
-        AttackerPanel側でGridの1列目に別途ラベルを配置する。
-        そのため、ここのラベル表示は削除またはコメントアウト。
-      */}
+      {/* Label is handled by AttackerPanel's grid */}
       {/* <label htmlFor={`move-select-input-${label}`} className="block text-sm font-medium text-white mb-1 sm:mb-2">{label}</label> */}
 
-      {/* テラスタル/ステラチェックボックスは技情報の下に移動するため、ここからは削除 */}
-      {/* <div className="flex items-center justify-between mb-1 sm:mb-2"> ... </div> */}
-
-      <div className="relative"> {/* このdivは検索入力とドロップダウンリストをまとめる */}
+      <div className="relative">
         {renderSearchInputComponent()}
 
         {isOpen && !disabled && (
@@ -413,13 +445,12 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
                 >
                   <X className="h-6 w-6" />
                 </button>
-                {/* モーダルタイトルには外部から渡されたラベルを使用 */}
                 <h2 className="text-lg font-semibold text-white">{label || 'わざを選択'}</h2>
-                <div className="w-8"></div>
+                <div className="w-8"></div> {/* Spacer */}
               </div>
 
               <div className="p-3 border-b border-gray-700 bg-gray-800">
-                {renderSearchInputComponent(true)} {/* モーダル内入力であることを示すフラグを渡す */}
+                {renderSearchInputComponent(true)}
               </div>
 
               <ul
@@ -462,10 +493,8 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
         )}
       </div>
 
-      {/* ★★★ 技情報とテラスタル/ステラチェックボックスの表示エリア ★★★ */}
       {selected && !disabled && (
         <div className="mt-2 flex flex-wrap items-center justify-start gap-x-3 gap-y-1 text-xs text-gray-300">
-          {/* 技情報 */}
           <div className="flex items-center">
             <span className="mr-1">威力:</span>
             <span className="text-white font-medium mr-2">{selected.power === undefined || selected.power === null ? '—' : selected.power}</span>
@@ -479,14 +508,13 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
             </span>
           </div>
 
-          {/* テラスタルチェックボックス */}
           <label htmlFor={`terastal-toggle-${baseId}`} className="flex items-center cursor-pointer whitespace-nowrap">
             <input
               type="checkbox"
               id={`terastal-toggle-${baseId}`}
               checked={currentAttackerTeraType !== null && !isStellar}
-              onChange={() => !disabled && !isStellar && onToggleTera()} // Stellar中は通常のテラスタル操作不可
-              disabled={disabled || isStellar} // Stellarが有効なら通常のテラスタルは無効
+              onChange={() => !disabled && !isStellar && onToggleTera()}
+              disabled={disabled || isStellar}
               className="w-3.5 h-3.5 rounded border-gray-500 bg-gray-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-gray-800 disabled:opacity-50"
             />
             <span className={`ml-1.5 ${disabled || isStellar ? 'text-gray-500 cursor-not-allowed' : 'text-gray-300'}`}>
@@ -494,7 +522,6 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
             </span>
           </label>
 
-          {/* ステラチェックボックス */}
           <label htmlFor={`stellar-toggle-${baseId}`} className="flex items-center cursor-pointer whitespace-nowrap">
             <input
               type="checkbox"
@@ -509,7 +536,6 @@ const MoveSelect: React.FC<MoveSelectProps> = ({
             </span>
           </label>
 
-          {/* 選択中の技の追加情報 (テラバーストの場合など) */}
             {selected.isTeraBlast && isStellar && <span className="text-pink-400">(ステラ)</span>}
             {selected.isTeraBlast && currentAttackerTeraType && !isStellar && <span className="text-blue-400">({getTypeNameJp(currentAttackerTeraType)} テラバースト)</span>}
 

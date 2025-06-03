@@ -69,7 +69,8 @@ const AbilitySelect: React.FC<AbilitySelectProps> = ({
     }
     // ポケモンが選択されていないか、特性情報がない場合は、日本語名でソート
     return [...baseFiltered].sort((a, b) => a.name.localeCompare(b.name, 'ja'));
-  }, [abilities, side, selectedPokemon]);
+  }                                
+                                  , [abilities, side, selectedPokemon]);
 
   const options = useMemo(() => [
     { id: '__no-ability__', name: '特性なし', description: '', side: 'both' as const }, // Placeholder for "No Ability"
@@ -361,15 +362,7 @@ const AbilitySelect: React.FC<AbilitySelectProps> = ({
                 <option key={stat.value} value={stat.value}>{stat.label}</option>
               ))}
             </select>
-            {protosynthesisConfig.boostedStat === null && (
-              <p className="text-xs text-red-400 mt-1">
-                発動には能力の選択が必要です。
-              </p>
-            )}
           </div>
-          <p className="text-xs text-gray-400">
-            手動発動は、これらの条件を満たさず特性を発動させたい場合にチェックします。
-          </p>
         </div>
       )}
 
@@ -406,15 +399,7 @@ const AbilitySelect: React.FC<AbilitySelectProps> = ({
                 <option key={stat.value} value={stat.value}>{stat.label}</option>
               ))}
             </select>
-            {quarkDriveConfig.boostedStat === null && (
-              <p className="text-xs text-red-400 mt-1">
-                発動には能力の選択が必要です。
-              </p>
-            )}
           </div>
-          <p className="text-xs text-gray-400">
-            手動発動は、条件を満たさず特性を発動させたい場合にチェックします。
-          </p>
         </div>
       )}
     </div>

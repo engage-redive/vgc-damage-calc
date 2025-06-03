@@ -229,6 +229,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
       quarkDriveBoostedStat: initialAbility?.id === 'quark_drive' ? 'attack' : null,
       quarkDriveManualTrigger: false,
       moveUiOptionStates: {},
+      loadedMoves: null, // ★ 追加
     };
   };
 
@@ -409,6 +410,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
         tempAttacker.teraBlastDeterminedType = null;
         tempAttacker.teraBlastDeterminedCategory = null;
         tempAttacker.starstormDeterminedCategory = null; // ★ リセット
+      　tempAttacker.loadedMoves = null; // ★ 追加
 
     } else {
         if (updates.hpEv !== undefined && tempAttacker.pokemon) {
@@ -548,7 +550,9 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
      updateAttackerState(index, { 
        pokemon, teraType: null, isStellar: false, move: null, item: null,
       ability: initialAbilityForNewPokemon, // ★ ポケモン変更時に初期特性を設定
-      effectiveMove: null, starstormDeterminedCategory: null });
+      effectiveMove: null, starstormDeterminedCategory: null,
+      loadedMoves: null, // ★
+     });
   };
 
   const handleMoveChange = (move: Move | null, index: number) => {
@@ -1094,6 +1098,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                 isStellar={attacker.isStellar}
                 onToggleStellar={() => handleToggleStellar(index)}
                 disabled={!attacker.isEnabled || !attacker.pokemon}
+              　loadedMoves={attacker.loadedMoves} // ★ 追加: loadedMoves を MoveSelect に渡す
             />
           </div>
 

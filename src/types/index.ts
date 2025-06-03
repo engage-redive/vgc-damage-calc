@@ -265,6 +265,7 @@ export interface AttackerState {
   quarkDriveBoostedStat: QuarkDriveBoostTarget | null;
   quarkDriveManualTrigger: boolean;
   moveUiOptionStates: { [key: string]: boolean }; // 技固有UIオプションの状態
+  loadedMoves?: (Move | null)[] | null; // ★ チーム
 }
 
 export interface DefenderState {

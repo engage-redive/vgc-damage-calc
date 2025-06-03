@@ -146,6 +146,7 @@ function App() {
         starstormDeterminedCategory: null, // ★ 追加
         selectedHitCount: null, protosynthesisBoostedStat: (initialAttackerAbility?.id === 'protosynthesis') ? 'attack' : null, protosynthesisManualTrigger: false,
         quarkDriveBoostedStat: (initialAttackerAbility?.id === 'quark_drive') ? 'attack' : null, quarkDriveManualTrigger: false, moveUiOptionStates: {},
+      　loadedMoves: null,　// ★ 追加
     };
 
     const [activeAttackers, setActiveAttackers] = useState<AttackerState[]>([defaultInitialAttackerState]);
@@ -428,6 +429,7 @@ function App() {
             quarkDriveBoostedStat: member.quarkDriveBoostedStat ?? null,
             quarkDriveManualTrigger: member.quarkDriveManualTrigger ?? false,
             moveUiOptionStates: {},
+          　loadedMoves: member.moves, // ★ 追加
         };
         setActiveAttackers(prevAttackers => {
             const updatedAttackers = [...prevAttackers];
