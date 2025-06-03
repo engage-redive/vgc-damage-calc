@@ -551,7 +551,7 @@ const TeamManager: React.FC<TeamManagerProps> = ({
                 {onLoadAsAttacker && (
                   <button
                     onClick={(e) => { e.stopPropagation(); handleSendToAttacker(member); }}
-                    className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75 min-w-[70px] text-center" // min-width と text-center を追加
+                    className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75 min-w-[60px] text-center" // min-width と text-center を追加
                     title={`${member.pokemon.name} を攻撃側として計算ツールに送る`}
                   >
                     攻撃側へ
@@ -560,7 +560,7 @@ const TeamManager: React.FC<TeamManagerProps> = ({
                 {onLoadAsDefender && (
                   <button
                     onClick={(e) => { e.stopPropagation(); handleSendToDefender(member); }}
-                    className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75 min-w-[70px] text-center" // min-width と text-center を追加
+                    className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75 min-w-[60px] text-center" // min-width と text-center を追加
                     title={`${member.pokemon.name} を防御側として計算ツールに送る`}
                   >
                     防御側へ

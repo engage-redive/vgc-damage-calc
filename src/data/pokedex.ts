@@ -18189,7 +18189,7 @@ export const pokedex: Pokemon[] = [
     "weight": 415.6
   },
  {
-    "id": "964-hero",
+    "id": "964-h",
     "name": "イルカマン（マイティ）",
     "nameEn": "Palafin-Hero",
     "types": ["Water"],
@@ -18223,7 +18223,7 @@ export const pokedex: Pokemon[] = [
     "weight": 110
   },
   {
-    "id": "741-pompom",
+    "id": "741-p",
     "name": "オドリドリ（ぱちぱち）",
     "nameEn": "Oricorio-Pom-Pom",
     "types": ["Electric", "Flying"],
@@ -18257,7 +18257,7 @@ export const pokedex: Pokemon[] = [
     "weight": 3.4
   },
    {
-    "id": "741-sensu",
+    "id": "741-s",
     "name": "オドリドリ（まいまい）",
     "nameEn": "Oricorio-Sensu",
     "types": ["Ghost", "Flying"],
@@ -18274,7 +18274,7 @@ export const pokedex: Pokemon[] = [
     "weight": 3.4
   },
    {
-    "id": "646-black",
+    "id": "646-b",
     "name": "キュレム（ブラック）",
     "nameEn": "Kyurem-Black",
     "types": ["Dragon", "Ice"],
@@ -18291,7 +18291,7 @@ export const pokedex: Pokemon[] = [
     "weight": 325
   },
    {
-    "id": "646-white",
+    "id": "646-w",
     "name": "キュレム（ホワイト）",
     "nameEn": "Kyurem-White",
     "types": ["Dragon", "Ice"],
@@ -18308,7 +18308,7 @@ export const pokedex: Pokemon[] = [
     "weight": 325
   },
    {
-    "id": "487-origin",
+    "id": "487-o",
     "name": "ギラティナ（オリジン）",
     "nameEn": "Giratina-Origin",
     "types": ["Ghost", "Dragon"],
@@ -18325,7 +18325,7 @@ export const pokedex: Pokemon[] = [
     "weight": 650
   },
    {
-    "id": "875-noice",
+    "id": "875-n",
     "name": "コオリッポ（ナイスフェイス）",
     "nameEn": "Eiscue-Noice",
     "types": ["Ice"],
@@ -18342,7 +18342,7 @@ export const pokedex: Pokemon[] = [
     "weight": 89
   },
    {
-    "id": "483-origin",
+    "id": "483-o",
     "name": "ディアルガ（オリジン）",
     "nameEn": "Dialga-Origin",
     "types": ["Steel", "Dragon"],
@@ -18359,7 +18359,7 @@ export const pokedex: Pokemon[] = [
     "weight": 850
   },
    {
-    "id": "484-origin",
+    "id": "484-o",
     "name": "パルキア（オリジン）",
     "nameEn": "Palkia-Origin",
     "types": ["Water", "Dragon"],
@@ -18376,7 +18376,7 @@ export const pokedex: Pokemon[] = [
     "weight": 660
   },
    {
-    "id": "800-duskmane",
+    "id": "800-dm",
     "name": "ネクロズマ（たそがれのたてがみ）",
     "nameEn": "Necrozma-Dusk-Mane",
     "types": ["Psychic", "Steel"],
@@ -18393,7 +18393,7 @@ export const pokedex: Pokemon[] = [
     "weight": 460
   },
    {
-    "id": "800-dawnwings",
+    "id": "800-dw",
     "name": "ネクロズマ（あかつきのつばさ）",
     "nameEn": "Necrozma-Dawn-Wings",
     "types": ["Psychic", "Ghost"],
@@ -18410,7 +18410,7 @@ export const pokedex: Pokemon[] = [
     "weight": 350
   },
    {
-    "id": "800-ultra",
+    "id": "800-u",
     "name": "ネクロズマ（ウルトラ）",
     "nameEn": "Necrozma-Ultra",
     "types": ["Psychic", "Dragon"],
@@ -18427,7 +18427,7 @@ export const pokedex: Pokemon[] = [
     "weight": 230
   },
    {
-    "id": "745-midnight",
+    "id": "745-m",
     "name": "ルガルガン（まよなか）",
     "nameEn": "Lycanroc-Midnight",
     "types": ["Rock"],
@@ -18444,7 +18444,7 @@ export const pokedex: Pokemon[] = [
     "weight": 25
   },
    {
-    "id": "745-dusk",
+    "id": "745-d",
     "name": "ルガルガン（たそがれ）",
     "nameEn": "Lycanroc-Dusk",
     "types": ["Rock"],
