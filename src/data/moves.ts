@@ -166,7 +166,8 @@ export const moves: Move[] = [
   category: "physical",
   power: 60,
   accuracy: true,
-  pp: 20
+  pp: 20,
+  isSlash: true,
 },
 {
   id: "aeroblast",
@@ -207,7 +208,8 @@ export const moves: Move[] = [
   power: 60,
   accuracy: 95,
   pp: 25,
-  isSpread: true
+  isSpread: true,
+  isSlash: true,
 },
 {
   id: "airslash",
@@ -218,7 +220,8 @@ export const moves: Move[] = [
   power: 75,
   accuracy: 95,
   pp: 15,
-  hasSecondaryEffect: true
+  hasSecondaryEffect: true,
+  isSlash: true,
 },
 {
   id: "alluringvoice",
@@ -292,7 +295,8 @@ export const moves: Move[] = [
   category: "physical",
   power: 70,
   accuracy: 100,
-  pp: 20
+  pp: 20,
+  isSlash: true,
 },
 {
   id: "aquajet",
@@ -452,7 +456,8 @@ export const moves: Move[] = [
   category: "special",
   power: 80,
   accuracy: true,
-  pp: 20
+  pp: 20,
+  isPulseAura: true,
 },
 {
   id: "aurawheel",
@@ -618,7 +623,8 @@ export const moves: Move[] = [
   category: "physical",
   power: 100,
   accuracy: 100,
-  pp: 5
+  pp: 5,
+  isSlash: true,
 },
 {
   id: "belch",
@@ -679,7 +685,8 @@ export const moves: Move[] = [
   power: 60,
   accuracy: 100,
   pp: 25,
-  hasSecondaryEffect: true
+  hasSecondaryEffect: true,
+  isBiting: true,
 },
 {
   id: "bitterblade",
@@ -689,7 +696,8 @@ export const moves: Move[] = [
   category: "physical",
   power: 90,
   accuracy: 100,
-  pp: 10
+  pp: 10,
+  isSlash: true,
 },
 {
   id: "bittermalice",
@@ -1113,7 +1121,8 @@ export const moves: Move[] = [
   power: 65,
   accuracy: 90,
   pp: 15,
-  hasSecondaryEffect: true
+  hasSecondaryEffect: true,
+  isSlash: true,
 },
 {
   id: "celebrate",
@@ -1526,7 +1535,8 @@ export const moves: Move[] = [
   power: 70,
   accuracy: 100,
   pp: 20,
-  hasSecondaryEffect: true
+  hasSecondaryEffect: true,
+  isSlash: true,
 },
 {
   id: "crunch",
@@ -1537,7 +1547,8 @@ export const moves: Move[] = [
   power: 80,
   accuracy: 100,
   pp: 15,
-  hasSecondaryEffect: true
+  hasSecondaryEffect: true,
+  isBiting: true,
 },
 {
   id: "crushclaw",
@@ -1578,7 +1589,8 @@ export const moves: Move[] = [
   category: "physical",
   power: 50,
   accuracy: 95,
-  pp: 30
+  pp: 30,
+  isSlash: true,
 },
 {
   id: "darkestlariat",
@@ -1599,7 +1611,8 @@ export const moves: Move[] = [
   power: 80,
   accuracy: 100,
   pp: 15,
-  hasSecondaryEffect: true
+  hasSecondaryEffect: true,
+  isPulseAura: true,
 },
 {
   id: "darkvoid",
@@ -1969,7 +1982,8 @@ export const moves: Move[] = [
   category: "special",
   power: 85,
   accuracy: 100,
-  pp: 10
+  pp: 10,
+  isPulseAura: true,
 },
 {
   id: "dragonrage",
@@ -2560,7 +2574,8 @@ export const moves: Move[] = [
   power: 65,
   accuracy: 95,
   pp: 15,
-  hasSecondaryEffect: true
+  hasSecondaryEffect: true,
+  isBiting: true,
 },
 {
   id: "firelash",
@@ -2624,6 +2639,7 @@ export const moves: Move[] = [
   power: 85,
   accuracy: 100,
   pp: 10,
+  isBiting: true,
     dynamicEffectId: "Boost", // 追加
     uiOption: {               // 追加
       type: "checkbox",
@@ -2972,7 +2988,8 @@ export const moves: Move[] = [
   category: "physical",
   power: 40,
   accuracy: 95,
-  pp: 20
+  pp: 20,
+  isSlash: true,
 },
 {
   id: "furyswipes",
@@ -3907,7 +3924,8 @@ export const moves: Move[] = [
   power: 65,
   accuracy: 95,
   pp: 15,
-  hasSecondaryEffect: true
+  hasSecondaryEffect: true,
+  isBiting: true,
 },
 {
   id: "icehammer",
@@ -4109,7 +4127,8 @@ export const moves: Move[] = [
   category: "physical",
   power: 80,
   accuracy: 100,
-  pp: 10
+  pp: 10,
+  isBiting: true,
 },
 {
   id: "jetpunch",
@@ -4205,7 +4224,8 @@ export const moves: Move[] = [
   category: "physical",
   power: 85,
   accuracy: true,
-  pp: 10
+  pp: 10,
+  isSlash: true,
 },
 {
   id: "landswrath",
@@ -4288,7 +4308,8 @@ export const moves: Move[] = [
   category: "physical",
   power: 90,
   accuracy: 100,
-  pp: 15
+  pp: 15,
+  isSlash: true,
 },
 {
   id: "leafstorm",
@@ -4809,7 +4830,8 @@ export const moves: Move[] = [
   category: "physical",
   power: 95,
   accuracy: 100,
-  pp: 5
+  pp: 5,
+  isSlash: true,
 },
 {
   id: "milkdrink",
@@ -5186,7 +5208,8 @@ export const moves: Move[] = [
   category: "physical",
   power: 70,
   accuracy: 100,
-  pp: 15
+  pp: 15,
+  isSlash: true,
 },
 {
   id: "nobleroar",
@@ -5321,7 +5344,8 @@ export const moves: Move[] = [
   power: 110,
   accuracy: 85,
   pp: 10,
-  isSpread: true
+  isSpread: true,
+  isPulseAura: true,
 },
 {
   id: "outrage",
@@ -5528,7 +5552,8 @@ export const moves: Move[] = [
   power: 50,
   accuracy: 100,
   pp: 15,
-  hasSecondaryEffect: true
+  hasSecondaryEffect: true,
+  isBiting: true,
 },
 {
   id: "poisongas",
@@ -5613,6 +5638,7 @@ export const moves: Move[] = [
   power: 20,
   accuracy: 90,
   pp: 10,
+  isSlash: true,
   multihit: 10,
   contact: true,
 },
@@ -5801,7 +5827,8 @@ export const moves: Move[] = [
   category: "physical",
   power: 80,
   accuracy: 100,
-  pp: 15
+  pp: 15,
+  isSlash: true,
 },
 {
   id: "psychup",
@@ -5832,7 +5859,8 @@ export const moves: Move[] = [
   category: "physical",
   power: 85,
   accuracy: 100,
-  pp: 10
+  pp: 10,
+  isBiting: true,
 },
 {
   id: "psychicnoise",
@@ -5873,7 +5901,8 @@ export const moves: Move[] = [
   category: "physical",
   power: 70,
   accuracy: 100,
-  pp: 20
+  pp: 20,
+  isSlash: true,
 },
 {
   id: "psychoshift",
@@ -6096,7 +6125,8 @@ export const moves: Move[] = [
   power: 55,
   accuracy: 95,
   pp: 25,
-  isSpread: true
+  isSpread: true,
+  isSlash: true,
 },
 {
   id: "razorshell",
@@ -6107,7 +6137,8 @@ export const moves: Move[] = [
   power: 75,
   accuracy: 95,
   pp: 10,
-  hasSecondaryEffect: true
+  hasSecondaryEffect: true,
+  isSlash: true,
 },
 {
   id: "razorwind",
@@ -6458,7 +6489,8 @@ export const moves: Move[] = [
   category: "physical",
   power: 90,
   accuracy: 100,
-  pp: 15
+  pp: 15,
+  isSlash: true,
 },
 {
   id: "safeguard",
@@ -6617,7 +6649,8 @@ export const moves: Move[] = [
   category: "special",
   power: 85,
   accuracy: 100,
-  pp: 10
+  pp: 10,
+  isSlash: true,
 },
 {
   id: "seedbomb",
@@ -6979,7 +7012,8 @@ export const moves: Move[] = [
   category: "physical",
   power: 70,
   accuracy: 100,
-  pp: 20
+  pp: 20,
+  isSlash: true,
 },
 {
   id: "sleeppowder",
@@ -7187,7 +7221,8 @@ export const moves: Move[] = [
   category: "physical",
   power: 125,
   accuracy: 100,
-  pp: 10
+  pp: 10,
+  isSlash: true,
 },
 {
   id: "sonicboom",
@@ -7510,7 +7545,8 @@ export const moves: Move[] = [
   power: 65,
   accuracy: 90,
   pp: 15,
-  hasSecondaryEffect: true
+  hasSecondaryEffect: true,
+  isSlash: true,
 },
 {
   id: "stoneedge",
@@ -7855,6 +7891,7 @@ export const moves: Move[] = [
   accuracy: true,
   pp: 10,
   multihit: 2,
+  isSlash: true,
 },
 {
   id: "tackle",
@@ -8018,7 +8055,8 @@ export const moves: Move[] = [
   category: "special",
   power: 50,
   accuracy: 100,
-  pp: 10
+  pp: 10,
+  isPulseAura: true,
 },
 {
   id: "thief",
@@ -8124,7 +8162,8 @@ export const moves: Move[] = [
   power: 65,
   accuracy: 95,
   pp: 15,
-  hasSecondaryEffect: true
+  hasSecondaryEffect: true,
+  isBiting: true,
 },
 {
   id: "thunderouskick",
@@ -8597,7 +8636,8 @@ export const moves: Move[] = [
   power: 60,
   accuracy: 100,
   pp: 20,
-  hasSecondaryEffect: true
+  hasSecondaryEffect: true,
+  isPulseAura: true,
 },
 {
   id: "watershuriken",
@@ -8864,7 +8904,8 @@ export const moves: Move[] = [
   category: "physical",
   power: 80,
   accuracy: 100,
-  pp: 15
+  pp: 15,
+  isSlash: true,
 },
 {
   id: "yawn",

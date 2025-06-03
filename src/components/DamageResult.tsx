@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   DamageCalculation,
   PokemonType,
@@ -34,10 +34,8 @@ interface DamageResultProps {
   disasters?: DisasterState;
   resultIdSuffix: string;
   onSaveLog?: () => void;
-  // --- App.tsx から渡される新しい props ---
   showIndividualAttackResults: boolean;
   onToggleShowIndividualAttackResults: () => void;
-  // --- ここまで ---
 }
 
 const TYPE_NAME_JP_MODAL: Record<string, string> = {
@@ -117,12 +115,26 @@ const DamageResult: React.FC<DamageResultProps> = ({
   disasters,
   resultIdSuffix,
   onSaveLog,
-  showIndividualAttackResults, // 親から受け取る
-  onToggleShowIndividualAttackResults, // 親から受け取る
+  showIndividualAttackResults,
+  onToggleShowIndividualAttackResults,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  // isCombinedDetailsExpanded を削除し、親の state (showIndividualAttackResults) を使用
   const [isCriticalModeActive, setIsCriticalModeActive] = useState(false);
+
+  // --- モーダル表示時に背景のスクロールを制御する ---
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    if (isModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = originalOverflow;
+    }
+    // クリーンアップ関数
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isModalOpen]);
+  // --- ここまで ---
 
   if (!result || !result.normalDamages || !result.criticalDamages) {
     return (
@@ -151,7 +163,6 @@ const DamageResult: React.FC<DamageResultProps> = ({
   const actualRemainingHPMinPercentage = Math.max(0, 100 - clampedCurrentDisplayMaxPercentage);
   const actualRemainingHPMaxPercentage = Math.max(0, 100 - clampedCurrentDisplayMinPercentage);
   
-  // combinedResult が渡された場合、それは最初の攻撃者の結果であり、「合計ダメージ」セクションを表示する
   const shouldDisplayCombinedResultSection = !!combinedResult;
 
 
@@ -363,8 +374,6 @@ const DamageResult: React.FC<DamageResultProps> = ({
         <div className="mb-2">
           <div className="flex justify-between items-center mb-1">
             <p className="text-sm font-medium text-white">合計ダメージ</p>
-            {/* ボタンは combinedResult がある場合 (最初の攻撃者の結果) にのみ表示 */}
-            {/* 親から渡された関数を呼び出す */}
             <button
               onClick={onToggleShowIndividualAttackResults}
               className="text-gray-400 hover:text-white p-1 -m-1"
@@ -373,7 +382,6 @@ const DamageResult: React.FC<DamageResultProps> = ({
               {showIndividualAttackResults ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
             </button>
           </div>
-          {/* 合計ダメージの詳細は常に表示 (combinedResult があれば) */}
           <>
             <p className="text-white font-medium mb-1 text-sm">
               <span className={getDamageColor(combinedResult.minPercentage)}>
@@ -413,7 +421,6 @@ const DamageResult: React.FC<DamageResultProps> = ({
         </div>
       )}
 
-      {/* 個別の攻撃結果セクションの表示条件を親から渡された prop に変更 */}
       {showIndividualAttackResults && result && (
         <div className={`pt-1 ${shouldDisplayCombinedResultSection ? 'border-t border-gray-700 mt-2 pt-2' : ''}`}>
           <div className="w-full h-3 bg-white rounded-full overflow-hidden mb-1">

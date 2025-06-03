@@ -39,12 +39,7 @@ const powerCorrectionEffects: {
     q12Value: number;
     condition: (ctx: EffectContext) => boolean;
 }[] = [
-    {
-        id: 'technician',
-        name: 'テクニシャン',
-        q12Value: 6144, // 1.5倍
-        condition: (ctx) => ctx.attackerAbility?.id === 'technician' && ctx.basePowerForTechnician <= 60
-    },
+
     {
         id: 'skin_ability',
         name: 'スキン系特性',
@@ -74,6 +69,18 @@ const powerCorrectionEffects: {
         name: 'パンクロック',
         q12Value: 5325,
         condition: (ctx) => ctx.attackerAbility?.id === 'punk_rock' && ctx.move.isSoundBased
+    },
+    {
+        id: 'Sharpness',
+        name: 'きれあじ',
+        q12Value: 6144,
+        condition: (ctx) => ctx.attackerAbility?.id === 'sharpness' && ctx.move.isSlash 
+    },  
+    {
+        id: 'technician',
+        name: 'テクニシャン',
+        q12Value: 6144, // 1.5倍
+        condition: (ctx) => ctx.attackerAbility?.id === 'technician' && ctx.basePowerForTechnician <= 60
     },
     {
         id: 'strong_jaw',

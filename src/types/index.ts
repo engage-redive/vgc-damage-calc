@@ -96,6 +96,7 @@ export interface Move {
   recoil?: boolean;
   hasHighJumpKickRecoil?: boolean;
   isPunch?: boolean;
+  isSlash?: boolean;
   makesContact?: boolean;
   isSoundBased?: boolean;
   isBiting?: boolean;

@@ -846,11 +846,6 @@ export const abilities: Ability[] = [
     nameEn: 'Marvel Scale'
   },
   {
-    id: 'megalauncher',
-    name: 'メガランチャー',
-    nameEn: 'Mega Launcher'
-  },
-  {
     id: 'merciless',
     name: 'ひとでなし',
     nameEn: 'Merciless'
