@@ -91,7 +91,8 @@ const TeamManager: React.FC<TeamManagerProps> = ({
   useEffect(() => {
     try {
       localStorage.setItem('pokemonTeams', JSON.stringify(teams));
-    } catch (error) {
+    } catch (error)
+{
       console.error("localStorage へのチームの保存に失敗しました:", error);
     }
   }, [teams]);
@@ -434,7 +435,7 @@ const TeamManager: React.FC<TeamManagerProps> = ({
                 <h3 className="text-md font-semibold truncate" title={team.name}>{team.name}</h3>
                 <div className="flex items-center space-x-1">
                   <button
-                    onClick={(e) => { e.stopPropagation(); alert('チーム全体のコピー機能は未実装です'); }} // 以前は CopyIcon だった
+                    onClick={(e) => { e.stopPropagation(); alert('チーム全体のコピー機能は未実装です'); }} 
                     className="p-1 hover:bg-gray-700 rounded-full transition-colors"
                   >
                     <CopyIcon className="h-3 w-3" /> 
@@ -500,7 +501,7 @@ const TeamManager: React.FC<TeamManagerProps> = ({
             チーム一覧に戻る
           </button>
           <h2 className="text-xl font-bold">{selectedTeam.name}</h2>
-          <div></div>
+          <div></div> {/* Spacer */}
         </div>
 
         {selectedTeam.members.length < 6 && (
@@ -538,43 +539,35 @@ const TeamManager: React.FC<TeamManagerProps> = ({
           {selectedTeam.members.map((member) => (
             <div key={member.id} className="relative group">
               <TeamMemberCard member={member} onClick={() => handleEditMember(member)} />
-              <div className="absolute top-1 right-1 flex flex-col space-y-1 z-10">
+              {/* --- ボタンの変更箇所 --- */}
+              <div className="absolute top-1 right-1 flex flex-col items-end space-y-1.5 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ease-in-out">
                 <button
                   onClick={(e) => { e.stopPropagation(); handleDeleteMemberFromTeam(member.id); }}
-                  className="p-1 bg-red-600 hover:bg-red-700 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="p-1.5 bg-red-600 hover:bg-red-700 rounded-full text-white flex items-center justify-center w-5 h-5" // サイズ指定を追加
                   title={`${member.pokemon.name} をチームから削除`}
                 >
-                  <X className="h-3 w-3" />
+                  <X className="h-4 w-4" /> {/* アイコンサイズも調整 */}
                 </button>
-                                  {onLoadAsAttacker && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleSendToAttacker(member); }}
-                      className="p-1 bg-green-600 hover:bg-green-700 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                      title={`${member.pokemon.name} を攻撃側として計算ツールに送る`}
-                    >
-                      <Send className="h-3 w-3" />
-                    </button>
-                  )}
-                 {onLoadAsDefender && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleSendToDefender(member); }}
-                      className="p-1 bg-blue-600 hover:bg-blue-700 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                      title={`${member.pokemon.name} を防御側として計算ツールに送る`}
-                    >
-                      <SendToBack className="h-3 w-3" />
-                    </button>
-                  )}
-
-                  {/* === ここから追加 === */}
+                {onLoadAsAttacker && (
                   <button
-                    onClick={(e) => { e.stopPropagation(); handleCopyToClipboard(member); }}
-                    className="p-1 bg-yellow-500 hover:bg-yellow-600 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                    title={`${member.pokemon.name} の情報をコピー`}
+                    onClick={(e) => { e.stopPropagation(); handleSendToAttacker(member); }}
+                    className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75 min-w-[70px] text-center" // min-width と text-center を追加
+                    title={`${member.pokemon.name} を攻撃側として計算ツールに送る`}
                   >
-                    <ClipboardCopy className="h-3 w-3" />
+                    攻撃側へ
                   </button>
-                  {/* === ここまで追加 === */}
+                )}
+                {onLoadAsDefender && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleSendToDefender(member); }}
+                    className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75 min-w-[70px] text-center" // min-width と text-center を追加
+                    title={`${member.pokemon.name} を防御側として計算ツールに送る`}
+                  >
+                    防御側へ
+                  </button>
+                )}
               </div>
+              {/* --- ここまでボタンの変更箇所 --- */}
             </div>
           ))}
           {Array.from({ length: Math.max(0, 6 - selectedTeam.members.length) }).map((_, index) => (

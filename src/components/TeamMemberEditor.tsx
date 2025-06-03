@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Pokemon, Move, Item, Ability, PokemonType } from '../types';
 import { Nature } from '../data/natures';
-import { Plus, X, Save } from 'lucide-react';
+import { Plus, X, Save, ClipboardCopy } from 'lucide-react'; // ClipboardCopy をインポート
 import Select from 'react-select';
 import StatSlider from './TeamEditorSlider';
 import { POKEMON_TYPE_NAMES_JP } from '../calculation/pokemonTypesJp';
 
-// (インターフェース、定数、ヘルパー関数 calculateStat, getValidEV, getValidEVFloor は前回のものを流用)
-// ... (省略せずに記述する場合はここに前回のコードを挿入) ...
 interface TeamMember {
   id: string;
   pokemon: Pokemon;
@@ -60,6 +58,12 @@ const baseStatLabels: Record<keyof TeamMember['evs'], string> = {
   specialAttack: 'C',
   specialDefense: 'D',
   speed: 'S',
+};
+
+// Helper function to capitalize first letter of a string (TeamManager.tsx から移植)
+const capitalize = (s: string) => {
+  if (typeof s !== 'string' || s.length === 0) return '';
+  return s.charAt(0).toUpperCase() + s.slice(1);
 };
 
 const calculateStat = (
@@ -123,8 +127,6 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
     setEditedMember(member);
   }, [member]);
 
-  // (handlePokemonChange などの他のハンドラは変更なし)
-  // ... (省略せずに記述する場合はここに前回のコードを挿入) ...
   const handlePokemonChange = (selectedOption: any) => {
     const newPokemon = allPokemon.find(p => p.id === selectedOption.value);
     if (newPokemon) {
@@ -182,25 +184,19 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
     const totalCurrentEvs = getTotalEvs();
     const otherEvsSum = totalCurrentEvs - currentEvForStat;
     
-    // このステータスに割り振れる残りの「枠」
     const budgetForThisStat = 508 - otherEvsSum;
     
-    // 要求された値は、まず個々のステータスの上限(252)と、全体の予算(budgetForThisStat)で制限
     let targetEv = Math.min(requestedRawValue, 252, budgetForThisStat);
-    targetEv = Math.max(0, targetEv); // 0未満にはしない
+    targetEv = Math.max(0, targetEv);
   
-    // 有効な努力値ステップに丸める
     let finalEv = getValidEV(targetEv);
   
-    // 丸めた結果、予算を超過した場合は、予算内で最大の有効ステップに調整
     if (finalEv > budgetForThisStat) {
       finalEv = getValidEVFloor(budgetForThisStat);
     }
     
-    // ユーザーが値を減らそうとしたが、getValidEVが切り上げた場合 (例: current 12, requested 9 -> getValidEV(9) = 12)
-    // この場合は、要求値以下の最大の有効ステップにする
     if (requestedRawValue < currentEvForStat && finalEv > requestedRawValue) {
-        finalEv = getValidEVFloor(targetEv); // targetEv は budgetForThisStat 以下のはず
+        finalEv = getValidEVFloor(targetEv);
     }
 
     if (finalEv !== currentEvForStat) {
@@ -241,6 +237,74 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
     return label;
   };
 
+  // --- コピー機能のためのハンドラ ---
+  const handleCopyToClipboardCurrentMember = () => {
+    const { pokemon, item, ability, level, teraType, evs, nature, ivs, moves: memberMoves } = editedMember;
+
+    const statOrder: (keyof TeamMember['evs'])[] = ['hp', 'attack', 'defense', 'specialAttack', 'specialDefense', 'speed'];
+    const statShorthands: { [key in keyof TeamMember['evs']]: string } = {
+      hp: 'HP', attack: 'Atk', defense: 'Def',
+      specialAttack: 'SpA', specialDefense: 'SpD', speed: 'Spe'
+    };
+
+    const lines: string[] = [];
+
+    let line1 = pokemon.nameEn || pokemon.name;
+    if (item) {
+      line1 += ` @ ${item.nameEn || item.name}`;
+    }
+    lines.push(line1);
+
+    if (ability) {
+      lines.push(`Ability: ${ability.nameEn || ability.name}`);
+    }
+    lines.push(`Level: ${level}`);
+    lines.push(`Tera Type: ${capitalize(teraType)}`);
+
+    const evStrings: string[] = [];
+    statOrder.forEach(stat => {
+      if (evs[stat] > 0) {
+        evStrings.push(`${evs[stat]} ${statShorthands[stat]}`);
+      }
+    });
+    if (evStrings.length > 0) {
+      lines.push(`EVs: ${evStrings.join(' / ')}`);
+    }
+
+    if (nature) {
+      lines.push(`${capitalize(nature.nameEn || nature.name)} Nature`);
+    }
+
+    const ivStrings: string[] = [];
+    statOrder.forEach(stat => {
+      if (ivs[stat] < 31) {
+        ivStrings.push(`${ivs[stat]} ${statShorthands[stat]}`);
+      }
+    });
+    if (ivStrings.length > 0) {
+      lines.push(`IVs: ${ivStrings.join(' / ')}`);
+    }
+
+    memberMoves.forEach(move => {
+      if (move) {
+        lines.push(`- ${move.nameEn || move.name}`);
+      }
+    });
+
+    const textToCopy = lines.join('\n');
+    navigator.clipboard.writeText(textToCopy)
+      .then(() => {
+        // 必要であれば成功時のフィードバックをここに (例: トースト通知)
+        // alert('コピーしました！'); // シンプルなアラート
+      })
+      .catch(err => {
+        console.error('クリップボードへのコピーに失敗しました:', err);
+        alert('クリップボードへのコピーに失敗しました。');
+      });
+  };
+  // --- ここまでコピー機能のためのハンドラ ---
+
+
   const pokemonOptions = allPokemon.map(p => ({ value: p.id, label: p.name }));
   const itemOptions = allItems.map(i => ({ value: i.nameEn, label: i.name }));
   const pokemonAbilityNames = editedMember.pokemon.abilities || [];
@@ -252,7 +316,7 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
   const totalEvs = getTotalEvs();
   const remainingEvs = 508 - totalEvs;
 
-  const selectStylesSlightlyLessCompressed = { /* ... (変更なし) ... */ 
+  const selectStylesSlightlyLessCompressed = { 
     control: (base: any) => ({ ...base, backgroundColor: '#374151', borderColor: '#4B5563', color: 'white', minHeight: '30px', height: '30px', boxShadow: 'none', '&:hover': { borderColor: '#6B7280' } }),
     singleValue: (base: any) => ({ ...base, color: 'white', fontSize: '0.75rem' }),
     input: (base: any) => ({ ...base, color: 'white', margin: '0', padding: '0 2px', fontSize: '0.75rem' }),
@@ -269,8 +333,13 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
   return (
     <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-1 sm:p-2">
       <div className="bg-gray-800 p-2 sm:p-3 rounded-lg shadow-xl w-full max-w-md max-h-[85vh] overflow-y-auto relative text-[11px]">
-        {/* ... (モーダルヘッダーや他の部分は変更なし) ... */}
-
+        {/* モーダルヘッダー */}
+        <div className="flex justify-between items-center mb-2 sticky top-0 bg-gray-800 py-1.5 -mx-2 sm:-mx-3 px-2 sm:px-3 border-b border-gray-700 z-10">
+          <h2 className="text-lg font-semibold text-white">ポケモン編集</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
 
         {/* ポケモン、レベル */}
         <div className="grid grid-cols-[1fr_70px] gap-x-1.5 mb-2">
@@ -321,7 +390,7 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
             {statKeys.map(stat => {
               const baseStatValue = editedMember.pokemon.baseStats?.[stat] || 50;
               const ivValue = editedMember.ivs[stat];
-              const evValue = editedMember.evs[stat]; // 現在の努力値
+              const evValue = editedMember.evs[stat]; 
               const level = editedMember.level;
               let natureModifier = 1.0;
               if (editedMember.nature) {
@@ -329,22 +398,15 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
                 if (editedMember.nature.decreasedStat === stat) natureModifier = 0.9;
               }
               const actualStat = calculateStat(baseStatValue, ivValue, evValue, level, natureModifier, stat);
-
-              // スライダーが現在操作で到達できる最大値 (actualMaxValue) を計算
               let actualMaxValueForSlider: number;
-              if (remainingEvs <= 0) {
-                  // 残り努力値が0以下なら、現在の努力値 (evValue) が操作上の上限
+              if (remainingEvs <= 0 && evValue === 0) { //残り0で現在値も0なら増やせない
+                  actualMaxValueForSlider = 0;
+              } else if (remainingEvs <= 0) { //残り0だが現在値があるなら、そこが上限
                   actualMaxValueForSlider = evValue;
-              } else {
-                  // 残り努力値がある場合、増やせる上限は 252 と (現在のEV + 残りEV) の小さい方
-                  // ただし、これは「目標値」であり、getValidEVで丸められる前の値
+              }
+               else {
                   actualMaxValueForSlider = Math.min(252, evValue + remainingEvs);
               }
-              // actualMaxValueForSlider も有効な努力値に丸めておく方が、ユーザーの混乱が少ないかもしれない
-              // 例：残りEVが1でevValueが0の場合、actualMaxValueForSliderは1。getValidEV(1)=0。
-              // ここでは、スライダーが「どこまで増やせるか」の目安として使うので、getValidEVを通す前の値でよい。
-              // StatSlider側でonChange時にこの値を超える要求が来たら、この値にクリップする。
-              // 最終的な努力値はhandleEvChange内でgetValidEVされる。
 
               return (
                 <div key={stat} className="grid grid-cols-[20px_40px_1fr_18px] items-center gap-x-2 py-1.5">
@@ -363,9 +425,9 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
                     >
                     <StatSlider
                       label="" 
-                      value={evValue}                 // 現在の努力値
-                      fixedMax={252}                // スライダーのバーの全長は常に252
-                      actualMaxValue={actualMaxValueForSlider} // 操作上の上限
+                      value={evValue}                 
+                      fixedMax={252}                
+                      actualMaxValue={actualMaxValueForSlider} 
                       onChange={(requestedValue) => handleEvChange(stat, requestedValue)}
                       sliderHeight="h-2.5"
                       className="hide-stat-slider-real-value"
@@ -378,10 +440,21 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
           </div>
         </div>
         
-        {/* 保存・キャンセルボタン */}
-        <div className="mt-3 flex justify-end space-x-1.5 sticky bottom-0 bg-gray-800 py-1.5 -mx-2 sm:-mx-3 px-2 sm:px-3 border-t border-gray-700">
-          <button onClick={() => onSave(editedMember)} className="flex items-center gap-1 px-2.5 py-1 bg-blue-600 hover:bg-blue-700 rounded text-[11px] font-medium" disabled={remainingEvs < 0}> <Save className="h-3.5 w-3.5" /> 保存 </button>
-          <button onClick={onClose} className="flex items-center gap-1 px-2.5 py-1 bg-gray-600 hover:bg-gray-700 rounded text-[11px] font-medium"> <X className="h-3.5 w-3.5" /> キャンセル </button>
+        {/* 保存・キャンセル・コピーボタン */}
+        <div className="mt-3 flex justify-end space-x-1.5 sticky bottom-0 bg-gray-800 py-1.5 -mx-2 sm:-mx-3 px-2 sm:px-3 border-t border-gray-700 z-10">
+          <button 
+            onClick={handleCopyToClipboardCurrentMember} 
+            className="flex items-center gap-1 px-2.5 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded text-[11px] font-medium"
+            title="現在の情報をShowdown形式でコピー"
+          >
+            <ClipboardCopy className="h-3.5 w-3.5" /> コピー
+          </button>
+          <button onClick={() => onSave(editedMember)} className="flex items-center gap-1 px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[11px] font-medium" disabled={remainingEvs < 0}>
+            <Save className="h-3.5 w-3.5" /> 保存
+          </button>
+          <button onClick={onClose} className="flex items-center gap-1 px-2.5 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded text-[11px] font-medium">
+            <X className="h-3.5 w-3.5" /> キャンセル
+          </button>
         </div>
       </div>
     </div>

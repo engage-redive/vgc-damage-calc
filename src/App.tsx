@@ -237,37 +237,78 @@ function App() {
             let newState = { ...prev };
             let recomputeHp = false, recomputeDefense = false, recomputeSpecialDefense = false,
                 recomputeSpeed = false, recomputeAttack = false;
+
             if (updates.pokemon && updates.pokemon !== prev.pokemon) {
                 const newPokemon = updates.pokemon;
                 newState.pokemon = newPokemon;
-                newState.hpStat = { base: newPokemon.baseStats.hp, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0 };
-                newState.defenseStat = { base: newPokemon.baseStats.defense, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0 };
-                newState.specialDefenseStat = { base: newPokemon.baseStats.specialDefense, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0 };
-                newState.attackStat = { base: newPokemon.baseStats.attack, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0 };
-                newState.speedStat = { base: newPokemon.baseStats.speed, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0 };
-                newState.hpEv = 0; newState.item = null; 
-                // newState.ability = null; // ★変更: 初期特性設定のため、下で上書き
-                newState.teraType = null;
-                newState.isStellar = false; newState.isBurned = false; newState.hasFlowerGift = false;
-                setDefenderIsTerastallized(false); setDefenderUserModifiedTypes(null);
+
+                // --- ここから修正 ---
+                // チーム読み込み時に渡された stat 情報を優先して ev を設定
+                const baseHpStatDefault = { base: newPokemon.baseStats.hp, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0 };
+                newState.hpStat = updates.hpStat && updates.hpStat.base === newPokemon.baseStats.hp 
+                                  ? { ...baseHpStatDefault, ...updates.hpStat } 
+                                  : baseHpStatDefault;
+                
+                const baseDefenseStatDefault = { base: newPokemon.baseStats.defense, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0 };
+                newState.defenseStat = updates.defenseStat && updates.defenseStat.base === newPokemon.baseStats.defense
+                                       ? { ...baseDefenseStatDefault, ...updates.defenseStat }
+                                       : baseDefenseStatDefault;
+
+                const baseSpecialDefenseStatDefault = { base: newPokemon.baseStats.specialDefense, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0 };
+                newState.specialDefenseStat = updates.specialDefenseStat && updates.specialDefenseStat.base === newPokemon.baseStats.specialDefense
+                                              ? { ...baseSpecialDefenseStatDefault, ...updates.specialDefenseStat }
+                                              : baseSpecialDefenseStatDefault;
+                
+                const baseAttackStatDefault = { base: newPokemon.baseStats.attack, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0 };
+                newState.attackStat = updates.attackStat && updates.attackStat.base === newPokemon.baseStats.attack
+                                      ? { ...baseAttackStatDefault, ...updates.attackStat }
+                                      : baseAttackStatDefault;
+
+                const baseSpeedStatDefault = { base: newPokemon.baseStats.speed, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0 };
+                newState.speedStat = updates.speedStat && updates.speedStat.base === newPokemon.baseStats.speed
+                                     ? { ...baseSpeedStatDefault, ...updates.speedStat }
+                                     : baseSpeedStatDefault;
+                
+                newState.hpEv = newState.hpStat.ev; // hpEvも同期
+
+                newState.item = updates.item !== undefined ? updates.item : null;
+                newState.teraType = updates.teraType !== undefined ? updates.teraType : null;
+                // --- ここまで修正 ---
+                
+                newState.isStellar = updates.isStellar ?? false; 
+                newState.isBurned = updates.isBurned ?? false; 
+                newState.hasFlowerGift = updates.hasFlowerGift ?? false;
+                setDefenderIsTerastallized(false); 
+                setDefenderUserModifiedTypes(null);
 
                 let initialAbilityForNewPokemon: Ability | null = null;
-                if (newPokemon && newPokemon.abilities.length > 0 && abilities.length > 0) { // abilities は App.tsx スコープの定数
+                if (updates.ability !== undefined) { // チーム読み込みからのAbilityを優先
+                    initialAbilityForNewPokemon = updates.ability;
+                } else if (newPokemon && newPokemon.abilities.length > 0 && abilities.length > 0) {
                     const firstAbilityNameEnFromPokedex = newPokemon.abilities[0];
                     initialAbilityForNewPokemon = abilities.find(ab => ab.nameEn.toLowerCase() === firstAbilityNameEnFromPokedex.toLowerCase()) || null;
-                 }
-                 newState.ability = initialAbilityForNewPokemon;
+                }
+                newState.ability = initialAbilityForNewPokemon;
 
-                if (initialAbilityForNewPokemon?.id === 'protosynthesis') {
+                // Protosynthesis/QuarkDriveの初期化 (読み込まれた値を優先)
+                if (updates.protosynthesisBoostedStat !== undefined) {
+                    newState.protosynthesisBoostedStat = updates.protosynthesisBoostedStat;
+                    newState.protosynthesisManualTrigger = updates.protosynthesisManualTrigger ?? false;
+                } else if (initialAbilityForNewPokemon?.id === 'protosynthesis') {
                     newState.protosynthesisBoostedStat = 'defense'; newState.protosynthesisManualTrigger = false;
                 } else {
                     newState.protosynthesisBoostedStat = null; newState.protosynthesisManualTrigger = false;
                 }
-                if (initialAbilityForNewPokemon?.id === 'quark_drive') {
+
+                if (updates.quarkDriveBoostedStat !== undefined) {
+                    newState.quarkDriveBoostedStat = updates.quarkDriveBoostedStat;
+                    newState.quarkDriveManualTrigger = updates.quarkDriveManualTrigger ?? false;
+                } else if (initialAbilityForNewPokemon?.id === 'quark_drive') {
                     newState.quarkDriveBoostedStat = 'defense'; newState.quarkDriveManualTrigger = false;
                 } else {
                     newState.quarkDriveBoostedStat = null; newState.quarkDriveManualTrigger = false;
                 }
+
                 recomputeHp = recomputeDefense = recomputeSpecialDefense = recomputeAttack = recomputeSpeed = true;
             } else {
                 if (updates.hpInputValue !== undefined) newState.hpInputValue = updates.hpInputValue;
@@ -300,25 +341,34 @@ function App() {
                 if (updates.quarkDriveBoostedStat !== undefined) newState.quarkDriveBoostedStat = updates.quarkDriveBoostedStat;
                 if (updates.quarkDriveManualTrigger !== undefined) newState.quarkDriveManualTrigger = updates.quarkDriveManualTrigger;
             }
+
             if (recomputeHp) {
                 newState.hpStat.final = calculateStat(newState.hpStat.base, newState.hpStat.iv, newState.hpStat.ev, 50, newState.hpStat.nature, true, newState.hpStat.rank, newState.item);
                 newState.actualMaxHp = newState.hpStat.final;
-                if (!(updates.hpInputValue !== undefined && !updates.hpStat && !updates.item)) newState.hpInputValue = newState.hpStat.final.toString();
+                if (!(updates.hpInputValue !== undefined && !updates.hpStat && !updates.item && !(updates.pokemon && updates.pokemon !== prev.pokemon) )) {
+                     newState.hpInputValue = newState.hpStat.final.toString();
+                }
             }
             if (recomputeDefense) {
                 newState.defenseStat.final = calculateStat(newState.defenseStat.base, newState.defenseStat.iv, newState.defenseStat.ev, 50, newState.defenseStat.nature, false, newState.defenseStat.rank, newState.item);
-                if (!(updates.defenseInputValue !== undefined && !updates.defenseStat && !updates.item)) newState.defenseInputValue = newState.defenseStat.final.toString();
+                 if (!(updates.defenseInputValue !== undefined && !updates.defenseStat && !updates.item && !(updates.pokemon && updates.pokemon !== prev.pokemon) )) {
+                    newState.defenseInputValue = newState.defenseStat.final.toString();
+                }
             }
             if (recomputeSpecialDefense) {
                 newState.specialDefenseStat.final = calculateStat(newState.specialDefenseStat.base, newState.specialDefenseStat.iv, newState.specialDefenseStat.ev, 50, newState.specialDefenseStat.nature, false, newState.specialDefenseStat.rank, newState.item);
-                if (!(updates.specialDefenseInputValue !== undefined && !updates.specialDefenseStat && !updates.item)) newState.specialDefenseInputValue = newState.specialDefenseStat.final.toString();
+                if (!(updates.specialDefenseInputValue !== undefined && !updates.specialDefenseStat && !updates.item && !(updates.pokemon && updates.pokemon !== prev.pokemon) )) {
+                     newState.specialDefenseInputValue = newState.specialDefenseStat.final.toString();
+                }
             }
             if (recomputeAttack) {
                 newState.attackStat.final = calculateStat(newState.attackStat.base, newState.attackStat.iv, newState.attackStat.ev, 50, newState.attackStat.nature, false, newState.attackStat.rank, newState.item);
             }
             if (recomputeSpeed) {
                 newState.speedStat.final = calculateStat(newState.speedStat.base, newState.speedStat.iv, newState.speedStat.ev, 50, newState.speedStat.nature, false, newState.speedStat.rank, newState.item);
-                if (!(updates.speedInputValue !== undefined && !updates.speedStat && !updates.item)) newState.speedInputValue = newState.speedStat.final.toString();
+                if (!(updates.speedInputValue !== undefined && !updates.speedStat && !updates.item && !(updates.pokemon && updates.pokemon !== prev.pokemon) )) {
+                     newState.speedInputValue = newState.speedStat.final.toString();
+                }
             }
             return newState;
         });
@@ -360,32 +410,47 @@ function App() {
         const spDefNatureMod = getNatureModifierValueFromDetails(natureDetails, 'specialDefense');
         const attackNatureMod = getNatureModifierValueFromDetails(natureDetails, 'attack');
         const speedNatureMod = getNatureModifierValueFromDetails(natureDetails, 'speed');
+        
+        // StatCalculation オブジェクトを構築する際に、member.evs を使用
         const loadedHpStat: StatCalculation = { base: member.pokemon.baseStats.hp, iv: member.ivs.hp, ev: member.evs.hp, nature: 1.0, rank: 0, final: 0 };
         const loadedDefenseStat: StatCalculation = { base: member.pokemon.baseStats.defense, iv: member.ivs.defense, ev: member.evs.defense, nature: defNatureMod, rank: 0, final: 0 };
         const loadedSpecialDefenseStat: StatCalculation = { base: member.pokemon.baseStats.specialDefense, iv: member.ivs.specialDefense, ev: member.evs.specialDefense, nature: spDefNatureMod, rank: 0, final: 0 };
         const loadedAttackStat: StatCalculation = { base: member.pokemon.baseStats.attack, iv: member.ivs.attack, ev: member.evs.attack, nature: attackNatureMod, rank: 0, final: 0 };
         const loadedSpeedStat: StatCalculation = { base: member.pokemon.baseStats.speed, iv: member.ivs.speed, ev: member.evs.speed, nature: speedNatureMod, rank: 0, final: 0 };
+        
         const memberTeraType = member.teraType.toLowerCase() as PokemonType;
+        
         const newDefenderStateChanges: Partial<DefenderState> = {
             pokemon: member.pokemon, item: member.item, ability: member.ability,
-            hpStat: loadedHpStat, defenseStat: loadedDefenseStat, specialDefenseStat: loadedSpecialDefenseStat,
-            attackStat: loadedAttackStat, speedStat: loadedSpeedStat, hpEv: member.evs.hp, teraType: memberTeraType,
-            isStellar: false, hasFlowerGift: false, isEnabled: true, isBurned: false,
+            hpStat: loadedHpStat, 
+            defenseStat: loadedDefenseStat, 
+            specialDefenseStat: loadedSpecialDefenseStat,
+            attackStat: loadedAttackStat, 
+            speedStat: loadedSpeedStat, 
+            hpEv: member.evs.hp, // hpEvも直接セット
+            teraType: memberTeraType,
+            isStellar: false, // チーム読み込み時はStellarでないと仮定（必要なら変更）
+            hasFlowerGift: false, // デフォルト値
+            isEnabled: true, // デフォルト値
+            isBurned: false, // デフォルト値
             protosynthesisBoostedStat: member.protosynthesisBoostedStat ?? null,
             protosynthesisManualTrigger: member.protosynthesisManualTrigger ?? false,
             quarkDriveBoostedStat: member.quarkDriveBoostedStat ?? null,
             quarkDriveManualTrigger: member.quarkDriveManualTrigger ?? false,
         };
-        setDefenderUserModifiedTypes(null);
-        handleDefenderStateChange(newDefenderStateChanges);
+
+        setDefenderUserModifiedTypes(null); // チーム読み込み時はカスタムタイプをリセット
+        handleDefenderStateChange(newDefenderStateChanges); // ここで ev が含まれた stat オブジェクトが渡される
+
         const primaryPokemonType = member.pokemon.types[0].toLowerCase() as PokemonType;
         let shouldBeTerastallized = false;
         if (memberTeraType) {
             if (member.pokemon.types.length === 1 && memberTeraType !== primaryPokemonType) shouldBeTerastallized = true;
             else if (member.pokemon.types.length > 1 && memberTeraType !== primaryPokemonType && (!member.pokemon.types[1] || memberTeraType !== member.pokemon.types[1].toLowerCase())) shouldBeTerastallized = true;
         }
-        setDefenderIsTerastallized(shouldBeTerastallized);
-        setHasReflect(false); setHasLightScreen(false);
+        setDefenderIsTerastallized(shouldBeTerastallized); // Terastallized状態も更新
+
+        setHasReflect(false); setHasLightScreen(false); // グローバル状態をリセット
         setActiveTab('damage'); setMobileViewMode('defender'); window.scrollTo(0, 0);
     };
 
