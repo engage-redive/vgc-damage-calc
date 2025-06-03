@@ -338,8 +338,8 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
         const baseSpeed = newPokemon?.baseStats.speed || 0;
         const baseHp = newPokemon?.baseStats.hp || 0;
 
-        const initialAttackEv = 0;
-        const initialSpecialAttackEv = 0;
+        const initialAttackEv = 252;
+        const initialSpecialAttackEv = 252;
         const initialOtherEv = 0;
 
         tempAttacker.hpEv = initialOtherEv;
