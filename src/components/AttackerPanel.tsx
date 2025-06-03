@@ -151,6 +151,12 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
     const defaultSpeedStatBase = defaultPokemon?.baseStats.speed || 0;
     const defaultHpBase = defaultPokemon?.baseStats.hp || 0;
     
+    let initialAbility: Ability | null = null;
+    if (defaultPokemon && defaultPokemon.abilities.length > 0 && abilities.length > 0) {
+      const firstAbilityNameEnFromPokedex = defaultPokemon.abilities[0];
+      initialAbility = abilities.find(ab => ab.nameEn.toLowerCase() === firstAbilityNameEnFromPokedex.toLowerCase()) || null;
+     }
+    
     const initialAttackEv = 252;
     const initialSpecialAttackEv = 252;
     const initialOtherEv = 0; 
@@ -194,8 +200,8 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
       pokemon: defaultPokemon,
       move: null,
       effectiveMove: null,
-      item: null,
-      ability: null,
+      item: null,      
+      ability: initialAbility, // ★ 初期特性を設定
       attackStat: defaultAttackStat,
       specialAttackStat: defaultSpecialAttackStat,
       defenseStat: defaultDefenseStat,
@@ -218,9 +224,9 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
       teraBlastDeterminedCategory: null,
       starstormDeterminedCategory: null, // ★ 追加
       selectedHitCount: null,
-      protosynthesisBoostedStat: null,
+      protosynthesisBoostedStat: initialAbility?.id === 'protosynthesis' ? 'attack' : null,
       protosynthesisManualTrigger: false,
-      quarkDriveBoostedStat: null,
+      quarkDriveBoostedStat: initialAbility?.id === 'quark_drive' ? 'attack' : null,
       quarkDriveManualTrigger: false,
       moveUiOptionStates: {},
     };
@@ -355,7 +361,29 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
         };
 
         if (updates.move === undefined) tempAttacker.move = null;
-        if (updates.ability === undefined) tempAttacker.ability = null;
+        if (updates.ability === undefined) { // ポケモン変更時、abilityの指定がなければ初期特性をセット
+             let initialAbilityForNewPokemon: Ability | null = null;
+            if (newPokemon && newPokemon.abilities.length > 0 && abilities.length > 0) {
+                const firstAbilityNameEnFromPokedex = newPokemon.abilities[0];
+                initialAbilityForNewPokemon = abilities.find(ab => ab.nameEn.toLowerCase() === firstAbilityNameEnFromPokedex.toLowerCase()) || null;
+             }
+             tempAttacker.ability = initialAbilityForNewPokemon;
+
+            if (initialAbilityForNewPokemon?.id === 'protosynthesis') {
+                tempAttacker.protosynthesisBoostedStat = 'attack';
+                tempAttacker.protosynthesisManualTrigger = false;
+            } else {
+                tempAttacker.protosynthesisBoostedStat = null;
+                tempAttacker.protosynthesisManualTrigger = false;
+            }
+             if (initialAbilityForNewPokemon?.id === 'quark_drive') {
+                tempAttacker.quarkDriveBoostedStat = 'attack';
+                tempAttacker.quarkDriveManualTrigger = false;
+            } else {
+                tempAttacker.quarkDriveBoostedStat = null;
+                tempAttacker.quarkDriveManualTrigger = false;
+            }
+        }
         if (updates.item === undefined) tempAttacker.item = null;
         tempAttacker.teraType = null;
         tempAttacker.isStellar = false;
@@ -365,11 +393,16 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
         tempAttacker.specialAttackInputValue = tempAttacker.specialAttackStat.final.toString();
         tempAttacker.defenseInputValue = tempAttacker.defenseStat.final.toString();
         tempAttacker.speedInputValue = tempAttacker.speedStat.final.toString();
+        
+        if (tempAttacker.ability?.id !== 'protosynthesis') { // ability更新後でチェック
+            tempAttacker.protosynthesisBoostedStat = null;
+            tempAttacker.protosynthesisManualTrigger = false;
+        }
+        if (tempAttacker.ability?.id !== 'quark_drive') {
+            tempAttacker.quarkDriveBoostedStat = null;
+            tempAttacker.quarkDriveManualTrigger = false;
+        }
 
-        tempAttacker.protosynthesisBoostedStat = null;
-        tempAttacker.protosynthesisManualTrigger = false;
-        tempAttacker.quarkDriveBoostedStat = null;
-        tempAttacker.quarkDriveManualTrigger = false;
         tempAttacker.moveUiOptionStates = {};
         tempAttacker.selectedHitCount = null;
         tempAttacker.teraBlastUserSelectedCategory = 'auto';
@@ -490,7 +523,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
 
     newAttackers[index] = tempAttacker;
     onSetAttackers(newAttackers);
-  }, [attackers, onSetAttackers]);
+  }, [attackers, onSetAttackers, abilities]);
 
   const addAttacker = () => {
     if (attackers.length < 2) {
@@ -507,7 +540,15 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
   const toggleAttacker = (index: number) => updateAttackerState(index, { isEnabled: !attackers[index].isEnabled });
 
   const handlePokemonChange = (pokemon: Pokemon | null, index: number) => {
-    updateAttackerState(index, { pokemon, teraType: null, isStellar: false, move: null, item: null, ability: null, effectiveMove: null, starstormDeterminedCategory: null });
+    let initialAbilityForNewPokemon: Ability | null = null;
+    if (pokemon && pokemon.abilities.length > 0 && abilities.length > 0) {
+      const firstAbilityNameEnFromPokedex = pokemon.abilities[0];
+      initialAbilityForNewPokemon = abilities.find(ab => ab.nameEn.toLowerCase() === firstAbilityNameEnFromPokedex.toLowerCase()) || null;
+     }
+     updateAttackerState(index, { 
+       pokemon, teraType: null, isStellar: false, move: null, item: null,
+      ability: initialAbilityForNewPokemon, // ★ ポケモン変更時に初期特性を設定
+      effectiveMove: null, starstormDeterminedCategory: null });
   };
 
   const handleMoveChange = (move: Move | null, index: number) => {
@@ -1159,6 +1200,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                 onChange={(a) => handleAbilityChange(a, index)}
                 label="" 
                 side="attacker"
+                selectedPokemon={attacker.pokemon} // ★ 選択中ポケモンを渡す
                 disabled={!attacker.isEnabled || !attacker.pokemon}
                  protosynthesisConfig={ isProtosynthesisSelected ? {
                     manualTrigger: attacker.protosynthesisManualTrigger,

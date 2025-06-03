@@ -8,6 +8,8 @@ import RankSelector from './RankSelector'; // RankSelectorをインポート
 
 const ALL_POKEMON_TYPES = ["normal", "fire", "water", "grass", "electric", "ice", "fighting", "poison", "ground", "flying", "psychic", "bug", "rock", "ghost", "dragon", "dark", "steel", "fairy"] as const;
 const LEVEL = 50;
+const PROTOSYNTHESIS_ABILITY_ID = 'protosynthesis'; // 定数として定義
+const QUARK_DRIVE_ABILITY_ID = 'quark_drive'; // 定数として定義
 
 // 日本語のタイプ名と色の定義 (AttackerPanel.tsx と共通)
 const TYPE_NAME_JP: Record<string, string> = {
@@ -234,7 +236,7 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
     if (selectedPokemon) {
       const value = parseInt(specialDefenseInputValue, 10);
       if (!isNaN(value) && value >= 0) {
-        const rankMultiplier = specialDefenseStat.rank !== 0 ? (specialDefenseStat.rank > 0 ? (2 + specialDefenseStat.rank) / 2 : 2 / (2 - defenseStat.rank)) : 1;
+        const rankMultiplier = specialDefenseStat.rank !== 0 ? (specialDefenseStat.rank > 0 ? (2 + specialDefenseStat.rank) / 2 : 2 / (2 - specialDefenseStat.rank)) : 1;
         const targetBaseValue = Math.round(value / rankMultiplier);
         const closestEv = findClosestEvForBaseValue(targetBaseValue, selectedPokemon.baseStats.specialDefense, specialDefenseStat.nature, specialDefenseStat.iv, false);
         onDefenderStateChange({
@@ -299,7 +301,14 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
   const handleAbilityChangeForDefender = (ability: Ability | null) => {
     onDefenderStateChange({ ability });
   };
-
+  
+  // isProtosynthesisSelectedOnDefender と isQuarkDriveSelectedOnDefender を定義
+  const isProtosynthesisSelectedOnDefender = selectedAbility?.id === PROTOSYNTHESIS_ABILITY_ID && 
+                                           defenderState.isEnabled && 
+                                           selectedPokemon;
+  const isQuarkDriveSelectedOnDefender = selectedAbility?.id === QUARK_DRIVE_ABILITY_ID && 
+                                         defenderState.isEnabled && 
+                                         selectedPokemon;
   // For StatSlider's currentStat display (base value before rank)
   const hpBaseValueForDisplay = selectedPokemon ? calculateBaseStatValue(selectedPokemon.baseStats.hp, hpStat.iv, hpStat.ev, LEVEL, hpStat.nature, true) : 0;
   const defenseBaseValueForDisplay = selectedPokemon ? calculateBaseStatValue(selectedPokemon.baseStats.defense, defenseStat.iv, defenseStat.ev, LEVEL, defenseStat.nature) : 0;
@@ -354,9 +363,6 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
   const availableTypesForType1 = ALL_POKEMON_TYPES.filter(t => isTerastallized || t !== userConfigurableBaseTypes[1]);
   const availableTypesForType2 = ALL_POKEMON_TYPES.filter(t => t !== userConfigurableBaseTypes[0]);
 
-  const isProtosynthesisSelectedOnDefender = selectedAbility?.id === 'protosynthesis' && defenderState.isEnabled && selectedPokemon;
-  const isQuarkDriveSelectedOnDefender = selectedAbility?.id === 'quark_drive' && defenderState.isEnabled && selectedPokemon;
-
   return (
     <div className="bg-gray-900 p-1 rounded-lg shadow-lg">
       <div className="bg-gray-800 rounded-lg p-4 mb-4">
@@ -389,7 +395,15 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
           pokemon={pokemonList}
           selected={selectedPokemon}
           onChange={(p) => {
-            onDefenderStateChange({ pokemon: p });
+            let initialAbilityForNewPokemon: Ability | null = null;
+            if (p && p.abilities.length > 0 && abilities.length > 0) { // abilities は props から
+              const firstAbilityNameEnFromPokedex = p.abilities[0];
+              initialAbilityForNewPokemon = abilities.find(ab => ab.nameEn.toLowerCase() === firstAbilityNameEnFromPokedex.toLowerCase()) || null;
+             }
+             onDefenderStateChange({ 
+               pokemon: p,
+              ability: initialAbilityForNewPokemon // ★ ポケモン変更時に初期特性を設定
+            });
           }}
           label="ポケモン"
         />
@@ -484,7 +498,28 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
               onChange={handleAbilityChangeForDefender}
               label=""
               side="defender"
+              selectedPokemon={selectedPokemon} // ★ 選択中ポケモンを渡す
               disabled={!selectedPokemon}
+              protosynthesisConfig={ isProtosynthesisSelectedOnDefender ? {
+                manualTrigger: !!protosynthesisManualTrigger,
+                boostedStat: protosynthesisBoostedStat,
+              } : undefined}
+              onProtosynthesisConfigChange={isProtosynthesisSelectedOnDefender ? (config) => {
+                onDefenderStateChange({
+                  protosynthesisManualTrigger: config.manualTrigger,
+                  protosynthesisBoostedStat: config.boostedStat,
+                });
+              } : undefined}
+              quarkDriveConfig={isQuarkDriveSelectedOnDefender ? {
+                manualTrigger: !!quarkDriveManualTrigger,
+                boostedStat: quarkDriveBoostedStat,
+              } : undefined}
+              onQuarkDriveConfigChange={isQuarkDriveSelectedOnDefender ? (config) => {
+                onDefenderStateChange({
+                  quarkDriveManualTrigger: config.manualTrigger,
+                  quarkDriveBoostedStat: config.boostedStat,
+                });
+              } : undefined}
             />
           </div>
         </div>
@@ -623,6 +658,7 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
                   onChange={onDefender2AbilityChange}
                   label=""
                   side="defender"
+                  selectedPokemon={selectedPokemon}
                   disabled={!selectedPokemon}
                 />
               </div>

@@ -47,7 +47,7 @@ export function calculateMValueQ12(
     }
 
     // 2. アクセルブレイク
-    if (selectedMove.id === 'Collision Course' && effectivenessValue > 1) {
+    if (selectedMove.id === 'collisioncourse' && effectivenessValue > 1) {
          mValueQ12 = applyMultiplierAndRound(mValueQ12, 5461);
     }
 

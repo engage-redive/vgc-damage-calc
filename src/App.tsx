@@ -125,9 +125,15 @@ function App() {
     const initialDefaultHpBase = initialPokedexPokemon.baseStats.hp || 0;
     const initialDefaultHpEv = 0;
     const initialDefaultActualMaxHp = calculateHpForApp(initialDefaultHpBase, 31, initialDefaultHpEv, 50);
+    
+    let initialAttackerAbility: Ability | null = null;
+    if (initialPokedexPokemon && initialPokedexPokemon.abilities.length > 0 && abilities.length > 0) {
+      const firstAbilityNameEnFromPokedex = initialPokedexPokemon.abilities[0];
+      initialAttackerAbility = abilities.find(ab => ab.nameEn.toLowerCase() === firstAbilityNameEnFromPokedex.toLowerCase()) || null;
+     }
 
     const defaultInitialAttackerState: AttackerState = {
-        pokemon: initialPokedexPokemon, move: initialMove, effectiveMove: null, item: null, ability: null,
+        pokemon: initialPokedexPokemon, move: initialMove, effectiveMove: null, item: null, ability: initialAttackerAbility, // ★ 初期特性を設定
         attackStat: initialAttackStatForApp, specialAttackStat: initialSpecialAttackStatForApp,
         defenseStat: initialDefenseStatForApp, speedStat: initialSpeedStatForApp,
         attackInputValue: initialAttackStatForApp.final.toString(),
@@ -138,8 +144,8 @@ function App() {
         teraType: null, isStellar: false, isBurned: false, hasHelpingHand: false, hasFlowerGift: false, isEnabled: true,
         teraBlastUserSelectedCategory: 'auto', teraBlastDeterminedType: null, teraBlastDeterminedCategory: null,
         starstormDeterminedCategory: null, // ★ 追加
-        selectedHitCount: null, protosynthesisBoostedStat: null, protosynthesisManualTrigger: false,
-        quarkDriveBoostedStat: null, quarkDriveManualTrigger: false, moveUiOptionStates: {},
+        selectedHitCount: null, protosynthesisBoostedStat: (initialAttackerAbility?.id === 'protosynthesis') ? 'attack' : null, protosynthesisManualTrigger: false,
+        quarkDriveBoostedStat: (initialAttackerAbility?.id === 'quark_drive') ? 'attack' : null, quarkDriveManualTrigger: false, moveUiOptionStates: {},
     };
 
     const [activeAttackers, setActiveAttackers] = useState<AttackerState[]>([defaultInitialAttackerState]);
@@ -164,9 +170,15 @@ function App() {
         base: initialPokedexPokemon.baseStats.speed, iv: 31, ev: 0, nature: 1.0, rank: 0,
         final: calculateStat(initialPokedexPokemon.baseStats.speed, 31, 0, 50, 1.0, false, 0, null)
     };
+    
+    let initialDefenderAbilityForDefault: Ability | null = null;
+    if (initialPokedexPokemon && initialPokedexPokemon.abilities.length > 0 && abilities.length > 0) {
+      const firstAbilityNameEnFromPokedex = initialPokedexPokemon.abilities[0];
+      initialDefenderAbilityForDefault = abilities.find(ab => ab.nameEn.toLowerCase() === firstAbilityNameEnFromPokedex.toLowerCase()) || null;
+     }
 
     const initialDefaultDefenderState: DefenderState = {
-        pokemon: initialPokedexPokemon, item: null, ability: null,
+        pokemon: initialPokedexPokemon, item: null, ability: initialDefenderAbilityForDefault, // ★ 初期特性を設定
         hpStat: initialDefenderHpStat, defenseStat: initialDefenderDefenseStat,
         specialDefenseStat: initialDefenderSpecialDefenseStat, attackStat: initialDefenderAttackStatForFoulPlay,
         speedStat: initialDefenderSpeedStat, hpInputValue: initialDefenderHpStat.final.toString(),
@@ -174,8 +186,8 @@ function App() {
         specialDefenseInputValue: initialDefenderSpecialDefenseStat.final.toString(),
         speedInputValue: initialDefenderSpeedStat.final.toString(), hpEv: 0, actualMaxHp: initialDefenderHpStat.final,
         teraType: null, isStellar: false, isBurned: false, hasFlowerGift: false, isEnabled: true,
-        protosynthesisBoostedStat: null, protosynthesisManualTrigger: false,
-        quarkDriveBoostedStat: null, quarkDriveManualTrigger: false,
+        protosynthesisBoostedStat: (initialDefenderAbilityForDefault?.id === 'protosynthesis') ? 'defense' : null, protosynthesisManualTrigger: false,
+        quarkDriveBoostedStat: (initialDefenderAbilityForDefault?.id === 'quark_drive') ? 'defense' : null, quarkDriveManualTrigger: false,
     };
 
     const [defenderState, setDefenderState] = useState<DefenderState>(initialDefaultDefenderState);
@@ -232,11 +244,29 @@ function App() {
                 newState.specialDefenseStat = { base: newPokemon.baseStats.specialDefense, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0 };
                 newState.attackStat = { base: newPokemon.baseStats.attack, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0 };
                 newState.speedStat = { base: newPokemon.baseStats.speed, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0 };
-                newState.hpEv = 0; newState.item = null; newState.ability = null; newState.teraType = null;
+                newState.hpEv = 0; newState.item = null; 
+                // newState.ability = null; // ★変更: 初期特性設定のため、下で上書き
+                newState.teraType = null;
                 newState.isStellar = false; newState.isBurned = false; newState.hasFlowerGift = false;
                 setDefenderIsTerastallized(false); setDefenderUserModifiedTypes(null);
-                newState.protosynthesisBoostedStat = null; newState.protosynthesisManualTrigger = false;
-                newState.quarkDriveBoostedStat = null; newState.quarkDriveManualTrigger = false;
+
+                let initialAbilityForNewPokemon: Ability | null = null;
+                if (newPokemon && newPokemon.abilities.length > 0 && abilities.length > 0) { // abilities は App.tsx スコープの定数
+                    const firstAbilityNameEnFromPokedex = newPokemon.abilities[0];
+                    initialAbilityForNewPokemon = abilities.find(ab => ab.nameEn.toLowerCase() === firstAbilityNameEnFromPokedex.toLowerCase()) || null;
+                 }
+                 newState.ability = initialAbilityForNewPokemon;
+
+                if (initialAbilityForNewPokemon?.id === 'protosynthesis') {
+                    newState.protosynthesisBoostedStat = 'defense'; newState.protosynthesisManualTrigger = false;
+                } else {
+                    newState.protosynthesisBoostedStat = null; newState.protosynthesisManualTrigger = false;
+                }
+                if (initialAbilityForNewPokemon?.id === 'quark_drive') {
+                    newState.quarkDriveBoostedStat = 'defense'; newState.quarkDriveManualTrigger = false;
+                } else {
+                    newState.quarkDriveBoostedStat = null; newState.quarkDriveManualTrigger = false;
+                }
                 recomputeHp = recomputeDefense = recomputeSpecialDefense = recomputeAttack = recomputeSpeed = true;
             } else {
                 if (updates.hpInputValue !== undefined) newState.hpInputValue = updates.hpInputValue;

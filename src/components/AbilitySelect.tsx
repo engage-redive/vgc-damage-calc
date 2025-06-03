@@ -1,7 +1,5 @@
-// components/AbilitySelect.tsx
-
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Ability, ProtosynthesisBoostTarget } from '../types';
+import { Ability, ProtosynthesisBoostTarget, Pokemon } from '../types'; // Pokemon をインポート
 import { ChevronDown } from 'lucide-react';
 
 const PROTOSYNTHESIS_ABILITY_ID = 'protosynthesis';
@@ -24,6 +22,7 @@ interface AbilitySelectProps {
   onProtosynthesisConfigChange?: (config: SpecialAbilityConfig) => void;
   quarkDriveConfig?: SpecialAbilityConfig;
   onQuarkDriveConfigChange?: (config: SpecialAbilityConfig) => void;
+  selectedPokemon?: Pokemon | null; // ★ 選択中のポケモンをpropsとして追加
   idPrefix?: string; // Optional prefix for generating unique IDs
 }
 
@@ -37,6 +36,7 @@ const AbilitySelect: React.FC<AbilitySelectProps> = ({
   onProtosynthesisConfigChange,
   quarkDriveConfig,
   onQuarkDriveConfigChange,
+  selectedPokemon, // ★ props を受け取る
   idPrefix = 'ability-select',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -50,17 +50,31 @@ const AbilitySelect: React.FC<AbilitySelectProps> = ({
   const listboxId = `${baseId}-listbox`;
   const getOptionId = (abilityId: string | number) => `${baseId}-option-${abilityId}`;
 
-  const filteredAbilities = useMemo(() =>
-    Array.isArray(abilities)
-      ? abilities.filter(ability => ability.side === side || ability.side === 'both')
-      : [],
-    [abilities, side]
-  );
+  const sortedAbilities = useMemo(() => {
+    if (!Array.isArray(abilities)) return [];
+    let baseFiltered = abilities.filter(ability => ability.side === side || ability.side === 'both');
+
+    if (selectedPokemon && selectedPokemon.abilities && selectedPokemon.abilities.length > 0) {
+      const pokemonAbilityNamesEn = new Set(selectedPokemon.abilities.map(name => name.toLowerCase())); // ポケモンの特性名を小文字Setに
+       // 元の配列を破壊しないようにコピーしてソート
+      return [...baseFiltered].sort((a, b) => {
+        const aIsPokemonAbility = pokemonAbilityNamesEn.has(a.nameEn.toLowerCase()); // nameEnで比較
+        const bIsPokemonAbility = pokemonAbilityNamesEn.has(b.nameEn.toLowerCase()); // nameEnで比較
+
+        if (aIsPokemonAbility && !bIsPokemonAbility) return -1;
+        if (!aIsPokemonAbility && bIsPokemonAbility) return 1;
+        // ポケモンの特性同士、またはそうでない特性同士は日本語名でソート
+        return a.name.localeCompare(b.name, 'ja');
+      });
+    }
+    // ポケモンが選択されていないか、特性情報がない場合は、日本語名でソート
+    return [...baseFiltered].sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+  }, [abilities, side, selectedPokemon]);
 
   const options = useMemo(() => [
-    { id: '__no-ability__', name: '特性なし', description: '' }, // Placeholder for "No Ability"
-    ...filteredAbilities,
-  ], [filteredAbilities]);
+    { id: '__no-ability__', name: '特性なし', description: '', side: 'both' as const }, // Placeholder for "No Ability"
+    ...sortedAbilities,
+  ], [sortedAbilities]);
 
 
   useEffect(() => {
