@@ -29,8 +29,7 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const pcDropdownRef = useRef<HTMLDivElement>(null);
-  const mobileViewRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null); // pcDropdownRef を dropdownRef に変更
   const listRef = useRef<HTMLUListElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -39,9 +38,6 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
   const listboxId = `${baseId}-listbox`;
   const searchId = `${baseId}-search`;
 
-  // ------------------- ▼▼▼ 変更箇所 1 ▼▼▼ -------------------
-  // getOptionId: ポケモンの名前を元にユニークなIDを生成
-  //名前に含まれる可能性のある空白や括弧をDOM IDに適した形に変換
   const getOptionId = useCallback((pokemonName: string) => {
     const sanitizedName = pokemonName
       .toLowerCase()
@@ -50,16 +46,12 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
       .replace(/[^a-z0-9ぁ-んァ-ンー\-]/gi, ''); // 英数字、ひらがな、カタカナ、ハイフン以外を除去 (より安全に)
     return `${baseId}-option-${sanitizedName}`;
   }, [baseId]);
-  // ------------------- ▲▲▲ 変更箇所 1 ▲▲▲ -------------------
   
-  // ------------------- ▼▼▼ 変更箇所 2 ▼▼▼ -------------------
-  // uniquePokemonList: 重複排除の基準を p.id から p.name に変更
   const uniquePokemonList = useMemo(() => {
     if (!pokemon || pokemon.length === 0) return [];
-    const seenNames = new Set<string>(); // id ではなく name で管理
+    const seenNames = new Set<string>();
     const result: Pokemon[] = [];
     for (const p of pokemon) {
-      // p.name が存在し、かつまだ seenNames にない場合のみ追加
       if (p && typeof p.name !== 'undefined' && !seenNames.has(p.name)) {
         seenNames.add(p.name);
         result.push(p);
@@ -67,7 +59,6 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
     }
     return result;
   }, [pokemon]);
-  // ------------------- ▲▲▲ 変更箇所 2 ▲▲▲ -------------------
   
   const filteredPokemon = useMemo(() => {
     if (!searchTerm) return uniquePokemonList;
@@ -95,11 +86,10 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     const handleClickOutside = (event: MouseEvent) => {
-      if (pcDropdownRef.current && !pcDropdownRef.current.contains(event.target as Node) &&
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
           buttonRef.current && !buttonRef.current.contains(event.target as Node)) {
-        if (window.innerWidth >= 640) { 
-          setIsOpen(false);
-        }
+        // モバイル判定 (window.innerWidth >= 640) を削除
+        setIsOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -112,12 +102,10 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
     if (isOpen) {
       setTimeout(() => {
         searchInputRef.current?.focus();
-      }, 50); 
+      }, 50); // 遅延は固定値または0に
       
       if (selected) {
-        // ------------------- ▼▼▼ 変更箇所 3 (findIndexの比較対象) ▼▼▼ -------------------
-        const selectedIndex = filteredPokemon.findIndex(p => p.name === selected.name); // id から name に変更
-        // ------------------- ▲▲▲ 変更箇所 3 ▲▲▲ -------------------
+        const selectedIndex = filteredPokemon.findIndex(p => p.name === selected.name);
         setHighlightedIndex(selectedIndex !== -1 ? selectedIndex : (filteredPokemon.length > 0 ? 0 : -1));
       } else {
         setHighlightedIndex(filteredPokemon.length > 0 ? 0 : -1);
@@ -131,13 +119,11 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
     if (isOpen) {
         setHighlightedIndex(filteredPokemon.length > 0 ? 0 : -1);
     }
-  }, [searchTerm, isOpen, filteredPokemon]);
+  }, [searchTerm, isOpen, filteredPokemon]); // filteredPokemonを依存配列に追加
 
   useEffect(() => {
-    // ------------------- ▼▼▼ 変更箇所 4 (getOptionId の引数) ▼▼▼ -------------------
     if (isOpen && highlightedIndex >= 0 && listRef.current && filteredPokemon.length > 0 && filteredPokemon[highlightedIndex]) {
-      const optionId = getOptionId(filteredPokemon[highlightedIndex].name); // .id から .name に変更
-      // ------------------- ▲▲▲ 変更箇所 4 ▲▲▲ -------------------
+      const optionId = getOptionId(filteredPokemon[highlightedIndex].name);
       const listItem = listRef.current.querySelector(`#${CSS.escape(optionId)}`) as HTMLLIElement | undefined;
       listItem?.scrollIntoView({ block: 'nearest' });
     }
@@ -243,21 +229,19 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
   const renderListItems = () => (
     <>
       {filteredPokemon.length > 0 ? filteredPokemon.map((p, index) => (
-        // ------------------- ▼▼▼ 変更箇所 5 (key と id, aria-selected) ▼▼▼ -------------------
         <li
-          key={p.name} // key を p.name に変更
-          id={getOptionId(p.name)} // id を p.name ベースに
+          key={p.name}
+          id={getOptionId(p.name)}
           className={`cursor-pointer select-none relative rounded-md transition-colors 
             py-3 sm:py-2 pl-4 sm:pl-3 pr-9
             ${highlightedIndex === index ? 'bg-gray-700 text-white' : 'text-gray-200 hover:bg-gray-700 hover:text-white'}`}
           role="option"
-          aria-selected={(selected?.name === p.name) || highlightedIndex === index} // selected の比較も name ベースに
+          aria-selected={(selected?.name === p.name) || highlightedIndex === index}
           onClick={() => handleSelectPokemon(p)}
           onMouseEnter={() => setHighlightedIndex(index)}
         >
-        {/* ------------------- ▲▲▲ 変更箇所 5 ▲▲▲ ------------------- */}
           <div className="flex items-center">
-            <span className={`font-medium block truncate ${(selected?.name === p.name) ? 'font-semibold' : 'font-normal'}`}> {/* selected の比較も name ベースに */}
+            <span className={`font-medium block truncate ${(selected?.name === p.name) ? 'font-semibold' : 'font-normal'}`}>
               {p.name}
             </span>
             {(p as any).types && Array.isArray((p as any).types) && (
@@ -320,9 +304,7 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
           aria-expanded={isOpen}
           aria-labelledby={`${baseId}-label ${buttonId}`}
           aria-controls={isOpen ? listboxId : undefined}
-          // ------------------- ▼▼▼ 変更箇所 6 (aria-activedescendant の引数) ▼▼▼ -------------------
           aria-activedescendant={isOpen && highlightedIndex >= 0 && filteredPokemon.length > 0 && filteredPokemon[highlightedIndex] ? getOptionId(filteredPokemon[highlightedIndex].name) : undefined}
-          // ------------------- ▲▲▲ 変更箇所 6 ▲▲▲ -------------------
         >
           <span className="block truncate">
             {selected ? selected.name : 'Select Pokémon'}
@@ -334,59 +316,25 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
 
         {isOpen && (
           <>
-            {/* Mobile: Fullscreen Search Interface */}
-            <div
-              ref={mobileViewRef}
-              className="fixed inset-0 z-50 flex flex-col bg-gray-900 sm:hidden"
-            >
-              <div className="flex justify-between items-center p-3 border-b border-gray-700 bg-gray-800 shadow-md">
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="p-1 rounded-md text-gray-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
-                  aria-label="Close"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-                <h2 className="text-lg font-semibold text-white">{label}</h2>
-                <div className="w-8"></div>
-              </div>
-              <div className="p-3 border-b border-gray-700 bg-gray-800">
-                {renderSearchInput()}
-              </div>
-              <ul
-                ref={listRef}
-                id={listboxId}
-                tabIndex={-1}
-                role="listbox"
-                aria-labelledby={`${baseId}-label`}
-                // ------------------- ▼▼▼ 変更箇所 7 (aria-activedescendant の引数) ▼▼▼ -------------------
-                aria-activedescendant={highlightedIndex >= 0 && filteredPokemon.length > 0 && filteredPokemon[highlightedIndex] ? getOptionId(filteredPokemon[highlightedIndex].name) : undefined}
-                // ------------------- ▲▲▲ 変更箇所 7 ▲▲▲ -------------------
-                onKeyDown={handleKeyDown}
-                className="flex-grow overflow-y-auto p-2 space-y-1"
-              >
-                {renderListItems()}
-              </ul>
-            </div>
+            {/* Mobile: Fullscreen Search Interface (削除) */}
+            {/* <div ref={mobileViewRef} ... > ... </div> */}
 
-            {/* PC: Dropdown Interface */}
+            {/* PC: Dropdown Interface (これが常に使われる) */}
             <div
-              ref={pcDropdownRef}
-              className="absolute z-40 mt-1 w-full bg-gray-800 shadow-lg max-h-80 rounded-md ring-1 ring-black ring-opacity-5 flex-col hidden sm:flex overflow-hidden"
+              ref={dropdownRef} // dropdownRefを使用
+              // classNameの `hidden sm:flex` を削除し、常に表示されるようにする
+              className="absolute z-40 mt-1 w-full bg-gray-800 shadow-lg max-h-80 rounded-md ring-1 ring-black ring-opacity-5 flex flex-col overflow-hidden"
             >
               <div className="sticky top-0 z-10 bg-gray-800 p-2 border-b border-gray-700">
                 {renderSearchInput()}
               </div>
               <ul
                 ref={listRef} 
-                id={listboxId}
+                id={listboxId} // IDは共通
                 tabIndex={-1}
                 role="listbox"
                 aria-labelledby={`${baseId}-label`}
-                // ------------------- ▼▼▼ 変更箇所 8 (aria-activedescendant の引数) ▼▼▼ -------------------
                 aria-activedescendant={highlightedIndex >= 0 && filteredPokemon.length > 0 && filteredPokemon[highlightedIndex] ? getOptionId(filteredPokemon[highlightedIndex].name) : undefined}
-                // ------------------- ▲▲▲ 変更箇所 8 ▲▲▲ -------------------
                 onKeyDown={handleKeyDown}
                 className="p-2 overflow-y-auto flex-grow space-y-1"
               >

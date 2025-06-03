@@ -1498,8 +1498,7 @@ export const abilities: Ability[] = [
  {
     id: 'terashell',
     name: 'テラスシェル',
-    nameEn: 'Tera Shell', // 英語名も定義しておくと良いでしょう
-    description: 'HPが満タンのとき、受ける技のタイプ相性が効果抜群の場合にダメージが半減する。今回はHP条件を無視し、常に効果抜群なら半減として扱う。', // 効果の説明
+    nameEn: 'Tera Shell', 
     side: 'defender' // 防御側の特性
   },
   {
