@@ -36,7 +36,7 @@ import { calculateStat, calculateDamage } from './utils/calculator';
 import { getEffectiveMoveProperties } from './utils/moveEffects';
 import AttackerPanel from './components/AttackerPanel';
 import DefenderPanel from './components/DefenderPanel';
-import DamageResult from './components/DamageResult'; // ここは変更なし
+import DamageResult from './components/DamageResult';
 import WeatherField from './components/WeatherField';
 import TeamManager from './components/TeamManager';
 import HistoryTab from './components/HistoryTab';
@@ -75,10 +75,7 @@ function App() {
     const [defender2Item, setDefender2Item] = useState<Item | null>(null);
     const [defender2Ability, setDefender2Ability] = useState<Ability | null>(null);
     const [loggedEntries, setLoggedEntries] = useState<LoggedDamageEntry[]>([]);
-
-    // --- 新しい state の導入 ---
     const [showAllIndividualAttackResults, setShowAllIndividualAttackResults] = useState(true);
-    // --- ここまで ---
 
     useEffect(() => {
         try {
@@ -125,7 +122,7 @@ function App() {
     const initialDefaultHpBase = initialPokedexPokemon.baseStats.hp || 0;
     const initialDefaultHpEv = 0;
     const initialDefaultActualMaxHp = calculateHpForApp(initialDefaultHpBase, 31, initialDefaultHpEv, 50);
-    
+
     let initialAttackerAbility: Ability | null = null;
     if (initialPokedexPokemon && initialPokedexPokemon.abilities.length > 0 && abilities.length > 0) {
       const firstAbilityNameEnFromPokedex = initialPokedexPokemon.abilities[0];
@@ -133,7 +130,7 @@ function App() {
      }
 
     const defaultInitialAttackerState: AttackerState = {
-        pokemon: initialPokedexPokemon, move: initialMove, effectiveMove: null, item: null, ability: initialAttackerAbility, // ★ 初期特性を設定
+        pokemon: initialPokedexPokemon, move: initialMove, effectiveMove: null, item: null, ability: initialAttackerAbility,
         attackStat: initialAttackStatForApp, specialAttackStat: initialSpecialAttackStatForApp,
         defenseStat: initialDefenseStatForApp, speedStat: initialSpeedStatForApp,
         attackInputValue: initialAttackStatForApp.final.toString(),
@@ -143,10 +140,11 @@ function App() {
         hpEv: initialDefaultHpEv, actualMaxHp: initialDefaultActualMaxHp, currentHp: initialDefaultActualMaxHp,
         teraType: null, isStellar: false, isBurned: false, hasHelpingHand: false, hasFlowerGift: false, isEnabled: true,
         teraBlastUserSelectedCategory: 'auto', teraBlastDeterminedType: null, teraBlastDeterminedCategory: null,
-        starstormDeterminedCategory: null, // ★ 追加
+        starstormDeterminedCategory: null,
+        photonGeyserDeterminedCategory: null, // ★ 追加
         selectedHitCount: null, protosynthesisBoostedStat: (initialAttackerAbility?.id === 'protosynthesis') ? 'attack' : null, protosynthesisManualTrigger: false,
         quarkDriveBoostedStat: (initialAttackerAbility?.id === 'quark_drive') ? 'attack' : null, quarkDriveManualTrigger: false, moveUiOptionStates: {},
-      　loadedMoves: null,　// ★ 追加
+      　loadedMoves: null,
     };
 
     const [activeAttackers, setActiveAttackers] = useState<AttackerState[]>([defaultInitialAttackerState]);
@@ -171,7 +169,7 @@ function App() {
         base: initialPokedexPokemon.baseStats.speed, iv: 31, ev: 0, nature: 1.0, rank: 0,
         final: calculateStat(initialPokedexPokemon.baseStats.speed, 31, 0, 50, 1.0, false, 0, null)
     };
-    
+
     let initialDefenderAbilityForDefault: Ability | null = null;
     if (initialPokedexPokemon && initialPokedexPokemon.abilities.length > 0 && abilities.length > 0) {
       const firstAbilityNameEnFromPokedex = initialPokedexPokemon.abilities[0];
@@ -179,7 +177,7 @@ function App() {
      }
 
     const initialDefaultDefenderState: DefenderState = {
-        pokemon: initialPokedexPokemon, item: null, ability: initialDefenderAbilityForDefault, // ★ 初期特性を設定
+        pokemon: initialPokedexPokemon, item: null, ability: initialDefenderAbilityForDefault,
         hpStat: initialDefenderHpStat, defenseStat: initialDefenderDefenseStat,
         specialDefenseStat: initialDefenderSpecialDefenseStat, attackStat: initialDefenderAttackStatForFoulPlay,
         speedStat: initialDefenderSpeedStat, hpInputValue: initialDefenderHpStat.final.toString(),
@@ -242,13 +240,11 @@ function App() {
                 const newPokemon = updates.pokemon;
                 newState.pokemon = newPokemon;
 
-                // --- ここから修正 ---
-                // チーム読み込み時に渡された stat 情報を優先して ev を設定
                 const baseHpStatDefault = { base: newPokemon.baseStats.hp, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0 };
-                newState.hpStat = updates.hpStat && updates.hpStat.base === newPokemon.baseStats.hp 
-                                  ? { ...baseHpStatDefault, ...updates.hpStat } 
+                newState.hpStat = updates.hpStat && updates.hpStat.base === newPokemon.baseStats.hp
+                                  ? { ...baseHpStatDefault, ...updates.hpStat }
                                   : baseHpStatDefault;
-                
+
                 const baseDefenseStatDefault = { base: newPokemon.baseStats.defense, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0 };
                 newState.defenseStat = updates.defenseStat && updates.defenseStat.base === newPokemon.baseStats.defense
                                        ? { ...baseDefenseStatDefault, ...updates.defenseStat }
@@ -258,7 +254,7 @@ function App() {
                 newState.specialDefenseStat = updates.specialDefenseStat && updates.specialDefenseStat.base === newPokemon.baseStats.specialDefense
                                               ? { ...baseSpecialDefenseStatDefault, ...updates.specialDefenseStat }
                                               : baseSpecialDefenseStatDefault;
-                
+
                 const baseAttackStatDefault = { base: newPokemon.baseStats.attack, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0 };
                 newState.attackStat = updates.attackStat && updates.attackStat.base === newPokemon.baseStats.attack
                                       ? { ...baseAttackStatDefault, ...updates.attackStat }
@@ -268,21 +264,20 @@ function App() {
                 newState.speedStat = updates.speedStat && updates.speedStat.base === newPokemon.baseStats.speed
                                      ? { ...baseSpeedStatDefault, ...updates.speedStat }
                                      : baseSpeedStatDefault;
-                
-                newState.hpEv = newState.hpStat.ev; // hpEvも同期
+
+                newState.hpEv = newState.hpStat.ev;
 
                 newState.item = updates.item !== undefined ? updates.item : null;
                 newState.teraType = updates.teraType !== undefined ? updates.teraType : null;
-                // --- ここまで修正 ---
-                
-                newState.isStellar = updates.isStellar ?? false; 
-                newState.isBurned = updates.isBurned ?? false; 
+
+                newState.isStellar = updates.isStellar ?? false;
+                newState.isBurned = updates.isBurned ?? false;
                 newState.hasFlowerGift = updates.hasFlowerGift ?? false;
-                setDefenderIsTerastallized(false); 
+                setDefenderIsTerastallized(false);
                 setDefenderUserModifiedTypes(null);
 
                 let initialAbilityForNewPokemon: Ability | null = null;
-                if (updates.ability !== undefined) { // チーム読み込みからのAbilityを優先
+                if (updates.ability !== undefined) {
                     initialAbilityForNewPokemon = updates.ability;
                 } else if (newPokemon && newPokemon.abilities.length > 0 && abilities.length > 0) {
                     const firstAbilityNameEnFromPokedex = newPokemon.abilities[0];
@@ -290,7 +285,6 @@ function App() {
                 }
                 newState.ability = initialAbilityForNewPokemon;
 
-                // Protosynthesis/QuarkDriveの初期化 (読み込まれた値を優先)
                 if (updates.protosynthesisBoostedStat !== undefined) {
                     newState.protosynthesisBoostedStat = updates.protosynthesisBoostedStat;
                     newState.protosynthesisManualTrigger = updates.protosynthesisManualTrigger ?? false;
@@ -410,37 +404,36 @@ function App() {
         const spDefNatureMod = getNatureModifierValueFromDetails(natureDetails, 'specialDefense');
         const attackNatureMod = getNatureModifierValueFromDetails(natureDetails, 'attack');
         const speedNatureMod = getNatureModifierValueFromDetails(natureDetails, 'speed');
-        
-        // StatCalculation オブジェクトを構築する際に、member.evs を使用
+
         const loadedHpStat: StatCalculation = { base: member.pokemon.baseStats.hp, iv: member.ivs.hp, ev: member.evs.hp, nature: 1.0, rank: 0, final: 0 };
         const loadedDefenseStat: StatCalculation = { base: member.pokemon.baseStats.defense, iv: member.ivs.defense, ev: member.evs.defense, nature: defNatureMod, rank: 0, final: 0 };
         const loadedSpecialDefenseStat: StatCalculation = { base: member.pokemon.baseStats.specialDefense, iv: member.ivs.specialDefense, ev: member.evs.specialDefense, nature: spDefNatureMod, rank: 0, final: 0 };
         const loadedAttackStat: StatCalculation = { base: member.pokemon.baseStats.attack, iv: member.ivs.attack, ev: member.evs.attack, nature: attackNatureMod, rank: 0, final: 0 };
         const loadedSpeedStat: StatCalculation = { base: member.pokemon.baseStats.speed, iv: member.ivs.speed, ev: member.evs.speed, nature: speedNatureMod, rank: 0, final: 0 };
-        
+
         const memberTeraType = member.teraType.toLowerCase() as PokemonType;
-        
+
         const newDefenderStateChanges: Partial<DefenderState> = {
             pokemon: member.pokemon, item: member.item, ability: member.ability,
-            hpStat: loadedHpStat, 
-            defenseStat: loadedDefenseStat, 
+            hpStat: loadedHpStat,
+            defenseStat: loadedDefenseStat,
             specialDefenseStat: loadedSpecialDefenseStat,
-            attackStat: loadedAttackStat, 
-            speedStat: loadedSpeedStat, 
-            hpEv: member.evs.hp, // hpEvも直接セット
+            attackStat: loadedAttackStat,
+            speedStat: loadedSpeedStat,
+            hpEv: member.evs.hp,
             teraType: memberTeraType,
-            isStellar: false, // チーム読み込み時はStellarでないと仮定（必要なら変更）
-            hasFlowerGift: false, // デフォルト値
-            isEnabled: true, // デフォルト値
-            isBurned: false, // デフォルト値
+            isStellar: false,
+            hasFlowerGift: false,
+            isEnabled: true,
+            isBurned: false,
             protosynthesisBoostedStat: member.protosynthesisBoostedStat ?? null,
             protosynthesisManualTrigger: member.protosynthesisManualTrigger ?? false,
             quarkDriveBoostedStat: member.quarkDriveBoostedStat ?? null,
             quarkDriveManualTrigger: member.quarkDriveManualTrigger ?? false,
         };
 
-        setDefenderUserModifiedTypes(null); // チーム読み込み時はカスタムタイプをリセット
-        handleDefenderStateChange(newDefenderStateChanges); // ここで ev が含まれた stat オブジェクトが渡される
+        setDefenderUserModifiedTypes(null);
+        handleDefenderStateChange(newDefenderStateChanges);
 
         const primaryPokemonType = member.pokemon.types[0].toLowerCase() as PokemonType;
         let shouldBeTerastallized = false;
@@ -448,9 +441,9 @@ function App() {
             if (member.pokemon.types.length === 1 && memberTeraType !== primaryPokemonType) shouldBeTerastallized = true;
             else if (member.pokemon.types.length > 1 && memberTeraType !== primaryPokemonType && (!member.pokemon.types[1] || memberTeraType !== member.pokemon.types[1].toLowerCase())) shouldBeTerastallized = true;
         }
-        setDefenderIsTerastallized(shouldBeTerastallized); // Terastallized状態も更新
+        setDefenderIsTerastallized(shouldBeTerastallized);
 
-        setHasReflect(false); setHasLightScreen(false); // グローバル状態をリセット
+        setHasReflect(false); setHasLightScreen(false);
         setActiveTab('damage'); setMobileViewMode('defender'); window.scrollTo(0, 0);
     };
 
@@ -487,14 +480,15 @@ function App() {
             hpEv: loadedHpEv, actualMaxHp: loadedActualMaxHp, currentHp: loadedActualMaxHp, teraType: member.teraType,
             isStellar: false, isBurned: false, hasHelpingHand: false, hasFlowerGift: false, isEnabled: true,
             teraBlastUserSelectedCategory: 'auto', teraBlastDeterminedType: null, teraBlastDeterminedCategory: null,
-            starstormDeterminedCategory: null, // ★ 追加
+            starstormDeterminedCategory: null,
+            photonGeyserDeterminedCategory: null, // ★ 追加
             selectedHitCount: (member.moves[0] && typeof member.moves[0].multihit === 'number' && member.moves[0].multihit > 1) ? member.moves[0].multihit : null,
             protosynthesisBoostedStat: member.protosynthesisBoostedStat ?? null,
             protosynthesisManualTrigger: member.protosynthesisManualTrigger ?? false,
             quarkDriveBoostedStat: member.quarkDriveBoostedStat ?? null,
             quarkDriveManualTrigger: member.quarkDriveManualTrigger ?? false,
             moveUiOptionStates: {},
-          　loadedMoves: member.moves, // ★ 追加
+          　loadedMoves: member.moves,
         };
         setActiveAttackers(prevAttackers => {
             const updatedAttackers = [...prevAttackers];
@@ -532,9 +526,12 @@ function App() {
             };
             let moveForCalc = getEffectiveMoveProperties(attackerState.move, moveContext);
 
-            // ★ テラクラスターのカテゴリ適用
             if (moveForCalc && attackerState.move?.id === "terastarstorm" && attackerState.pokemon?.id === "1024-s" && attackerState.starstormDeterminedCategory) {
                 moveForCalc = { ...moveForCalc, category: attackerState.starstormDeterminedCategory };
+            }
+            // ★ フォトンゲイザーのカテゴリ適用
+            if (moveForCalc && attackerState.move?.id === "photongeyser" && attackerState.photonGeyserDeterminedCategory) {
+                moveForCalc = { ...moveForCalc, category: attackerState.photonGeyserDeterminedCategory };
             }
 
             const currentAttackerState = activeAttackers[index];
@@ -556,13 +553,15 @@ function App() {
             if (attackerState.move.id === 'foulplay') {
                 attackStatToUseForCalc = defenderState.attackStat;
             } else {
+                // ボディプレスやフォトンゲイザー（物理時）も考慮されるべきだが、
+                // calculateDamage内で最終的な攻撃ステータス参照は行われるため、ここでは基本的な分岐のみ
                 attackStatToUseForCalc = attackerState.attackStat;
             }
 
             const attackerStatsForCalc: { attack: StatCalculation; specialAttack: StatCalculation; defense: StatCalculation; speed: StatCalculation; } = {
-                attack: attackStatToUseForCalc,
+                attack: attackStatToUseForCalc, // foulplay以外はattacker.attackStat
                 specialAttack: attackerState.specialAttackStat,
-                defense: attackerState.defenseStat,
+                defense: attackerState.defenseStat, // ボディプレス用に渡す
                 speed: attackerState.speedStat,
             };
 
@@ -644,13 +643,14 @@ function App() {
         else attackerDisplayTypesForLog = attacker.pokemon.types as [PokemonType, PokemonType?];
 
         const isFoulPlayLog = attacker.move.id === "foulplay";
-        let moveCategoryForLog = attacker.move.category as MoveCategory; // デフォルト
+        let moveCategoryForLog = attacker.move.category as MoveCategory;
 
-        // テラバーストまたはテラクラスターのカテゴリを決定
         if (attacker.move.isTeraBlast && attacker.teraBlastDeterminedCategory) {
             moveCategoryForLog = attacker.teraBlastDeterminedCategory;
         } else if (attacker.move.id === "terastarstorm" && attacker.pokemon.id === "1024-s" && attacker.starstormDeterminedCategory) {
             moveCategoryForLog = attacker.starstormDeterminedCategory;
+        } else if (attacker.move.id === "photongeyser" && attacker.photonGeyserDeterminedCategory) { // ★ 追加
+            moveCategoryForLog = attacker.photonGeyserDeterminedCategory;
         }
 
 
@@ -720,7 +720,8 @@ function App() {
             hasHelpingHand: attacker.hasHelpingHand,
             hasFlowerGift: attacker.hasFlowerGift,
             teraBlastUserSelectedCategory: attacker.teraBlastUserSelectedCategory,
-            starstormDeterminedCategory: attacker.starstormDeterminedCategory, // ★ 追加
+            starstormDeterminedCategory: attacker.starstormDeterminedCategory,
+            photonGeyserDeterminedCategory: attacker.photonGeyserDeterminedCategory, // ★ 追加
             selectedHitCount: attacker.selectedHitCount,
             protosynthesisBoostedStat: attacker.protosynthesisBoostedStat,
             protosynthesisManualTrigger: attacker.protosynthesisManualTrigger,
@@ -819,7 +820,7 @@ function App() {
         const loadedAttackerSpAttackStat = restoreStatCalculation(attackerStateSnapshot.specialAttackStat, attackerPokemon.baseStats.specialAttack, false, attackerItem);
         const loadedAttackerDefenseStat = restoreStatCalculation(attackerStateSnapshot.defenseStat, attackerPokemon.baseStats.defense, false, attackerItem);
         const loadedAttackerSpeedStat = restoreStatCalculation(attackerStateSnapshot.speedStat, attackerPokemon.baseStats.speed, false, attackerItem);
-        const loadedAttackerActualMaxHp = calculateHpForApp(attackerPokemon.baseStats.hp, attackerStateSnapshot.attackStat.iv, attackerStateSnapshot.hpEv, 50);
+        const loadedAttackerActualMaxHp = calculateHpForApp(attackerPokemon.baseStats.hp, attackerStateSnapshot.attackStat.iv, attackerStateSnapshot.hpEv, 50); // hpEvはattackStatではなくhpEvから取得
 
         const newAttackerState: AttackerState = {
             pokemon: attackerPokemon,
@@ -847,13 +848,15 @@ function App() {
             teraBlastUserSelectedCategory: attackerStateSnapshot.teraBlastUserSelectedCategory,
             teraBlastDeterminedType: null,
             teraBlastDeterminedCategory: null,
-            starstormDeterminedCategory: attackerStateSnapshot.starstormDeterminedCategory || null, // ★ 追加
+            starstormDeterminedCategory: attackerStateSnapshot.starstormDeterminedCategory || null,
+            photonGeyserDeterminedCategory: attackerStateSnapshot.photonGeyserDeterminedCategory || null, // ★ 追加
             selectedHitCount: attackerStateSnapshot.selectedHitCount,
             protosynthesisBoostedStat: attackerStateSnapshot.protosynthesisBoostedStat,
             protosynthesisManualTrigger: attackerStateSnapshot.protosynthesisManualTrigger,
             quarkDriveBoostedStat: attackerStateSnapshot.quarkDriveBoostedStat,
             quarkDriveManualTrigger: attackerStateSnapshot.quarkDriveManualTrigger,
             moveUiOptionStates: attackerStateSnapshot.moveUiOptionStates || {},
+            loadedMoves: null, // ログからの復元時は技リストはリセット
         };
 
         const defenderPokemon = pokedex.find(p => p.id === defenderStateSnapshot.pokemonId);
@@ -901,7 +904,7 @@ function App() {
             const newAttackers = [...prev];
             newAttackers[0] = newAttackerState;
             if (newAttackers.length > 1) {
-                newAttackers[1] = defaultInitialAttackerState;
+                newAttackers[1] = defaultInitialAttackerState; // 2体目以降はデフォルトにリセット
                 newAttackers[1].isEnabled = false;
             }
             return newAttackers;
@@ -926,11 +929,9 @@ function App() {
         window.scrollTo(0, 0);
     };
 
-    // --- 新しい state をトグルする関数 ---
     const toggleShowAllIndividualAttackResults = () => {
         setShowAllIndividualAttackResults(prev => !prev);
     };
-    // --- ここまで ---
 
 
     return (
@@ -1033,20 +1034,16 @@ function App() {
                         <div className="space-y-2.5 p-2.5">
                             {(() => {
                                 const enabledAttackers = activeAttackers.filter(a => a.isEnabled);
-                                // --- 有効な攻撃者の数をカウント ---
                                 const numberOfEnabledAttackers = enabledAttackers.length;
-                                // --- ここまで ---
 
                                 const enabledDamageResultsWithNulls = damageResults.filter((_, i) => activeAttackers[i]?.isEnabled);
                                 const enabledDamageResults = enabledDamageResultsWithNulls.filter(r => r !== null) as DamageCalculation[];
 
 
                                 const combinedResultsForDisplay =
-                                    // --- 有効な攻撃者が複数いる場合のみ合計を計算 ---
                                     numberOfEnabledAttackers > 1 &&
-                                    // --- ここまで ---
-                                    enabledDamageResults.length === enabledDamageResultsWithNulls.length // Ensure all enabled attackers have results
-                                    ? calculateCombinedDamage(enabledDamageResults, enabledAttackers) // Pass only enabled attackers
+                                    enabledDamageResults.length === enabledDamageResultsWithNulls.length
+                                    ? calculateCombinedDamage(enabledDamageResults, enabledAttackers)
                                     : null;
 
                                 return damageResults.map((result, index) => {
@@ -1063,9 +1060,10 @@ function App() {
                                     let moveUsedInCalc = attacker.effectiveMove || getEffectiveMoveProperties(attacker.move, moveContextForDisplay);
                                     if (!moveUsedInCalc) moveUsedInCalc = { ...attacker.move, power: attacker.move.power || 0 };
 
-                                    // ★ テラクラスターのカテゴリ適用（表示用、DamageResultに渡すため）
                                     if (moveUsedInCalc && attacker.move?.id === "terastarstorm" && attacker.pokemon?.id === "1024-s" && attacker.starstormDeterminedCategory) {
                                         moveUsedInCalc = { ...moveUsedInCalc, category: attacker.starstormDeterminedCategory };
+                                    } else if (moveUsedInCalc && attacker.move?.id === "photongeyser" && attacker.photonGeyserDeterminedCategory) { // ★ 追加
+                                        moveUsedInCalc = { ...moveUsedInCalc, category: attacker.photonGeyserDeterminedCategory };
                                     }
 
 
@@ -1080,13 +1078,14 @@ function App() {
                                     else attackerDisplayTypes = attacker.pokemon.types as [PokemonType, PokemonType?];
 
                                     const isFoulPlay = attacker.move.id === "foulplay";
-                                    let moveCategoryForDisplay = attacker.move.category as MoveCategory; // デフォルト
+                                    let moveCategoryForDisplay = attacker.move.category as MoveCategory;
 
-                                    // テラバーストまたはテラクラスターのカテゴリを決定
                                     if (attacker.move.isTeraBlast && attacker.teraBlastDeterminedCategory) {
                                         moveCategoryForDisplay = attacker.teraBlastDeterminedCategory;
                                     } else if (attacker.move.id === "terastarstorm" && attacker.pokemon.id === "1024-s" && attacker.starstormDeterminedCategory) {
                                         moveCategoryForDisplay = attacker.starstormDeterminedCategory;
+                                    } else if (attacker.move.id === "photongeyser" && attacker.photonGeyserDeterminedCategory) { // ★ 追加
+                                        moveCategoryForDisplay = attacker.photonGeyserDeterminedCategory;
                                     }
 
 
@@ -1154,10 +1153,7 @@ function App() {
                                             defenderHP={defenderState.hpStat.final}
                                             isDoubleBattle={isDoubleBattle}
                                             onDoubleBattleChange={handleDoubleBattleChange}
-                                            // --- combinedResult を渡す条件を変更 ---
-                                            // 最初の攻撃者 (index === 0) かつ有効な攻撃者が複数いる場合のみ combinedResult を渡す
                                             combinedResult={(index === 0 && numberOfEnabledAttackers > 1) ? combinedResultsForDisplay : undefined}
-                                            // --- ここまで ---
                                             attackerPokemonName={attacker.pokemon.name}
                                             attackerMoveName={attacker.move.name}
                                             attackerMoveNameForDisplay={moveUsedInCalc.name}

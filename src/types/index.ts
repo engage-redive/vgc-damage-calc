@@ -188,6 +188,7 @@ export interface AttackerStateSnapshotForLog {
   hasFlowerGift: boolean; // 念のため追加
   teraBlastUserSelectedCategory: 'physical' | 'special' | 'auto';
   starstormDeterminedCategory: MoveCategory | null; // ★ テラクラスター用カテゴリ
+  photonGeyserDeterminedCategory: MoveCategory | null; // ★ フォトンゲイザー用カテゴリ
   selectedHitCount: number | null;
   protosynthesisBoostedStat: ProtosynthesisBoostTarget | null;
   protosynthesisManualTrigger: boolean;

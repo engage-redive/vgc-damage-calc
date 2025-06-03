@@ -5480,16 +5480,17 @@ export const moves: Move[] = [
   accuracy: 100,
   pp: 10
 },
-{
-  id: "photongeyser",
-  name: "フォトンゲイザー",
-  nameEn: "Photon Geyser",
-  type: "psychic",
-  category: "special",
-  power: 100,
-  accuracy: 100,
-  pp: 5
-},
+  {
+    id: "photongeyser",
+    name: "フォトンゲイザー",
+    nameEn: "Photon Geyser",
+    type: PokemonType.Psychic, // 元のタイプ
+    category: MoveCategory.Special, // 元のカテゴリ
+    power: 100,
+    accuracy: 100,
+    pp: 5,
+    dynamicEffectId: "photonGeyserEffect", // ★ 効果識別用ID
+  },
 {
   id: "pinmissile",
   name: "ミサイルばり",

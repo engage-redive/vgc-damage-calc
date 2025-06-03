@@ -18461,7 +18461,7 @@ export const pokedex: Pokemon[] = [
     "weight": 25
   },
   {
-    "id": "746-school",
+    "id": "746-s",
     "name": "ヨワシ（むれ）",
     "nameEn": "Wishiwashi-School",
     "types": ["Water"],

@@ -60,11 +60,28 @@ export function calculateMValueQ12(
     if (defenderAbility?.id === 'multiscale') {
         mValueQ12 = applyMultiplierAndRound(mValueQ12, 2048); 
     }
-
+     // ファントムガード
+    if (defenderAbility?.id === 'shadowshield') {
+        mValueQ12 = applyMultiplierAndRound(mValueQ12, 2048); 
+    }
     // 5. フレガ
     if (hasFriendGuard) {
         mValueQ12 = applyMultiplierAndRound(mValueQ12, 3072); 
     }
+
+     // ハードロック
+    if (defenderAbility?.id === 'solidrock') {
+        mValueQ12 = applyMultiplierAndRound(mValueQ12, 3072); 
+    }
+
+    if (defenderAbility?.id === 'filter') {
+        mValueQ12 = applyMultiplierAndRound(mValueQ12, 3072); 
+    }
+
+    if (defenderAbility?.id === 'prismarmor') {
+        mValueQ12 = applyMultiplierAndRound(mValueQ12, 3072); 
+    }
+
 
     // 6. たつじんのおび
     if (attackerItem?.name === "たつじんのおび" && effectivenessValue > 1) {
