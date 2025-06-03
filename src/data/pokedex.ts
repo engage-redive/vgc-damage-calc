@@ -17524,23 +17524,6 @@ export const pokedex: Pokemon[] = [
     "height": 1.6,
     "weight": 156
   },
-  {
-    "id": 1024,
-    "name": "テラパゴス (ノーマル)",
-    "nameEn": "Terapagos",
-    "types": ["normal"],
-    "baseStats": {
-      "hp": 90,
-      "attack": 65,
-      "defense": 85,
-      "specialAttack": 65,
-      "specialDefense": 85,
-      "speed": 60
-    },
-    "abilities": ["Tera Shift"],
-    "height": 0.2,
-    "weight": 6.5
-  },
  {
     "id": "1024-t",
     "name": "テラパゴス (テラスタル)",

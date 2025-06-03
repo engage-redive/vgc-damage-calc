@@ -491,6 +491,10 @@ export const calculateDamage = (
     } else {
         effectivenessValue = calculateEffectiveness(moveTypeForCalc as PokemonType, validDefenderTypes);
     }
+  if (defenderAbility?.id === 'terashell' && effectivenessValue >= 1) {
+    // 元の相性が等倍(1)以上の場合、相性を0.5倍(いまひとつ)にする
+    effectivenessValue = 0.5;
+}
 
     if (move.isTeraBlast && isStellarTeraAttacker && defenderIsTerastallized) {
          if (attackerTeraBlastConfig?.actualType === 'stellar') { // ステラテラバーストで相手がテラスタル時
