@@ -131,6 +131,21 @@ export const calculateFinalAttack = (
                     attackMultiplier = multiplyByQ12AndRound(attackMultiplier, 5461); // 4/3倍
                 }
                 break;
+            case 'hugepower':
+                if (moveCategory === 'physical') {
+                    attackMultiplier = multiplyByQ12AndRound(attackMultiplier, 8192); 
+                }
+                break;
+            case 'purepower':
+                if (moveCategory === 'physical') {
+                    attackMultiplier = multiplyByQ12AndRound(attackMultiplier, 8192); 
+                }
+                break;
+            case 'water bubble':
+                if (moveType === PokemonType.Water) {
+                    attackMultiplier = multiplyByQ12AndRound(attackMultiplier, 8192); 
+                }
+                break;
         }
     }
 
