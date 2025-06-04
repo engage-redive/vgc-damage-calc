@@ -1545,8 +1545,11 @@ export const items: Item[] = [
     id: "muscleband",
     name: "ちからのハチマキ",
     nameEn: "Muscle Band",
-    effect: {}
+    effect: {
+          side: 'attacker',
+            type: 'none',
   },
+    },
   {
     id: "nanabberry",
     name: "ナナのみ",
@@ -2510,8 +2513,11 @@ export const items: Item[] = [
     id: "wiseglasses",
     name: "ものしりメガネ",
     nameEn: "Wise Glasses",
-    effect: {}
+    effect: {
+          side: 'attacker',
+            type: 'none',
   },
+    },
   {
     id: "yacheberry",
     name: "ヤチェのみ", // Rabuta Berry と重複の可能性あり

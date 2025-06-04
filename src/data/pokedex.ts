@@ -17593,7 +17593,7 @@ export const pokedex: Pokemon[] = [
     "weight": 333
   },
   {
-    "id": 892,
+    "id": "892-r",
     "name": "ウーラオス (れんげき)",
     "nameEn": "Urshifu-Rapid-Strike",
     "types": ["fighting", "water"],

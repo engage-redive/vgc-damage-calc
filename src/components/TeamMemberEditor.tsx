@@ -44,6 +44,36 @@ interface TeamMemberEditorProps {
   onClose: () => void;
 }
 
+// ひらがなをカタカナに変換する関数
+const hiraganaToKatakana = (str: string): string => {
+  if (!str) return ''; // nullやundefined、空文字の場合はそのまま返す
+  return str.replace(/[\u3041-\u3096]/g, (match) => { // \u3041-\u3096 はひらがなの範囲
+    const charCode = match.charCodeAt(0) + 0x60; // カタカナのコードポイントに変換
+    return String.fromCharCode(charCode);
+  });
+};
+
+// react-select のカスタムフィルター関数
+// ラベルと入力の両方をカタカナに変換して比較
+const customSelectFilter = (
+  option: { label: string; value: any; data?: any }, // react-selectのoption型
+  rawInput: string
+): boolean => {
+  const inputValue = rawInput.trim();
+  if (!inputValue) {
+    return true; // 入力が空の場合はすべてのオプションを表示
+  }
+
+  // 検索文字列（入力値）をカタカナに変換し、小文字化（英字混在なども考慮）
+  const katakanaInputValue = hiraganaToKatakana(inputValue).toLowerCase();
+  // オプションのラベルもカタカナに変換し、小文字化
+  const katakanaOptionLabel = hiraganaToKatakana(option.label).toLowerCase();
+
+  // オプションのカタカナ化ラベルが、入力のカタカナ化文字列を含むかチェック
+  return katakanaOptionLabel.includes(katakanaInputValue);
+};
+
+
 const PokemonTypeOptions = (Object.keys(POKEMON_TYPE_NAMES_JP) as PokemonType[]).map(type => ({
   value: type,
   label: POKEMON_TYPE_NAMES_JP[type]
@@ -86,15 +116,15 @@ const calculateStat = (
 const getValidEV = (ev: number): number => {
   const clampedEv = Math.max(0, Math.min(ev, 252));
   if (clampedEv === 0) return 0;
-  if (clampedEv < 4) return 0; 
-  if (clampedEv >= 248) return 252; 
+  if (clampedEv < 4) return 0;
+  if (clampedEv >= 248) return 252;
 
   const evAdjusted = clampedEv - 4;
   const step = 8;
   const numSteps = Math.round(evAdjusted / step);
   let result = 4 + numSteps * step;
 
-  if (result < 4) result = 4; 
+  if (result < 4) result = 4;
   if (result > 244) result = 244;
 
   return result;
@@ -174,7 +204,7 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
       return { ...prev, moves: newMoves };
     });
   };
-  
+
   const getTotalEvs = (): number => {
     return Object.values(editedMember.evs).reduce((sum, val) => sum + val, 0);
   };
@@ -183,18 +213,18 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
     const currentEvForStat = editedMember.evs[stat];
     const totalCurrentEvs = getTotalEvs();
     const otherEvsSum = totalCurrentEvs - currentEvForStat;
-    
+
     const budgetForThisStat = 508 - otherEvsSum;
-    
+
     let targetEv = Math.min(requestedRawValue, 252, budgetForThisStat);
     targetEv = Math.max(0, targetEv);
-  
+
     let finalEv = getValidEV(targetEv);
-  
+
     if (finalEv > budgetForThisStat) {
       finalEv = getValidEVFloor(budgetForThisStat);
     }
-    
+
     if (requestedRawValue < currentEvForStat && finalEv > requestedRawValue) {
         finalEv = getValidEVFloor(targetEv);
     }
@@ -227,7 +257,7 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
       },
     }));
   };
-  
+
   const getStatLabelWithNature = (statKey: keyof TeamMember['evs'], nature: Nature | null): string => {
     let label = baseStatLabels[statKey];
     if (nature) {
@@ -316,7 +346,7 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
   const totalEvs = getTotalEvs();
   const remainingEvs = 508 - totalEvs;
 
-  const selectStylesSlightlyLessCompressed = { 
+  const selectStylesSlightlyLessCompressed = {
     control: (base: any) => ({ ...base, backgroundColor: '#374151', borderColor: '#4B5563', color: 'white', minHeight: '30px', height: '30px', boxShadow: 'none', '&:hover': { borderColor: '#6B7280' } }),
     singleValue: (base: any) => ({ ...base, color: 'white', fontSize: '0.75rem' }),
     input: (base: any) => ({ ...base, color: 'white', margin: '0', padding: '0 2px', fontSize: '0.75rem' }),
@@ -345,7 +375,16 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
         <div className="grid grid-cols-[1fr_70px] gap-x-1 mb-1">
           <div>
             <label className="block text-gray-300 text-[10px] font-bold mb-0.5">ポケモン</label>
-            <Select classNamePrefix="react-select" options={pokemonOptions} value={pokemonOptions.find(opt => opt.value === editedMember.pokemon.id)} onChange={handlePokemonChange} placeholder="ポケモン" isClearable={false} styles={selectStylesSlightlyLessCompressed}/>
+            <Select
+              classNamePrefix="react-select"
+              options={pokemonOptions}
+              value={pokemonOptions.find(opt => opt.value === editedMember.pokemon.id)}
+              onChange={handlePokemonChange}
+              placeholder="ポケモン"
+              isClearable={false}
+              styles={selectStylesSlightlyLessCompressed}
+              filterOption={customSelectFilter}
+            />
           </div>
           <div>
             <label className="block text-gray-300 text-[10px] font-bold mb-0.5">レベル</label>
@@ -357,7 +396,18 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
           <label className="block text-gray-300 text-[10px] font-bold mb-0.5">わざ</label>
           <div className="space-y-1">
             {[0, 1, 2, 3].map((index) => (
-              <div key={index}> <Select classNamePrefix="react-select" options={moveOptions} value={editedMember.moves[index] ? moveOptions.find(opt => opt.value === editedMember.moves[index]?.nameEn) : null} onChange={(selectedOption) => handleMoveChange(index, selectedOption)} isClearable placeholder={`わざ${index + 1}`} styles={selectStylesSlightlyLessCompressed}/> </div>
+              <div key={index}>
+                <Select
+                  classNamePrefix="react-select"
+                  options={moveOptions}
+                  value={editedMember.moves[index] ? moveOptions.find(opt => opt.value === editedMember.moves[index]?.nameEn) : null}
+                  onChange={(selectedOption) => handleMoveChange(index, selectedOption)}
+                  isClearable
+                  placeholder={`わざ${index + 1}`}
+                  styles={selectStylesSlightlyLessCompressed}
+                  filterOption={customSelectFilter}
+                />
+              </div>
             ))}
           </div>
         </div>
@@ -365,22 +415,58 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
         <div className="grid grid-cols-2 gap-x-1.5 mb-1">
           <div>
             <label className="block text-gray-300 text-[10px] font-bold mb-0.5">持ち物</label>
-            <Select classNamePrefix="react-select" options={itemOptions} value={editedMember.item ? itemOptions.find(opt => opt.value === editedMember.item?.nameEn) : null} onChange={handleItemChange} isClearable placeholder="なし" styles={selectStylesSlightlyLessCompressed}/>
+            <Select
+              classNamePrefix="react-select"
+              options={itemOptions}
+              value={editedMember.item ? itemOptions.find(opt => opt.value === editedMember.item?.nameEn) : null}
+              onChange={handleItemChange}
+              isClearable
+              placeholder="なし"
+              styles={selectStylesSlightlyLessCompressed}
+              filterOption={customSelectFilter}
+            />
           </div>
           <div>
             <label className="block text-gray-300 text-[10px] font-bold mb-0.5">とくせい</label>
-            <Select classNamePrefix="react-select" options={abilityOptions} value={editedMember.ability ? abilityOptions.find(opt => opt.value === editedMember.ability?.nameEn) : null} onChange={handleAbilityChange} isClearable placeholder={abilityOptions.length === 0 ? "選択不可" : "なし"} isDisabled={abilityOptions.length === 0} styles={selectStylesSlightlyLessCompressed}/>
+            <Select
+              classNamePrefix="react-select"
+              options={abilityOptions}
+              value={editedMember.ability ? abilityOptions.find(opt => opt.value === editedMember.ability?.nameEn) : null}
+              onChange={handleAbilityChange}
+              isClearable
+              placeholder={abilityOptions.length === 0 ? "選択不可" : "なし"}
+              isDisabled={abilityOptions.length === 0}
+              styles={selectStylesSlightlyLessCompressed}
+              filterOption={customSelectFilter}
+            />
           </div>
         </div>
         {/* テラス、性格 */}
         <div className="grid grid-cols-2 gap-x-1.5 mb-2">
           <div>
             <label className="block text-gray-300 text-[10px] font-bold mb-0.5">テラス</label>
-            <Select classNamePrefix="react-select" options={PokemonTypeOptions} value={PokemonTypeOptions.find(opt => opt.value === editedMember.teraType)} onChange={handleTeraTypeChange} placeholder="テラスタイプ" styles={selectStylesSlightlyLessCompressed}/>
+            <Select
+              classNamePrefix="react-select"
+              options={PokemonTypeOptions}
+              value={PokemonTypeOptions.find(opt => opt.value === editedMember.teraType)}
+              onChange={handleTeraTypeChange}
+              placeholder="テラスタイプ"
+              styles={selectStylesSlightlyLessCompressed}
+              filterOption={customSelectFilter}
+            />
           </div>
           <div>
             <label className="block text-gray-300 text-[10px] font-bold mb-0.5">性格</label>
-            <Select classNamePrefix="react-select" options={natureOptions} value={editedMember.nature ? natureOptions.find(opt => opt.value === editedMember.nature?.name) : null} onChange={handleNatureChange} isClearable placeholder="なし" styles={selectStylesSlightlyLessCompressed}/>
+            <Select
+              classNamePrefix="react-select"
+              options={natureOptions}
+              value={editedMember.nature ? natureOptions.find(opt => opt.value === editedMember.nature?.name) : null}
+              onChange={handleNatureChange}
+              isClearable
+              placeholder="なし"
+              styles={selectStylesSlightlyLessCompressed}
+              filterOption={customSelectFilter}
+            />
           </div>
         </div>
 
@@ -390,7 +476,7 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
             {statKeys.map(stat => {
               const baseStatValue = editedMember.pokemon.baseStats?.[stat] || 50;
               const ivValue = editedMember.ivs[stat];
-              const evValue = editedMember.evs[stat]; 
+              const evValue = editedMember.evs[stat];
               const level = editedMember.level;
               let natureModifier = 1.0;
               if (editedMember.nature) {
@@ -424,10 +510,10 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
                     style={{ touchAction: 'pan-y' }}  // 修正点1: touch-action を適用
                     >
                     <StatSlider
-                      label="" 
-                      value={evValue}                 
-                      fixedMax={252}                
-                      actualMaxValue={actualMaxValueForSlider} 
+                      label=""
+                      value={evValue}
+                      fixedMax={252}
+                      actualMaxValue={actualMaxValueForSlider}
                       onChange={(requestedValue) => handleEvChange(stat, requestedValue)}
                       sliderHeight="h-2.5"
                       className="hide-stat-slider-real-value"
@@ -439,16 +525,16 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
             })}
           </div>
         </div>
-        
+
         {/* 保存・キャンセル・コピーボタン */}
         <div className="flex justify-end sticky bottom-0 gap-3 bg-gray-800 py-1 -mx-1 sm:-mx-1 px-1 sm:px-1 border-t border-gray-700 z-10">
-          <button 
-            onClick={handleCopyToClipboardCurrentMember} 
+          <button
+            onClick={handleCopyToClipboardCurrentMember}
             className="flex items-center gap-1 px-2.5 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded text-[11px] font-medium"
             title="現在の情報をShowdown形式でコピー"
           >
             <ClipboardCopy className="h-3.5 w-3.5" /> コピー
-          </button> 
+          </button>
           <button onClick={() => onSave(editedMember)} className="flex items-center gap-1 px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[11px] font-medium" disabled={remainingEvs < 0}>
             <Save className="h-3.5 w-3.5" /> 保存
           </button>
