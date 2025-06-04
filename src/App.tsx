@@ -1040,7 +1040,7 @@ function App() {
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto w-full flex-grow px-1 md:px-10 pb-[calc(80vh-4rem)] pt-2 md:pt-6">
+            <main className="max-w-7xl mx-auto w-full flex-grow px-1 md:px-10 pb-[calc(50vh-4rem)] pt-2 md:pt-6">
                 <div style={{ display: activeTab === 'damage' ? 'block' : 'none' }}>
                     <div className="md:hidden space-y-2">
                         {mobileViewMode === 'attacker' && (
@@ -1072,7 +1072,7 @@ function App() {
             </main>
 
             <div style={{ display: activeTab === 'damage' ? 'block' : 'none' }}>
-                <footer className="fixed bottom-0 left-0 w-full bg-gray-800 border-t border-gray-700 shadow-lg z-10 max-h-[calc(80vh-4rem)] overflow-y-auto">
+                <footer className="fixed bottom-0 left-0 w-full bg-gray-800 border-t border-gray-700 shadow-lg z-10 max-h-[calc(60vh-4rem)] overflow-y-auto">
                     <div className="max-w-7xl mx-auto">
                         <div className="space-y-2.5 p-2.5">
                             {(() => {
