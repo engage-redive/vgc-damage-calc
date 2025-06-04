@@ -52,6 +52,12 @@ export const abilities: Ability[] = [
     side: 'defender'
   },
 {
+    id: 'water bubble',
+    name: 'すいほう',
+    nameEn: 'Water Bubble',
+    side: 'defender'
+  },
+{
     id: 'purifying salt',
     name: 'きよめのしお',
     nameEn: 'Purifying Salt',
@@ -620,8 +626,7 @@ export const abilities: Ability[] = [
   {
     id: 'hugepower',
     name: 'ちからもち',
-    nameEn: 'Huge Power',
-    side: 'attacker',
+    nameEn: 'Huge Power'
   },
   {
     id: 'hungerswitch',
@@ -1052,8 +1057,7 @@ export const abilities: Ability[] = [
   {
     id: 'purepower',
     name: 'ヨガパワー',
-    nameEn: 'Pure Power',
-    side: 'attacker',
+    nameEn: 'Pure Power'
   },
   {
     id: 'purifyingsalt',
@@ -1733,11 +1737,5 @@ export const abilities: Ability[] = [
     description: 'ドラゴンタイプの技の威力が1.5倍になる。', // ※1
     side: 'attacker',
     // uiTriggers は不要 (技タイプで自動的に判定)
-  },
-  {
-    id: 'water bubble',
-    name: 'すいほう',
-    nameEn: 'Water Bubble',
-    side: 'both',
   },
 ];

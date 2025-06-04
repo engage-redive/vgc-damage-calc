@@ -1203,21 +1203,8 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                 フォトンゲイザー計算カテゴリ: <span className="font-semibold text-white">{attacker.photonGeyserDeterminedCategory === MoveCategory.Physical ? '物理' : '特殊'}</span>
             </div>
           )}
-
-
-          {hpDependentInputsToShow && (
-            <div className="mt-6">
-              <h4 className="text-sm font-semibold text-gray-300 mb-3">威力計算用HP設定</h4>
-              {hpDependentInputsToShow}
-              {hpEvSliderToShow}
-            </div>
-          )}
-
-          <div className="mt-6">
-            {currentStatInputsToRender}
-            {defenderAttackControlsToShow}
-          </div>
-
+          
+          {/* ▼▼▼ 変更箇所: 持ち物と特性セクションをここに移動 ▼▼▼ */}
           <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 bg-slate-700  rounded-lg mt-1.5 mb-1.5 shadow">
             <span className="text-sm font-medium text-gray-300 whitespace-nowrap pl-1 w-20">持ち物</span>
             <div className="w-full">
@@ -1359,6 +1346,21 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
               </div>
             </div>
           )}
+          {/* ▲▲▲ 変更箇所: 持ち物と特性セクションの移動ここまで ▲▲▲ */}
+
+
+          {hpDependentInputsToShow && (
+            <div className="mt-6">
+              <h4 className="text-sm font-semibold text-gray-300 mb-3">威力計算用HP設定</h4>
+              {hpDependentInputsToShow}
+              {hpEvSliderToShow}
+            </div>
+          )}
+
+          <div className="mt-6">
+            {currentStatInputsToRender}
+            {defenderAttackControlsToShow}
+          </div>
 
            <div className="mt-6 space-y-3">
             <div className="flex items-center gap-2">

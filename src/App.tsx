@@ -1005,7 +1005,7 @@ function App() {
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto w-full flex-grow px-1 md:px-10 pb-[calc(50vh-4rem)] pt-2 md:pt-6">
+            <main className="max-w-7xl mx-auto w-full flex-grow px-1 md:px-10 pb-[calc(80vh-4rem)] pt-2 md:pt-6">
                 <div style={{ display: activeTab === 'damage' ? 'block' : 'none' }}>
                     <div className="md:hidden space-y-2">
                         {mobileViewMode === 'attacker' && (
