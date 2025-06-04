@@ -5736,16 +5736,7 @@ export const moves: Move[] = [
   accuracy: true,
   pp: 10
 },
-{
-  id: "powertrip",
-  name: "つけあがる",
-  nameEn: "Power Trip",
-  type: "dark",
-  category: "physical",
-  power: 20,
-  accuracy: 100,
-  pp: 10
-},
+
 {
   id: "poweruppunch",
   name: "グロウパンチ",
@@ -7560,16 +7551,6 @@ export const moves: Move[] = [
   pp: 5
 },
 {
-  id: "storedpower",
-  name: "アシストパワー",
-  nameEn: "Stored Power",
-  type: "psychic",
-  category: "special",
-  power: 20,
-  accuracy: 100,
-  pp: 10
-},
-{
   id: "stormthrow",
   name: "やまあらし",
   nameEn: "Storm Throw",
@@ -8978,4 +8959,30 @@ export const moves: Move[] = [
     dynamicEffectId: "defenderWeightBasedPowerLowKickGrassKnot", // ★新しいdynamicEffectId
     description: '相手の重さによって威力が変わる。',
   },
+  {
+    id: "powertrip",
+    name: "つけあがる",
+    nameEn: "Power Trip",
+    type: PokemonType.Dark, // Enumを使用
+    category: MoveCategory.Physical, // Enumを使用
+    power: 20,
+    accuracy: 100,
+    pp: 10,
+    description: "自分の能力ランクが1つ上がるたびに威力が20ずつ上がる。威力は最大860。",
+    makesContact: true,
+    isRankBasedPower: true, // ★ 追加
+  },
+  {
+    id: "storedpower",
+    name: "アシストパワー",
+    nameEn: "Stored Power",
+    type: PokemonType.Psychic, // Enumを使用
+    category: MoveCategory.Special, // Enumを使用
+    power: 20,
+    accuracy: 100,
+    pp: 10,
+    description: "自分の能力ランクが1つ上がるたびに威力が20ずつ上がる。威力は最大860。",
+    isRankBasedPower: true, // ★ 追加
+  },
+  
 ];

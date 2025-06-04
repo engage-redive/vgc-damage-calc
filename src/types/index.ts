@@ -107,6 +107,7 @@ export interface Move {
   multihit?: number | "2-5";
   uiOption?: MoveUiOption;
   dynamicEffectId?: string;
+  isRankBasedPower?: boolean; // ★ 追加: アシストパワー/つけあがるのような威力変動技かを示すフラグ
 }
 
 export interface Item {
@@ -182,6 +183,7 @@ export interface AttackerStateSnapshotForLog {
   currentHp: number;
   // actualMaxHp はロード時に再計算
   teraType: PokemonType | null;
+  loadedTeraType: PokemonType | null; // ★ 追加
   isStellar: boolean;
   isBurned: boolean;
   hasHelpingHand: boolean;
@@ -252,6 +254,7 @@ export interface AttackerState {
   actualMaxHp: number;
   currentHp: number;
   teraType: PokemonType | null;
+  loadedTeraType: PokemonType | null; // ★ 追加
   isStellar: boolean;
   isBurned: boolean;
   hasHelpingHand: boolean;
@@ -266,10 +269,10 @@ export interface AttackerState {
   protosynthesisManualTrigger: boolean;
   quarkDriveBoostedStat: QuarkDriveBoostTarget | null;
   quarkDriveManualTrigger: boolean;
-  moveUiOptionStates: { [key: string]: boolean }; // 技固有UIオプションの状態
+  moveUiOptionStates: { [key: string]: any }; // ★ 任意の値を保存できるように any に変更 (もしくはより具体的な型を指定)
   loadedMoves?: (Move | null)[] | null; // ★ チーム
   abilityUiFlags: { [key: string]: boolean }; // ★追加: 特性固有UIの状態 (例: { 'guts_active': true })
-  photonGeyserDeterminedCategory: MoveCategory | null; // ★ 
+  photonGeyserDeterminedCategory: MoveCategory | null; // ★
 }
 
 export interface DefenderState {

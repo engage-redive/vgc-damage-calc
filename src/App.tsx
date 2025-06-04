@@ -138,13 +138,13 @@ function App() {
         defenseInputValue: initialDefenseStatForApp.final.toString(),
         speedInputValue: initialSpeedStatForApp.final.toString(),
         hpEv: initialDefaultHpEv, actualMaxHp: initialDefaultActualMaxHp, currentHp: initialDefaultActualMaxHp,
-        teraType: null, isStellar: false, isBurned: false, hasHelpingHand: false, hasFlowerGift: false, isEnabled: true,
+        teraType: null, loadedTeraType: null, isStellar: false, isBurned: false, hasHelpingHand: false, hasFlowerGift: false, isEnabled: true,
         teraBlastUserSelectedCategory: 'auto', teraBlastDeterminedType: null, teraBlastDeterminedCategory: null,
         starstormDeterminedCategory: null,
-        photonGeyserDeterminedCategory: null, // ★ 型に合わせて初期化 (AttackerPanelで管理されるのでnullでOK)
+        photonGeyserDeterminedCategory: null,
         selectedHitCount: null, protosynthesisBoostedStat: (initialAttackerAbility?.id === 'protosynthesis') ? 'attack' : null, protosynthesisManualTrigger: false,
         quarkDriveBoostedStat: (initialAttackerAbility?.id === 'quark_drive') ? 'attack' : null, quarkDriveManualTrigger: false, moveUiOptionStates: {},
-        abilityUiFlags: {}, // ★ 追加
+        abilityUiFlags: {},
       　loadedMoves: null,
     };
 
@@ -216,13 +216,13 @@ function App() {
             const attackerState = attackers[index];
             if (!attackerState || !attackerState.move) return;
             const hitCount = attackerState.selectedHitCount ||
-                             (attackerState.move.multihit === '2-5' ? 1 :
+                             (attackerState.move.multihit === '2-5' ? 1 : // Default to 1 if 2-5 (should be handled by selectedHitCount)
                              (typeof attackerState.move.multihit === 'number' ? attackerState.move.multihit : 1));
             combinedMin += result.minDamage * hitCount;
             combinedMax += result.maxDamage * hitCount;
         });
         if (combinedMin === 0 && combinedMax === 0 && results.length > 0) { /* Treat as 0 */ }
-        else if (results.length === 0) return null;
+        else if (results.length === 0) return null; // No results to combine
         const combinedMinPercentage = (combinedMin / defenderState.hpStat.final) * 100;
         const combinedMaxPercentage = (combinedMax / defenderState.hpStat.final) * 100;
         return {
@@ -316,7 +316,7 @@ function App() {
                 if (updates.attackStat) { newState.attackStat = { ...newState.attackStat, ...updates.attackStat }; recomputeAttack = true; }
                 if (updates.speedStat) { newState.speedStat = { ...newState.speedStat, ...updates.speedStat }; recomputeSpeed = true; }
                 if (updates.hpEv !== undefined && newState.hpStat.ev !== updates.hpEv) { newState.hpStat.ev = updates.hpEv; recomputeHp = true; }
-                newState.hpEv = newState.hpStat.ev;
+                newState.hpEv = newState.hpStat.ev; // Sync hpEv with hpStat.ev
                 let itemChanged = false;
                 if (updates.item !== undefined && updates.item !== prev.item) { newState.item = updates.item; itemChanged = true; }
                 if (updates.ability !== undefined && updates.ability !== prev.ability) {
@@ -473,23 +473,32 @@ function App() {
         };
         const loadedHpEv = member.evs.hp;
         const loadedActualMaxHp = calculateHpForApp(member.pokemon.baseStats.hp, member.ivs.hp, loadedHpEv, member.level);
+
+        const moveUiOptionStatesForLoad: { [key: string]: any } = {};
+        if (member.moves[0]?.isRankBasedPower) {
+            moveUiOptionStatesForLoad['rankBasedPowerValue'] = 20; // Default to 20
+        }
+
+
         const newAttacker: AttackerState = {
             pokemon: member.pokemon, move: member.moves[0] || null, effectiveMove: null, item: member.item, ability: member.ability,
             attackStat: loadedAttackStat, specialAttackStat: loadedSpecialAttackStat, defenseStat: loadedDefenseStat, speedStat: loadedSpeedStat,
             attackInputValue: loadedAttackStat.final.toString(), specialAttackInputValue: loadedSpecialAttackStat.final.toString(),
             defenseInputValue: loadedDefenseStat.final.toString(), speedInputValue: loadedSpeedStat.final.toString(),
-            hpEv: loadedHpEv, actualMaxHp: loadedActualMaxHp, currentHp: loadedActualMaxHp, teraType: member.teraType,
+            hpEv: loadedHpEv, actualMaxHp: loadedActualMaxHp, currentHp: loadedActualMaxHp,
+            teraType: null, // ロード時はテラスタルOFF
+            loadedTeraType: member.teraType, // ロードされたテラスタイプを保持
             isStellar: false, isBurned: false, hasHelpingHand: false, hasFlowerGift: false, isEnabled: true,
             teraBlastUserSelectedCategory: 'auto', teraBlastDeterminedType: null, teraBlastDeterminedCategory: null,
             starstormDeterminedCategory: null,
-            photonGeyserDeterminedCategory: null, // ★ null で初期化
+            photonGeyserDeterminedCategory: null,
             selectedHitCount: (member.moves[0] && typeof member.moves[0].multihit === 'number' && member.moves[0].multihit > 1) ? member.moves[0].multihit : null,
             protosynthesisBoostedStat: member.protosynthesisBoostedStat ?? null,
             protosynthesisManualTrigger: member.protosynthesisManualTrigger ?? false,
             quarkDriveBoostedStat: member.quarkDriveBoostedStat ?? null,
             quarkDriveManualTrigger: member.quarkDriveManualTrigger ?? false,
-            moveUiOptionStates: {},
-            abilityUiFlags: {}, // ★ 追加
+            moveUiOptionStates: moveUiOptionStatesForLoad,
+            abilityUiFlags: {},
           　loadedMoves: member.moves,
         };
         setActiveAttackers(prevAttackers => {
@@ -531,7 +540,7 @@ function App() {
             if (moveForCalc && attackerState.move?.id === "terastarstorm" && attackerState.pokemon?.id === "1024-s" && attackerState.starstormDeterminedCategory) {
                 moveForCalc = { ...moveForCalc, category: attackerState.starstormDeterminedCategory };
             }
-            if (moveForCalc && attackerState.move?.id === "photongeyser" && attackerState.photonGeyserDeterminedCategory) { // ★ attackerState.photonGeyserDeterminedCategory を使用
+            if (moveForCalc && attackerState.move?.id === "photongeyser" && attackerState.photonGeyserDeterminedCategory) {
                 moveForCalc = { ...moveForCalc, category: attackerState.photonGeyserDeterminedCategory };
             }
 
@@ -544,8 +553,20 @@ function App() {
                 });
             }
             if (!moveForCalc) return null;
+
+            if (attackerState.move?.isRankBasedPower && attackerState.moveUiOptionStates?.['rankBasedPowerValue'] !== undefined) {
+                const selectedPower = attackerState.moveUiOptionStates['rankBasedPowerValue'] as number;
+                moveForCalc = {
+                    ...(moveForCalc || attackerState.move),
+                    power: selectedPower
+                };
+            } else if (attackerState.move?.isRankBasedPower && moveForCalc) {
+                moveForCalc.power = attackerState.move.power; // 基本威力に戻す (e.g., 20)
+            }
+
+
             if (HP_DEPENDENT_MOVE_NAMES.includes(moveForCalc.name) && attackerState.actualMaxHp > 0) {
-                const basePower = moveForCalc.power || 0;
+                const basePower = moves.find(m => m.id === attackerState.move?.id)?.power || 0;
                 const calculatedPower = Math.floor((basePower * attackerState.currentHp) / attackerState.actualMaxHp);
                 moveForCalc.power = Math.max(1, calculatedPower);
             }
@@ -559,13 +580,13 @@ function App() {
 
             const attackerStatsForCalc: {
                 attack: StatCalculation; specialAttack: StatCalculation; defense: StatCalculation; speed: StatCalculation;
-                abilityUiFlags: { [key: string]: boolean }; // ★ 追加
+                abilityUiFlags: { [key: string]: boolean };
             } = {
                 attack: attackStatToUseForCalc,
                 specialAttack: attackerState.specialAttackStat,
                 defense: attackerState.defenseStat,
                 speed: attackerState.speedStat,
-                abilityUiFlags: attackerState.abilityUiFlags, // ★ 追加
+                abilityUiFlags: attackerState.abilityUiFlags,
             };
 
             const attackerTeraBlastConfig = {
@@ -591,7 +612,7 @@ function App() {
 
             return calculateDamage(
                 attackerState.pokemon, { ...defenderState.pokemon!, types: defenderCurrentTypes }, moveForCalc,
-                attackerStatsForCalc, // ★ abilityUiFlags を含むオブジェクト
+                attackerStatsForCalc,
                 { defense: defenderState.defenseStat, specialDefense: defenderState.specialDefenseStat, hp: defenderState.hpStat, speed: defenderState.speedStat, attack: defenderState.attackStat },
                 field, attackerState.item, currentDefenderItem, attackerState.teraType, attackerState.isStellar, 50,
                 isDoubleBattle, attackerState.isBurned, attackerState.hasHelpingHand, hasReflect, hasLightScreen,
@@ -602,7 +623,7 @@ function App() {
                 isAttackerQuarkDriveActive, attackerState.quarkDriveBoostedStat,
                 isDefenderQuarkDriveActive, defenderState.quarkDriveBoostedStat,
                 attackerState.moveUiOptionStates,
-                attackerState.abilityUiFlags // ★ calculateDamage に abilityUiFlags を渡す
+                attackerState.abilityUiFlags
             );
         });
         setDamageResults(newDamageResults);
@@ -610,7 +631,7 @@ function App() {
         activeAttackers, defenderState,
         defenderCurrentTypes, isDoubleBattle, hasReflect,
         hasLightScreen, weather, field, disasters, hasFriendGuard, defenderIsTerastallized,
-        defender2Item, defender2Ability
+        defender2Item, defender2Ability, moves // `moves` を依存配列に追加
     ]);
 
     const userConfigurableBaseTypesForDefender: [PokemonType, PokemonType?] =
@@ -637,6 +658,19 @@ function App() {
         };
         let moveUsedInCalc = attacker.effectiveMove || getEffectiveMoveProperties(attacker.move, moveContextForLog);
         if (!moveUsedInCalc) moveUsedInCalc = { ...attacker.move, power: attacker.move.power || 0 };
+
+
+        if (attacker.move?.isRankBasedPower && attacker.moveUiOptionStates?.['rankBasedPowerValue'] !== undefined) {
+            const selectedPower = attacker.moveUiOptionStates['rankBasedPowerValue'] as number;
+            moveUsedInCalc = {
+                ...moveUsedInCalc,
+                power: selectedPower
+            };
+        } else if (attacker.move?.isRankBasedPower && moveUsedInCalc) {
+            moveUsedInCalc.power = attacker.move.power; // 基本威力
+        }
+
+
         if (HP_DEPENDENT_MOVE_NAMES.includes(moveUsedInCalc.name) && attacker.actualMaxHp > 0) {
             const basePowerForLog = moves.find(m => m.id === attacker.move?.id)?.power || 0;
             moveUsedInCalc.power = Math.max(1, Math.floor((basePowerForLog * attacker.currentHp) / attacker.actualMaxHp));
@@ -653,7 +687,7 @@ function App() {
             moveCategoryForLog = attacker.teraBlastDeterminedCategory;
         } else if (attacker.move.id === "terastarstorm" && attacker.pokemon.id === "1024-s" && attacker.starstormDeterminedCategory) {
             moveCategoryForLog = attacker.starstormDeterminedCategory;
-        } else if (attacker.move.id === "photongeyser" && attacker.photonGeyserDeterminedCategory) { // ★ attacker.photonGeyserDeterminedCategory を使用
+        } else if (attacker.move.id === "photongeyser" && attacker.photonGeyserDeterminedCategory) {
             moveCategoryForLog = attacker.photonGeyserDeterminedCategory;
         }
 
@@ -719,20 +753,21 @@ function App() {
             hpEv: attacker.hpEv,
             currentHp: attacker.currentHp,
             teraType: attacker.teraType,
+            loadedTeraType: attacker.loadedTeraType, // 保存
             isStellar: attacker.isStellar,
             isBurned: attacker.isBurned,
             hasHelpingHand: attacker.hasHelpingHand,
             hasFlowerGift: attacker.hasFlowerGift,
             teraBlastUserSelectedCategory: attacker.teraBlastUserSelectedCategory,
             starstormDeterminedCategory: attacker.starstormDeterminedCategory,
-            photonGeyserDeterminedCategory: attacker.photonGeyserDeterminedCategory, // ★ attacker.photonGeyserDeterminedCategory を保存
+            photonGeyserDeterminedCategory: attacker.photonGeyserDeterminedCategory,
             selectedHitCount: attacker.selectedHitCount,
             protosynthesisBoostedStat: attacker.protosynthesisBoostedStat,
             protosynthesisManualTrigger: attacker.protosynthesisManualTrigger,
             quarkDriveBoostedStat: attacker.quarkDriveBoostedStat,
             quarkDriveManualTrigger: attacker.quarkDriveManualTrigger,
             moveUiOptionStates: attacker.moveUiOptionStates,
-            abilityUiFlags: attacker.abilityUiFlags, // ★ 追加
+            abilityUiFlags: attacker.abilityUiFlags,
         };
 
         const defenderStateSnapshot: DefenderStateSnapshotForLog = {
@@ -825,7 +860,7 @@ function App() {
         const loadedAttackerSpAttackStat = restoreStatCalculation(attackerStateSnapshot.specialAttackStat, attackerPokemon.baseStats.specialAttack, false, attackerItem);
         const loadedAttackerDefenseStat = restoreStatCalculation(attackerStateSnapshot.defenseStat, attackerPokemon.baseStats.defense, false, attackerItem);
         const loadedAttackerSpeedStat = restoreStatCalculation(attackerStateSnapshot.speedStat, attackerPokemon.baseStats.speed, false, attackerItem);
-        const loadedAttackerActualMaxHp = calculateHpForApp(attackerPokemon.baseStats.hp, attackerStateSnapshot.attackStat.iv, attackerStateSnapshot.hpEv, 50);
+        const loadedAttackerActualMaxHp = calculateHpForApp(attackerPokemon.baseStats.hp, attackerStateSnapshot.attackStat.iv, attackerStateSnapshot.hpEv, 50); // Assuming level 50
 
         const newAttackerState: AttackerState = {
             pokemon: attackerPokemon,
@@ -845,24 +880,25 @@ function App() {
             actualMaxHp: loadedAttackerActualMaxHp,
             currentHp: Math.min(attackerStateSnapshot.currentHp, loadedAttackerActualMaxHp),
             teraType: attackerStateSnapshot.teraType,
+            loadedTeraType: attackerStateSnapshot.loadedTeraType ?? null, // 復元
             isStellar: attackerStateSnapshot.isStellar,
             isBurned: attackerStateSnapshot.isBurned,
             hasHelpingHand: attackerStateSnapshot.hasHelpingHand,
             hasFlowerGift: attackerStateSnapshot.hasFlowerGift,
             isEnabled: true,
             teraBlastUserSelectedCategory: attackerStateSnapshot.teraBlastUserSelectedCategory,
-            teraBlastDeterminedType: null,
-            teraBlastDeterminedCategory: null,
+            teraBlastDeterminedType: null, // Will be re-calculated
+            teraBlastDeterminedCategory: null, // Will be re-calculated
             starstormDeterminedCategory: attackerStateSnapshot.starstormDeterminedCategory || null,
-            photonGeyserDeterminedCategory: attackerStateSnapshot.photonGeyserDeterminedCategory || null, // ★ ログから読み込む
+            photonGeyserDeterminedCategory: attackerStateSnapshot.photonGeyserDeterminedCategory || null,
             selectedHitCount: attackerStateSnapshot.selectedHitCount,
             protosynthesisBoostedStat: attackerStateSnapshot.protosynthesisBoostedStat,
             protosynthesisManualTrigger: attackerStateSnapshot.protosynthesisManualTrigger,
             quarkDriveBoostedStat: attackerStateSnapshot.quarkDriveBoostedStat,
             quarkDriveManualTrigger: attackerStateSnapshot.quarkDriveManualTrigger,
             moveUiOptionStates: attackerStateSnapshot.moveUiOptionStates || {},
-            abilityUiFlags: attackerStateSnapshot.abilityUiFlags || {}, // ★ 追加
-            loadedMoves: null,
+            abilityUiFlags: attackerStateSnapshot.abilityUiFlags || {},
+            loadedMoves: null, // Logs don't store loaded moves from team builder
         };
 
         const defenderPokemon = pokedex.find(p => p.id === defenderStateSnapshot.pokemonId);
@@ -910,8 +946,7 @@ function App() {
             const newAttackers = [...prev];
             newAttackers[0] = newAttackerState;
             if (newAttackers.length > 1) {
-                // 2体目以降をデフォルトに戻す際も abilityUiFlags を初期化
-                const secondAttackerDefault = defaultInitialAttackerState;
+                const secondAttackerDefault = defaultInitialAttackerState; // Use the app-level default
                 secondAttackerDefault.isEnabled = false;
                 newAttackers[1] = secondAttackerDefault;
             }
@@ -1050,7 +1085,7 @@ function App() {
 
                                 const combinedResultsForDisplay =
                                     numberOfEnabledAttackers > 1 &&
-                                    enabledDamageResults.length === enabledDamageResultsWithNulls.length
+                                    enabledDamageResults.length === enabledDamageResultsWithNulls.length // Ensure all enabled attackers have results
                                     ? calculateCombinedDamage(enabledDamageResults, enabledAttackers)
                                     : null;
 
@@ -1070,8 +1105,18 @@ function App() {
 
                                     if (moveUsedInCalc && attacker.move?.id === "terastarstorm" && attacker.pokemon?.id === "1024-s" && attacker.starstormDeterminedCategory) {
                                         moveUsedInCalc = { ...moveUsedInCalc, category: attacker.starstormDeterminedCategory };
-                                    } else if (moveUsedInCalc && attacker.move?.id === "photongeyser" && attacker.photonGeyserDeterminedCategory) { // ★ attacker.photonGeyserDeterminedCategory を使用
+                                    } else if (moveUsedInCalc && attacker.move?.id === "photongeyser" && attacker.photonGeyserDeterminedCategory) {
                                         moveUsedInCalc = { ...moveUsedInCalc, category: attacker.photonGeyserDeterminedCategory };
+                                    }
+
+                                    if (attacker.move?.isRankBasedPower && attacker.moveUiOptionStates?.['rankBasedPowerValue'] !== undefined) {
+                                        const selectedPower = attacker.moveUiOptionStates['rankBasedPowerValue'] as number;
+                                        moveUsedInCalc = {
+                                            ...(moveUsedInCalc),
+                                            power: selectedPower
+                                        };
+                                    } else if (attacker.move?.isRankBasedPower && moveUsedInCalc) {
+                                        moveUsedInCalc.power = attacker.move.power;
                                     }
 
 
@@ -1092,7 +1137,7 @@ function App() {
                                         moveCategoryForDisplay = attacker.teraBlastDeterminedCategory;
                                     } else if (attacker.move.id === "terastarstorm" && attacker.pokemon.id === "1024-s" && attacker.starstormDeterminedCategory) {
                                         moveCategoryForDisplay = attacker.starstormDeterminedCategory;
-                                    } else if (attacker.move.id === "photongeyser" && attacker.photonGeyserDeterminedCategory) { // ★ attacker.photonGeyserDeterminedCategory を使用
+                                    } else if (attacker.move.id === "photongeyser" && attacker.photonGeyserDeterminedCategory) {
                                         moveCategoryForDisplay = attacker.photonGeyserDeterminedCategory;
                                     }
 
@@ -1161,10 +1206,10 @@ function App() {
                                             defenderHP={defenderState.hpStat.final}
                                             isDoubleBattle={isDoubleBattle}
                                             onDoubleBattleChange={handleDoubleBattleChange}
-                                            combinedResult={(index === 0 && numberOfEnabledAttackers > 1) ? combinedResultsForDisplay : undefined}
+                                            combinedResult={(index === 0 && numberOfEnabledAttackers > 1 && combinedResultsForDisplay) ? combinedResultsForDisplay : undefined}
                                             attackerPokemonName={attacker.pokemon.name}
                                             attackerMoveName={attacker.move.name}
-                                            attackerMoveNameForDisplay={moveUsedInCalc.name}
+                                            attackerMoveNameForDisplay={moveUsedInCalc.name} // Use the name from the potentially modified move
                                             defenderPokemonName={defenderState.pokemon?.name}
                                             hitCount={currentHitCount}
                                             attackerDetails={currentAttackerDetails}

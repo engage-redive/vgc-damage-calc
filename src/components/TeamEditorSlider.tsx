@@ -86,7 +86,7 @@ const StatSlider: React.FC<StatSliderProps> = ({
           <Minus className="h-4 w-4" />
         </button>
         
-        <div className="flex-1 relative">
+        <div className="flex-1 relative" style={{ touchAction: 'pan-y' }}> {/* 修正点1: touch-action を適用 */}
           <input
             type="range"
             min="0"
@@ -118,20 +118,7 @@ const StatSlider: React.FC<StatSliderProps> = ({
             className={`absolute top-0 left-0 ${sliderHeight} bg-blue-500 rounded-full pointer-events-none`}
             style={{ width: `${fillPercentage}%` }}
           />
-          {/* ★★★ ここから修正 ★★★ */}
-          {/* 擬似的なDisabled Track の表示をコメントアウトまたは削除 */}
-          {/* 
-          {actualMaxValue < fixedMax && (
-            <div
-              className={`absolute top-0 right-0 ${sliderHeight} bg-gray-800 opacity-75 rounded-r-full pointer-events-none`}
-              style={{ 
-                left: `${(actualMaxValue / fixedMax) * 100}%`,
-                width: `${((fixedMax - actualMaxValue) / fixedMax) * 100}%`
-              }}
-            />
-          )}
-          */}
-          {/* ★★★ ここまで修正 ★★★ */}
+          {/* 擬似的なDisabled Track の表示は不要なのでコメントアウトまたは削除のまま */}
         </div>
         
         <button

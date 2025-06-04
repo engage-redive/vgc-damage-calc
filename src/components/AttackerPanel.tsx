@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useMemo } from 'react';
 import { Pokemon, Move, StatCalculation, NatureModifier, PokemonType, Item, Ability, TeraBurstEffectiveType, MoveCategory, ProtosynthesisBoostTarget, AttackerState } from '../types';
 import PokemonSelect from './PokemonSelect';
 import MoveSelect from './MoveSelect';
@@ -157,7 +157,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
       initialAbility = abilities.find(ab => ab.nameEn.toLowerCase() === firstAbilityNameEnFromPokedex.toLowerCase()) || null;
      }
 
-    const initialAttackEv = 0; // デフォルトは0に（App.tsxの初期値と合わせる場合）
+    const initialAttackEv = 0;
     const initialSpecialAttackEv = 0;
     const initialOtherEv = 0;
 
@@ -223,14 +223,14 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
       teraBlastDeterminedType: null,
       teraBlastDeterminedCategory: null,
       starstormDeterminedCategory: null,
-      photonGeyserDeterminedCategory: null, // ★ 型に合わせて追加
+      photonGeyserDeterminedCategory: null,
       selectedHitCount: null,
       protosynthesisBoostedStat: initialAbility?.id === 'protosynthesis' ? 'attack' : null,
       protosynthesisManualTrigger: false,
       quarkDriveBoostedStat: initialAbility?.id === 'quark_drive' ? 'attack' : null,
       quarkDriveManualTrigger: false,
       moveUiOptionStates: {},
-      abilityUiFlags: {}, // ★ 追加
+      abilityUiFlags: {},
       loadedMoves: null,
     };
   };
@@ -239,7 +239,6 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
     const newAttackersArray = attackers.map(attacker => {
       let updatedAttacker = { ...attacker };
 
-      // Tera Blast Logic
       if (!attacker.move?.isTeraBlast) {
         if (attacker.teraBlastDeterminedType !== null || attacker.teraBlastDeterminedCategory !== null || attacker.teraBlastUserSelectedCategory !== 'auto') {
           updatedAttacker = { ...updatedAttacker, teraBlastDeterminedType: null, teraBlastDeterminedCategory: null, teraBlastUserSelectedCategory: 'auto' };
@@ -274,7 +273,6 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
         }
       }
 
-      // Starstorm Logic
       if (attacker.move?.id === "terastarstorm" && attacker.pokemon?.id === "1024-s") {
         if (attacker.pokemon && attacker.attackStat && attacker.specialAttackStat) {
             const finalAttack = attacker.attackStat.final;
@@ -290,18 +288,17 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
         }
       }
 
-      // Photon Geyser Logic
       if (attacker.move?.id === "photongeyser") {
         if (attacker.pokemon && attacker.attackStat && attacker.specialAttackStat) {
             const finalAttack = attacker.attackStat.final;
             const finalSpecialAttack = attacker.specialAttackStat.final;
             const newPhotonGeyserCategory = finalAttack > finalSpecialAttack ? MoveCategory.Physical : MoveCategory.Special;
-            if (attacker.photonGeyserDeterminedCategory !== newPhotonGeyserCategory) { // ★ attacker.photonGeyserDeterminedCategory を参照・更新
+            if (attacker.photonGeyserDeterminedCategory !== newPhotonGeyserCategory) {
                 updatedAttacker = { ...updatedAttacker, photonGeyserDeterminedCategory: newPhotonGeyserCategory };
             }
         }
       } else {
-        if (attacker.photonGeyserDeterminedCategory !== null) { // ★ attacker.photonGeyserDeterminedCategory を参照・更新
+        if (attacker.photonGeyserDeterminedCategory !== null) {
             updatedAttacker = { ...updatedAttacker, photonGeyserDeterminedCategory: null };
         }
       }
@@ -326,7 +323,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
             tempAttacker.starstormDeterminedCategory = null;
         }
         if (updates.move?.id !== "photongeyser") {
-            tempAttacker.photonGeyserDeterminedCategory = null; // ★ PhotonGeyser以外ならリセット
+            tempAttacker.photonGeyserDeterminedCategory = null;
         }
     }
 
@@ -404,7 +401,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                 tempAttacker.quarkDriveBoostedStat = null;
                 tempAttacker.quarkDriveManualTrigger = false;
             }
-            tempAttacker.abilityUiFlags = {}; // ★ ポケモン変更時（かつabilityが指定されていない場合）にリセット
+            tempAttacker.abilityUiFlags = {};
         }
         if (updates.item === undefined) tempAttacker.item = null;
         tempAttacker.teraType = null;
@@ -426,16 +423,18 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
         }
 
         tempAttacker.moveUiOptionStates = {};
+        if (updates.move?.isRankBasedPower) { // ポケモン変更時に新しい技が威力変動技なら初期化
+            tempAttacker.moveUiOptionStates['rankBasedPowerValue'] = 20;
+        }
         tempAttacker.selectedHitCount = null;
         tempAttacker.teraBlastUserSelectedCategory = 'auto';
         tempAttacker.teraBlastDeterminedType = null;
         tempAttacker.teraBlastDeterminedCategory = null;
         tempAttacker.starstormDeterminedCategory = null;
-        tempAttacker.photonGeyserDeterminedCategory = null; // ★ リセット
+        tempAttacker.photonGeyserDeterminedCategory = null;
       　tempAttacker.loadedMoves = null;
-        // tempAttacker.abilityUiFlags は ability が undefined の場合に上でリセット済み
 
-    } else { // ポケモン変更がない場合
+    } else {
         if (updates.hpEv !== undefined && tempAttacker.pokemon) {
           const newActualMaxHp = calculateHp(tempAttacker.pokemon.baseStats.hp, 31, updates.hpEv, 50);
           tempAttacker.actualMaxHp = newActualMaxHp;
@@ -500,8 +499,8 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                 tempAttacker.speedInputValue = tempAttacker.speedStat.final.toString();
             }
         }
-        if (updates.ability !== undefined && updates.ability !== currentAttacker.ability) { // ★ 特性変更時
-            tempAttacker.abilityUiFlags = {}; // ★ abilityUiFlags をリセット
+        if (updates.ability !== undefined && updates.ability !== currentAttacker.ability) {
+            tempAttacker.abilityUiFlags = {};
         }
     }
 
@@ -524,11 +523,28 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
             tempAttacker.quarkDriveBoostedStat = null;
             tempAttacker.quarkDriveManualTrigger = false;
         }
-        // ここで abilityUiFlags のリセットは、ポケモン変更がない場合のelseブロックで処理済み
     }
 
     if (updates.move !== undefined && updates.move?.id !== currentAttacker.move?.id) {
-        tempAttacker.moveUiOptionStates = {};
+        // moveUiOptionStates は handleMoveChange で処理されるため、ここでは直接変更しない
+        // ただし、updates.moveUiOptionStates が直接渡された場合はそれを優先する
+        if (updates.moveUiOptionStates === undefined) {
+            const newMoveUiOptionStates = { ...(currentAttacker.moveUiOptionStates || {}) };
+            if (updates.move?.isRankBasedPower) {
+                newMoveUiOptionStates['rankBasedPowerValue'] = 20;
+            } else {
+                delete newMoveUiOptionStates['rankBasedPowerValue'];
+            }
+             // 他の move specific UI options もここでリセットするなら追加
+            Object.keys(newMoveUiOptionStates).forEach(key => {
+                if (key !== 'rankBasedPowerValue' && !(updates.move?.uiOption && key === updates.move.uiOption.key)) {
+                    delete newMoveUiOptionStates[key];
+                }
+            });
+            tempAttacker.moveUiOptionStates = newMoveUiOptionStates;
+        }
+
+
         if (!updates.move?.isTeraBlast) {
             tempAttacker.teraBlastUserSelectedCategory = 'auto';
         } else if (updates.move?.isTeraBlast && !currentAttacker.move?.isTeraBlast) {
@@ -538,7 +554,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
             tempAttacker.starstormDeterminedCategory = null;
         }
         if (updates.move?.id !== "photongeyser") {
-            tempAttacker.photonGeyserDeterminedCategory = null; // ★ リセット
+            tempAttacker.photonGeyserDeterminedCategory = null;
         }
         const newMove = updates.move;
         if (newMove && typeof newMove.multihit === 'number' && newMove.multihit > 1) {
@@ -551,6 +567,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
         }
         tempAttacker.effectiveMove = null;
     }
+
 
     newAttackers[index] = tempAttacker;
     onSetAttackers(newAttackers);
@@ -576,26 +593,62 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
       const firstAbilityNameEnFromPokedex = pokemon.abilities[0];
       initialAbilityForNewPokemon = abilities.find(ab => ab.nameEn.toLowerCase() === firstAbilityNameEnFromPokedex.toLowerCase()) || null;
      }
+     const newMoveUiOptionStates = {}; // ポケモン変更時に技固有UIもリセット
      updateAttackerState(index, {
        pokemon, teraType: null, isStellar: false, move: null, item: null,
       ability: initialAbilityForNewPokemon,
       effectiveMove: null, starstormDeterminedCategory: null,
-      photonGeyserDeterminedCategory: null, // ★ リセット
-      abilityUiFlags: {}, // ★ ポケモン変更で特性が変わる可能性があるのでリセット
+      photonGeyserDeterminedCategory: null,
+      abilityUiFlags: {},
       loadedMoves: null,
+      moveUiOptionStates: newMoveUiOptionStates, // リセットされた値を渡す
      });
   };
 
   const handleMoveChange = (move: Move | null, index: number) => {
-    updateAttackerState(index, { move, effectiveMove: null, teraBlastDeterminedCategory: null, teraBlastDeterminedType: null, starstormDeterminedCategory: null, photonGeyserDeterminedCategory: null, selectedHitCount: null, moveUiOptionStates: {} });
+    const currentAttacker = attackers[index];
+    const newMoveUiOptionStates = { ...(currentAttacker.moveUiOptionStates || {}) };
+
+    // 既存の rankBasedPowerValue 以外の move specific UI options をクリア
+    Object.keys(newMoveUiOptionStates).forEach(key => {
+        if (key !== 'rankBasedPowerValue' && !(move?.uiOption && key === move.uiOption.key)) {
+            delete newMoveUiOptionStates[key];
+        }
+    });
+
+    if (move?.isRankBasedPower) {
+        // 既に rankBasedPowerValue が設定されていればそれを維持、なければ20を設定
+        if (newMoveUiOptionStates['rankBasedPowerValue'] === undefined) {
+            newMoveUiOptionStates['rankBasedPowerValue'] = 20;
+        }
+    } else {
+        delete newMoveUiOptionStates['rankBasedPowerValue'];
+    }
+    // 新しい技の uiOption があれば初期化 (通常はfalse)
+    if (move?.uiOption) {
+        newMoveUiOptionStates[move.uiOption.key] = false;
+    }
+
+
+    updateAttackerState(index, {
+        move,
+        effectiveMove: null,
+        teraBlastDeterminedCategory: null,
+        teraBlastDeterminedType: null,
+        starstormDeterminedCategory: null,
+        photonGeyserDeterminedCategory: null,
+        selectedHitCount: null, // 技変更でリセット
+        moveUiOptionStates: newMoveUiOptionStates
+    });
   };
+
 
   const handleHitCountChange = (count: number | null, index: number) => {
     updateAttackerState(index, { selectedHitCount: count });
   };
   const handleItemChange = (item: Item | null, index: number) => updateAttackerState(index, { item });
   const handleAbilityChange = (ability: Ability | null, index: number) => {
-    updateAttackerState(index, { ability, abilityUiFlags: {} }); // ★ 特性変更時に abilityUiFlags をリセット
+    updateAttackerState(index, { ability, abilityUiFlags: {} });
   };
 
   const handleProtosynthesisBoostedStatChange = (stat: ProtosynthesisBoostTarget | null, attackerIndex: number) => {
@@ -766,6 +819,26 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
   const handleDefenseInputBlur = (index: number) => handleStatInputBlur(index, 'defense');
   const handleSpeedInputBlur = (index: number) => handleStatInputBlur(index, 'speed');
 
+  const rankBasedPowerOptions = useMemo(() => {
+    const options = [];
+    for (let i = 20; i <= 860; i += 20) {
+      options.push(i);
+    }
+    return options;
+  }, []);
+
+  const handleRankBasedPowerChange = (power: number, index: number) => {
+    const attacker = attackers[index];
+    if (!attacker.move?.isRankBasedPower) return;
+
+    const newUiOptionStates = {
+        ...(attacker.moveUiOptionStates || {}),
+        ['rankBasedPowerValue']: power,
+    };
+    updateAttackerState(index, { moveUiOptionStates: newUiOptionStates });
+  };
+
+
   const renderAttackerSection = (attacker: AttackerState, index: number) => {
       const attackBaseValueForDisplay = attacker.attackStat && attacker.pokemon ? calculateBaseStatValue(
           attacker.pokemon.baseStats.attack,
@@ -809,7 +882,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                                         attacker.isEnabled;
 
       const showPhotonGeyserCategoryInfo = attacker.move?.id === "photongeyser" &&
-                                          attacker.photonGeyserDeterminedCategory && // ★ attacker.photonGeyserDeterminedCategory を参照
+                                          attacker.photonGeyserDeterminedCategory &&
                                           attacker.isEnabled;
 
 
@@ -821,6 +894,10 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
       let hpEvSliderToShow = null;
       let hpDependentInputsToShow = null;
       let defenderAttackControlsToShow = null;
+
+      const showRankBasedPowerSelect = attacker.move?.isRankBasedPower && attacker.isEnabled && attacker.pokemon;
+      const selectedRankBasedPower = attacker.moveUiOptionStates?.['rankBasedPowerValue'] as number | undefined ?? 20;
+
 
       const attackInputsJsx = attacker.pokemon ? (
         <div>
@@ -1000,7 +1077,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
       } else if (specialAttackSectionContent) {
           currentStatInputsToRender = specialAttackSectionContent;
       } else {
-          currentStatInputsToRender = null;
+          currentStatInputsToRender = null; // Or a placeholder if nothing is selected
       }
 
       if (moveName === "イカサマ") {
@@ -1040,7 +1117,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
           <HpDependentPowerInputs
             actualMaxHp={attacker.actualMaxHp}
             currentHp={attacker.currentHp}
-            baseMovePower={attacker.move.power || 150}
+            baseMovePower={attacker.move.power || 150} // Use original base power for display
             onCurrentHpChange={(newHp) => handleCurrentHpChange(newHp, index)}
             isEnabled={attacker.isEnabled && attacker.pokemon !== null}
           />
@@ -1132,6 +1209,28 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
             />
           </div>
 
+          {showRankBasedPowerSelect && (
+            <div className="mt-3 p-3 bg-gray-700/50 rounded-md">
+              <label htmlFor={`rank-power-select-${index}`} className="block text-sm font-medium text-gray-300 mb-1">
+                技威力 ({attacker.move?.name})
+              </label>
+              <select
+                id={`rank-power-select-${index}`}
+                value={selectedRankBasedPower}
+                onChange={(e) => handleRankBasedPowerChange(parseInt(e.target.value, 10), index)}
+                className="w-full bg-gray-800 border border-gray-600 text-white py-1.5 px-2 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                disabled={!attacker.isEnabled}
+              >
+                {rankBasedPowerOptions.map(powerValue => (
+                  <option key={powerValue} value={powerValue}>
+                    {powerValue}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+
           {attacker.move && typeof attacker.move.multihit === 'number' && attacker.move.multihit > 1 && attacker.isEnabled && attacker.pokemon && (
             <HitCountSelect
               label="ヒット回数"
@@ -1170,7 +1269,6 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                       updateAttackerState(index, { moveUiOptionStates: newUiOptionStates });
                     }}
                     className="w-4 h-4 rounded border-gray-500 bg-gray-800 text-blue-500 mr-2 focus:ring-blue-500 focus:ring-offset-gray-900"
-                  
                   />
                   {attacker.move.uiOption.label}
                 </label>
@@ -1204,7 +1302,6 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
             </div>
           )}
           
-          {/* ▼▼▼ 変更箇所: 持ち物と特性セクションをここに移動 ▼▼▼ */}
           <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 bg-slate-700  rounded-lg mt-1.5 mb-1.5 shadow">
             <span className="text-sm font-medium text-gray-300 whitespace-nowrap pl-1 w-20">持ち物</span>
             <div className="w-full">
@@ -1253,7 +1350,6 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
               />
             </div>
           </div>
-          {/* ★ 特性固有UIのレンダリング */}
           {attacker.ability?.uiTriggers && attacker.isEnabled && attacker.pokemon && (
             <div className="mt-3 p-3 bg-gray-700/50 rounded-md space-y-2">
               <h5 className="text-sm font-semibold text-gray-300 mb-1">{attacker.ability.name} 追加設定</h5>
@@ -1346,7 +1442,6 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
               </div>
             </div>
           )}
-          {/* ▲▲▲ 変更箇所: 持ち物と特性セクションの移動ここまで ▲▲▲ */}
 
 
           {hpDependentInputsToShow && (
