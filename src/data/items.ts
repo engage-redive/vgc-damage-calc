@@ -269,13 +269,21 @@ export const items: Item[] = [
     id: "blackbelt",
     name: "くろおび",
     nameEn: "Black Belt",
-    effect: {}
+    typeEnhance: PokemonType.Fighting,
+    effect: {
+      type: 'none',
+
+    }
   },
   {
     id: "blackglasses",
     name: "くろいメガネ",
     nameEn: "Black Glasses",
-    effect: {}
+    typeEnhance: PokemonType.Dark,
+    effect: {
+      type: 'none',
+
+    }
   },
   {
     id: "blacksludge",
@@ -359,12 +367,6 @@ export const items: Item[] = [
     id: "cellbattery",
     name: "じゅうでんち",
     nameEn: "Cell Battery",
-    effect: {}
-  },
-  {
-    id: "charcoal",
-    name: "もくたん",
-    nameEn: "Charcoal",
     effect: {}
   },
   {
@@ -582,7 +584,11 @@ export const items: Item[] = [
     id: "dragonfang",
     name: "りゅうのキバ",
     nameEn: "Dragon Fang",
-    effect: {}
+    typeEnhance: PokemonType.Dragon, // true → PokemonType.Dragon
+    effect: {
+      type: 'none',
+
+    }
   },
   {
     id: "dragongem",
@@ -711,7 +717,11 @@ export const items: Item[] = [
     id: "fairyfeather",
     name: "ようせいのハネ",
     nameEn: "Fairy Feather",
-    effect: {}
+    typeEnhance: PokemonType.Fairy,
+    effect: {
+      type: 'none',
+
+    }
   },
   {
     id: "fairygem",
@@ -1024,7 +1034,11 @@ export const items: Item[] = [
     id: "hardstone",
     name: "かたいいし",
     nameEn: "Hard Stone",
-    effect: {}
+    typeEnhance: PokemonType.Rock,
+    effect: {
+      type: 'none',
+
+    }
   },
   {
     id: "healball",
@@ -1356,12 +1370,7 @@ export const items: Item[] = [
     nameEn: "Magmarizer",
     effect: {}
   },
-  {
-    id: "magnet",
-    name: "じしゃく",
-    nameEn: "Magnet",
-    effect: {}
-  },
+
   {
     id: "magoberry",
     name: "マゴのみ",
@@ -1450,7 +1459,11 @@ export const items: Item[] = [
     id: "metalcoat",
     name: "メタルコート",
     nameEn: "Metal Coat",
-    effect: {}
+    typeEnhance: PokemonType.Steel,
+    effect: {
+      type: 'none',
+
+    }
   },
   {
     id: "metalpowder",
@@ -1498,7 +1511,11 @@ export const items: Item[] = [
     id: "miracleseed",
     name: "きせきのタネ",
     nameEn: "Miracle Seed",
-    effect: {}
+    typeEnhance: PokemonType.Grass,
+    effect: {
+      type: 'none',
+
+    }
   },
   {
     id: "mirrorherb",
@@ -1531,12 +1548,6 @@ export const items: Item[] = [
     effect: {}
   },
   {
-    id: "mysticwater",
-    name: "しんぴのしずく",
-    nameEn: "Mystic Water",
-    effect: {}
-  },
-  {
     id: "nanabberry",
     name: "ナナのみ",
     nameEn: "Nanab Berry",
@@ -1558,7 +1569,11 @@ export const items: Item[] = [
     id: "nevermeltice",
     name: "とけないこおり",
     nameEn: "Never-Melt Ice",
-    effect: {}
+    typeEnhance: PokemonType.Ice,
+    effect: {
+      type: 'none',
+
+    }
   },
   {
     id: "nomelberry",
@@ -1690,7 +1705,11 @@ export const items: Item[] = [
     id: "poisonbarb",
     name: "どくバリ",
     nameEn: "Poison Barb",
-    effect: {}
+    typeEnhance: PokemonType.Poison,
+    effect: {
+      type: 'none',
+
+    }
   },
   {
     id: "poisongem",
@@ -2069,7 +2088,11 @@ export const items: Item[] = [
     id: "sharpbeak",
     name: "するどいくちばし",
     nameEn: "Sharp Beak",
-    effect: {}
+    typeEnhance: PokemonType.Flying,
+    effect: {
+      type: 'none',
+
+    }
   },
   {
     id: "sharpedonite",
@@ -2117,7 +2140,11 @@ export const items: Item[] = [
     id: "silverpowder",
     name: "ぎんのこな",
     nameEn: "Silver Powder",
-    effect: {}
+    typeEnhance: PokemonType.Bug,
+    effect: {
+      type: 'none',
+
+    }
   },
   {
     id: "sitrusberry",
@@ -2159,7 +2186,11 @@ export const items: Item[] = [
     id: "softsand",
     name: "やわらかいすな",
     nameEn: "Soft Sand",
-    effect: {}
+    typeEnhance: PokemonType.Ground,
+    effect: {
+      type: 'none',
+
+    }
   },
   {
     id: "solganiumz",
@@ -2177,7 +2208,11 @@ export const items: Item[] = [
     id: "spelltag",
     name: "のろいのおふだ",
     nameEn: "Spell Tag",
-    effect: {}
+    typeEnhance: PokemonType.Ghost,
+    effect: {
+      type: 'none',
+
+    }
   },
   {
     id: "spelonberry",
@@ -2339,7 +2374,11 @@ export const items: Item[] = [
     id: "twistedspoon",
     name: "まがったスプーン",
     nameEn: "Twisted Spoon",
-    effect: {}
+    typeEnhance: PokemonType.Psychic,
+    effect: {
+      type: 'none',
+
+    }
   },
   {
     id: "tyranitarite",

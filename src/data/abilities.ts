@@ -1,5 +1,4 @@
-import { Ability } from '../types';
-
+import { Ability, PokemonType } from '../types'; // PokemonType もインポートする場合
 export const abilities: Ability[] = [
   {
     id: 'technician',
@@ -27,27 +26,7 @@ export const abilities: Ability[] = [
     nameEn:'Quark Drive',
     side: 'both',
   },
-  {
-  id: 'torrent',
-  name: 'げきりゅう',
-  nameEn: 'Torrent',
-  description: 'HPが1/3以下のとき、みずタイプの技の威力が1.5倍になる。',
-  side: 'attacker',
-},
-{
-  id: 'overgrow',
-  name: 'しんりょく',
-  nameEn: 'Overgrow',
-  description: 'HPが1/3以下のとき、くさタイプの技の威力が1.5倍になる。',
-  side: 'attacker',
-},
-{
-  id: 'blaze',
-  name: 'もうか',
-  nameEn: 'Blaze',
-  description: 'HPが1/3以下のとき、ほのおタイプの技の威力が1.5倍になる。',
-  side: 'attacker',
-},
+
   {
     id: 'iron fist',
     name: 'てつのこぶし',
@@ -258,11 +237,6 @@ export const abilities: Ability[] = [
     id: 'bigpecks',
     name: 'はとむね',
     nameEn: 'Big Pecks'
-  },
-  {
-    id: 'blaze',
-    name: 'もうか',
-    nameEn: 'Blaze'
   },
   {
     id: 'bulletproof',
@@ -959,11 +933,6 @@ export const abilities: Ability[] = [
     id: 'overcoat',
     name: 'ぼうじん',
     nameEn: 'Overcoat'
-  },
-  {
-    id: 'overgrow',
-    name: 'しんりょく',
-    nameEn: 'Overgrow'
   },
   {
     id: 'owntempo',
@@ -1685,5 +1654,93 @@ export const abilities: Ability[] = [
     id: 'zerotohero',
     name: 'マイティチェンジ',
     nameEn: 'Zero to Hero'
+  },
+    {
+    id: 'guts',
+    name: 'こんじょう',
+    nameEn: 'Guts',
+    description: '状態異常のとき、こうげきが1.5倍になる。やけど状態によるこうげき低下の影響を受けない。',
+    side: 'attacker',
+    uiTriggers: [{ key: 'guts_active', label: '状態異常である', type: 'checkbox' }],
+  },
+  {
+    id: 'torrent',
+    name: 'げきりゅう',
+    nameEn: 'Torrent',
+    description: 'HPが1/3以下のとき、みずタイプの技の威力が1.5倍になる。', // ※1
+    side: 'attacker',
+    uiTriggers: [{ key: 'hp_condition_active', label: 'HPが1/3以下', type: 'checkbox' }],
+  },
+  {
+    id: 'overgrow',
+    name: 'しんりょく',
+    nameEn: 'Overgrow',
+    description: 'HPが1/3以下のとき、くさタイプの技の威力が1.5倍になる。', // ※1
+    side: 'attacker',
+    uiTriggers: [{ key: 'hp_condition_active', label: 'HPが1/3以下', type: 'checkbox' }],
+  },
+  {
+    id: 'blaze',
+    name: 'もうか',
+    nameEn: 'Blaze',
+    description: 'HPが1/3以下のとき、ほのおタイプの技の威力が1.5倍になる。', // ※1
+    side: 'attacker',
+    uiTriggers: [{ key: 'hp_condition_active', label: 'HPが1/3以下', type: 'checkbox' }],
+  },
+  {
+    id: 'swarm',
+    name: 'むしのしらせ',
+    nameEn: 'Swarm',
+    description: 'HPが1/3以下のとき、むしタイプの技の威力が1.5倍になる。', // ※1
+    side: 'attacker',
+    uiTriggers: [{ key: 'hp_condition_active', label: 'HPが1/3以下', type: 'checkbox' }],
+  },
+  {
+    id: 'flashfire',
+    name: 'もらいび',
+    nameEn: 'Flash Fire',
+    description: 'ほのおタイプの技を受けると技が無効になり、自身のほのおタイプの技の威力が1.5倍になる。', // ※1
+    side: 'both', // 攻撃側・防御側両方で意味を持つ
+    uiTriggers: [{ key: 'flash_fire_boost', label: 'もらいび(威力上昇有効)', type: 'checkbox' }],
+  },
+  {
+    id: 'solarpower',
+    name: 'サンパワー',
+    nameEn: 'Solar Power',
+    description: '天気が「にほんばれ」のとき、とくこうが1.5倍になるが、ターン終了時にHPが最大HPの1/8減る。',
+    side: 'attacker',
+    // uiTriggers は不要 (天候で自動的に判定)
+  },
+  {
+    id: 'rockypayload',
+    name: 'いわはこび',
+    nameEn: 'Rocky Payload',
+    description: 'いわタイプの技の威力が1.5倍になる。', // ※1
+    side: 'attacker',
+    // uiTriggers は不要 (技タイプで自動的に判定)
+  },
+  {
+    id: 'steelworker',
+    name: 'はがねつかい',
+    nameEn: 'Steelworker',
+    description: 'はがねタイプの技の威力が1.5倍になる。', // ※1
+    side: 'attacker',
+    // uiTriggers は不要 (技タイプで自動的に判定)
+  },
+  {
+    id: 'gorillatactics',
+    name: 'ごりむちゅう',
+    nameEn: 'Gorilla Tactics',
+    description: 'こうげきが1.5倍になるが、最初に出した技しか選択できなくなる。',
+    side: 'attacker',
+    // uiTriggers は不要 (デメリットは今回無視のため、常に発動として扱う)
+  },
+  {
+    id: 'dragonsmaw',
+    name: 'りゅうのあぎと',
+    nameEn: "Dragon's Maw",
+    description: 'ドラゴンタイプの技の威力が1.5倍になる。', // ※1
+    side: 'attacker',
+    // uiTriggers は不要 (技タイプで自動的に判定)
   },
 ];

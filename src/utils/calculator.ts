@@ -122,7 +122,8 @@ export const calculateDamage = (
     attackerQuarkDriveBoostedStat: QuarkDriveBoostTarget | null = null,
     isDefenderQuarkDriveActive: boolean = false,
     defenderQuarkDriveBoostedStat: QuarkDriveBoostTarget | null = null,
-    moveUiOptionStates?: { [key: string]: boolean }
+    moveUiOptionStates?: { [key: string]: boolean },
+    attackerAbilityUiFlags?: { [key: string]: boolean }
 ): DamageCalculation => {
     const zeroDamages = Array(16).fill(0);
     const errorReturn = {
@@ -213,7 +214,8 @@ export const calculateDamage = (
         isAttackerQuarkDriveActive,
         attackerQuarkDriveBoostedStat,
         weather,
-        field
+        field,
+      　attackerStats.abilityUiFlags // ★ attackerStats 
     );
 
     // --- 防御側ステータスと、防御計算に使うカテゴリの決定 ---
@@ -293,7 +295,8 @@ export const calculateDamage = (
         isAttackerQuarkDriveActive,
         attackerQuarkDriveBoostedStat,
         weather,
-        field
+        field,
+      　attackerStats.abilityUiFlags // ★ attackerStats
     );
 
     // --- クリティカルヒット時の防御側ステータス計算 ---

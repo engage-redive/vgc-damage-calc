@@ -223,13 +223,14 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
       teraBlastDeterminedType: null,
       teraBlastDeterminedCategory: null,
       starstormDeterminedCategory: null,
-      photonGeyserDeterminedCategory: null,
+      photonGeyserDeterminedCategory: null, // ★ 型に合わせて追加
       selectedHitCount: null,
       protosynthesisBoostedStat: initialAbility?.id === 'protosynthesis' ? 'attack' : null,
       protosynthesisManualTrigger: false,
       quarkDriveBoostedStat: initialAbility?.id === 'quark_drive' ? 'attack' : null,
       quarkDriveManualTrigger: false,
       moveUiOptionStates: {},
+      abilityUiFlags: {}, // ★ 追加
       loadedMoves: null,
     };
   };
@@ -295,12 +296,12 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
             const finalAttack = attacker.attackStat.final;
             const finalSpecialAttack = attacker.specialAttackStat.final;
             const newPhotonGeyserCategory = finalAttack > finalSpecialAttack ? MoveCategory.Physical : MoveCategory.Special;
-            if (attacker.photonGeyserDeterminedCategory !== newPhotonGeyserCategory) {
+            if (attacker.photonGeyserDeterminedCategory !== newPhotonGeyserCategory) { // ★ attacker.photonGeyserDeterminedCategory を参照・更新
                 updatedAttacker = { ...updatedAttacker, photonGeyserDeterminedCategory: newPhotonGeyserCategory };
             }
         }
       } else {
-        if (attacker.photonGeyserDeterminedCategory !== null) {
+        if (attacker.photonGeyserDeterminedCategory !== null) { // ★ attacker.photonGeyserDeterminedCategory を参照・更新
             updatedAttacker = { ...updatedAttacker, photonGeyserDeterminedCategory: null };
         }
       }
@@ -325,7 +326,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
             tempAttacker.starstormDeterminedCategory = null;
         }
         if (updates.move?.id !== "photongeyser") {
-            tempAttacker.photonGeyserDeterminedCategory = null;
+            tempAttacker.photonGeyserDeterminedCategory = null; // ★ PhotonGeyser以外ならリセット
         }
     }
 
@@ -403,6 +404,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                 tempAttacker.quarkDriveBoostedStat = null;
                 tempAttacker.quarkDriveManualTrigger = false;
             }
+            tempAttacker.abilityUiFlags = {}; // ★ ポケモン変更時（かつabilityが指定されていない場合）にリセット
         }
         if (updates.item === undefined) tempAttacker.item = null;
         tempAttacker.teraType = null;
@@ -429,10 +431,11 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
         tempAttacker.teraBlastDeterminedType = null;
         tempAttacker.teraBlastDeterminedCategory = null;
         tempAttacker.starstormDeterminedCategory = null;
-        tempAttacker.photonGeyserDeterminedCategory = null;
+        tempAttacker.photonGeyserDeterminedCategory = null; // ★ リセット
       　tempAttacker.loadedMoves = null;
+        // tempAttacker.abilityUiFlags は ability が undefined の場合に上でリセット済み
 
-    } else {
+    } else { // ポケモン変更がない場合
         if (updates.hpEv !== undefined && tempAttacker.pokemon) {
           const newActualMaxHp = calculateHp(tempAttacker.pokemon.baseStats.hp, 31, updates.hpEv, 50);
           tempAttacker.actualMaxHp = newActualMaxHp;
@@ -497,6 +500,9 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                 tempAttacker.speedInputValue = tempAttacker.speedStat.final.toString();
             }
         }
+        if (updates.ability !== undefined && updates.ability !== currentAttacker.ability) { // ★ 特性変更時
+            tempAttacker.abilityUiFlags = {}; // ★ abilityUiFlags をリセット
+        }
     }
 
     if (updates.ability !== undefined) {
@@ -518,6 +524,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
             tempAttacker.quarkDriveBoostedStat = null;
             tempAttacker.quarkDriveManualTrigger = false;
         }
+        // ここで abilityUiFlags のリセットは、ポケモン変更がない場合のelseブロックで処理済み
     }
 
     if (updates.move !== undefined && updates.move?.id !== currentAttacker.move?.id) {
@@ -531,7 +538,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
             tempAttacker.starstormDeterminedCategory = null;
         }
         if (updates.move?.id !== "photongeyser") {
-            tempAttacker.photonGeyserDeterminedCategory = null;
+            tempAttacker.photonGeyserDeterminedCategory = null; // ★ リセット
         }
         const newMove = updates.move;
         if (newMove && typeof newMove.multihit === 'number' && newMove.multihit > 1) {
@@ -573,7 +580,8 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
        pokemon, teraType: null, isStellar: false, move: null, item: null,
       ability: initialAbilityForNewPokemon,
       effectiveMove: null, starstormDeterminedCategory: null,
-      photonGeyserDeterminedCategory: null,
+      photonGeyserDeterminedCategory: null, // ★ リセット
+      abilityUiFlags: {}, // ★ ポケモン変更で特性が変わる可能性があるのでリセット
       loadedMoves: null,
      });
   };
@@ -587,7 +595,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
   };
   const handleItemChange = (item: Item | null, index: number) => updateAttackerState(index, { item });
   const handleAbilityChange = (ability: Ability | null, index: number) => {
-    updateAttackerState(index, { ability });
+    updateAttackerState(index, { ability, abilityUiFlags: {} }); // ★ 特性変更時に abilityUiFlags をリセット
   };
 
   const handleProtosynthesisBoostedStatChange = (stat: ProtosynthesisBoostTarget | null, attackerIndex: number) => {
@@ -801,7 +809,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                                         attacker.isEnabled;
 
       const showPhotonGeyserCategoryInfo = attacker.move?.id === "photongeyser" &&
-                                          attacker.photonGeyserDeterminedCategory &&
+                                          attacker.photonGeyserDeterminedCategory && // ★ attacker.photonGeyserDeterminedCategory を参照
                                           attacker.isEnabled;
 
 
@@ -1258,6 +1266,32 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
               />
             </div>
           </div>
+          {/* ★ 特性固有UIのレンダリング */}
+          {attacker.ability?.uiTriggers && attacker.isEnabled && attacker.pokemon && (
+            <div className="mt-3 p-3 bg-gray-700/50 rounded-md space-y-2">
+              <h5 className="text-sm font-semibold text-gray-300 mb-1">{attacker.ability.name} 追加設定</h5>
+              {attacker.ability.uiTriggers.map(trigger => (
+                <div key={trigger.key}>
+                  {trigger.type === 'checkbox' && (
+                    <label htmlFor={`ability-flag-${index}-${trigger.key}`} className="flex items-center text-xs text-gray-200 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        id={`ability-flag-${index}-${trigger.key}`}
+                        checked={!!attacker.abilityUiFlags?.[trigger.key]}
+                        onChange={(e) => {
+                          const newFlags = { ...(attacker.abilityUiFlags || {}), [trigger.key]: e.target.checked };
+                          updateAttackerState(index, { abilityUiFlags: newFlags });
+                        }}
+                        className="w-3.5 h-3.5 rounded border-gray-500 bg-gray-800 text-blue-500 mr-1.5 focus:ring-blue-500 focus:ring-offset-gray-900"
+                      />
+                      {trigger.label}
+                    </label>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
 
           {isProtosynthesisSelected && (
             <div className="mt-4 p-3 bg-gray-700 ">

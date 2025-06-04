@@ -268,6 +268,8 @@ export interface AttackerState {
   quarkDriveManualTrigger: boolean;
   moveUiOptionStates: { [key: string]: boolean }; // 技固有UIオプションの状態
   loadedMoves?: (Move | null)[] | null; // ★ チーム
+  abilityUiFlags: { [key: string]: boolean }; // ★追加: 特性固有UIの状態 (例: { 'guts_active': true })
+  photonGeyserDeterminedCategory: MoveCategory | null; // ★ 
 }
 
 export interface DefenderState {
@@ -326,11 +328,18 @@ export interface TeamMemberForDefenderLoad {
   quarkDriveManualTrigger?: boolean;
 }
 
+export interface AbilityUiTrigger {
+  key: string; // AttackerStateのabilityUiFlagsのキーと対応 (例: 'guts_active')
+  label: string; // チェックボックスのラベル
+  type: 'checkbox'; // 現状はチェックボックスのみ想定
+}
+
 export interface Ability {
   id: string;
   name: string;
   description: string;
   side: 'attacker' | 'defender' | 'both';
+  uiTriggers?: AbilityUiTrigger[]; // ★追加
 }
 
 export type StatType = 'hp' | 'attack' | 'defense' | 'specialAttack' | 'specialDefense' | 'speed' | null;

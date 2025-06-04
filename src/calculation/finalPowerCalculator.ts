@@ -39,7 +39,12 @@ const powerCorrectionEffects: {
     q12Value: number;
     condition: (ctx: EffectContext) => boolean;
 }[] = [
-
+    {
+        id: 'technician',
+        name: 'テクニシャン',
+        q12Value: 6144, // 1.5倍
+        condition: (ctx) => ctx.attackerAbility?.id === 'technician' && ctx.basePowerForTechnician <= 60
+    },
     {
         id: 'skin_ability',
         name: 'スキン系特性',
@@ -71,18 +76,6 @@ const powerCorrectionEffects: {
         condition: (ctx) => ctx.attackerAbility?.id === 'punk_rock' && ctx.move.isSoundBased
     },
     {
-        id: 'Sharpness',
-        name: 'きれあじ',
-        q12Value: 6144,
-        condition: (ctx) => ctx.attackerAbility?.id === 'sharpness' && ctx.move.isSlash 
-    },  
-    {
-        id: 'technician',
-        name: 'テクニシャン',
-        q12Value: 6144, // 1.5倍
-        condition: (ctx) => ctx.attackerAbility?.id === 'technician' && ctx.basePowerForTechnician <= 60
-    },
-    {
         id: 'strong_jaw',
         name: 'がんじょうあご',
         q12Value: 6144,
@@ -103,8 +96,8 @@ const powerCorrectionEffects: {
     {
         id: 'choice_band_specs',
         name: 'ハチマキ・メガネ類',
-        q12Value: 6144,
-        condition: (ctx) => (ctx.attackerItem?.id === 'choice_band' && ctx.move.category === 'physical') || (ctx.attackerItem?.id === 'choice_specs' && ctx.move.category === 'special')
+        q12Value: 4505,
+        condition: (ctx) => (ctx.attackerItem?.id === 'muscleband' && ctx.move.category === 'physical') || (ctx.attackerItem?.id === 'wiseglasses' && ctx.move.category === 'special')
     },
     {
         id: 'type_enhancing_item',

@@ -1,21 +1,19 @@
+// calculation/finalAttackCalculator.ts
 import { Ability, Item, DisasterState, MoveCategory, PokemonType, ProtosynthesisBoostTarget, QuarkDriveBoostTarget, Weather, Field } from '../types';
 
-function applyMultiplierAndRound(currentValue: number, multiplier: number): number {
-    const result = (currentValue * multiplier) / 4096;
-    return Math.round(result);
-}
-
+// multiplyByQ12AndRound は Q12 形式の乗数を適用し、結果を丸める関数
 function multiplyByQ12AndRound(baseValue: number, q12Multiplier: number): number {
-    if (q12Multiplier === 4096) {
+    if (q12Multiplier === 4096) { // 1倍なら何もしない
         return baseValue;
     }
     const intermediateA = baseValue * q12Multiplier;
     let resultB = Math.floor(intermediateA / 4096);
-    if ((intermediateA % 4096) > 2048) {
+    if ((intermediateA % 4096) > 2048) { // 五捨五超入 (0.5より大きい場合切り上げ)
         resultB += 1;
     }
     return resultB;
 }
+
 
 export const calculateFinalAttack = (
     baseAttack: number, // ランク補正済み実数値
@@ -25,115 +23,142 @@ export const calculateFinalAttack = (
     moveCategory: MoveCategory,
     moveType: PokemonType,
     disasters: DisasterState,
-    // こだいかっせい関連引数
     isAttackerProtosynthesisActive: boolean,
     attackerProtosynthesisBoostedStat: ProtosynthesisBoostTarget | null,
-    // クォークチャージ関連引数
     isAttackerQuarkDriveActive: boolean,
     attackerQuarkDriveBoostedStat: QuarkDriveBoostTarget | null,
     weather: Weather,
-    field: Field
+    field: Field,
+    abilityUiFlags?: { [key: string]: boolean }
 ): number => {
     let attackMultiplier = 4096; // 初期値は4096 (1倍)
 
-    // 1. わざわいの影響 (場の効果)
-    if (disasters.vessel && moveCategory === 'special' && attackerAbility?.id !== 'vessel_of_ruin') { // わざわいのうつわ所有者は影響なし
-        attackMultiplier = applyMultiplierAndRound(attackMultiplier, 3072); // 0.75倍
+    // 1. わざわいの影響 (場の効果で、攻撃側のステータスが下がるもの)
+    // これらの補正は攻撃ステータスにかかるため、ここで処理
+    if (disasters.vessel && moveCategory === 'special' && attackerAbility?.id !== 'vessel_of_ruin') {
+        attackMultiplier = multiplyByQ12AndRound(attackMultiplier, 3072); // 0.75倍
     }
-    if (disasters.talisman && moveCategory === 'physical' && attackerAbility?.id !== 'tablet_of_ruin') { // わざわいのおふだ所有者は影響なし
-        attackMultiplier = applyMultiplierAndRound(attackMultiplier, 3072); // 0.75倍
+    if (disasters.talisman && moveCategory === 'physical' && attackerAbility?.id !== 'tablet_of_ruin') {
+        attackMultiplier = multiplyByQ12AndRound(attackMultiplier, 3072); // 0.75倍
     }
 
     // 2. 攻撃側の特性による補正
     if (attackerAbility) {
         // こだいかっせい
         if (isAttackerProtosynthesisActive && attackerAbility.id === 'protosynthesis') {
-            if (attackerProtosynthesisBoostedStat === 'attack' && moveCategory === 'physical') {
-                attackMultiplier = applyMultiplierAndRound(attackMultiplier, 5325); // 1.3倍 (4096 * 1.3 = 5324.8 -> 5325)
-            } else if (attackerProtosynthesisBoostedStat === 'specialAttack' && moveCategory === 'special') {
-                attackMultiplier = applyMultiplierAndRound(attackMultiplier, 5325); // 1.3倍
+            if ((attackerProtosynthesisBoostedStat === 'attack' && moveCategory === 'physical') ||
+                (attackerProtosynthesisBoostedStat === 'specialAttack' && moveCategory === 'special')) {
+                attackMultiplier = multiplyByQ12AndRound(attackMultiplier, 5325); // 1.3倍
             }
         }
 
         // クォークチャージ
         if (isAttackerQuarkDriveActive && attackerAbility.id === 'quark_drive') {
-            if (attackerQuarkDriveBoostedStat === 'attack' && moveCategory === 'physical') {
-                attackMultiplier = applyMultiplierAndRound(attackMultiplier, 5325); // 1.3倍 (4096 * 1.3 = 5324.8 -> 5325)
-            } else if (attackerQuarkDriveBoostedStat === 'specialAttack' && moveCategory === 'special') {
-                attackMultiplier = applyMultiplierAndRound(attackMultiplier, 5325); // 1.3倍
+            if ((attackerQuarkDriveBoostedStat === 'attack' && moveCategory === 'physical') ||
+                (attackerQuarkDriveBoostedStat === 'specialAttack' && moveCategory === 'special')) {
+                attackMultiplier = multiplyByQ12AndRound(attackMultiplier, 5325); // 1.3倍
             }
         }
 
-        // 他の攻撃上昇特性をここに追加
-switch (attackerAbility.id) {
+        switch (attackerAbility.id) {
             case 'guts':
+                if (abilityUiFlags?.['guts_active'] && moveCategory === 'physical') {
+                    attackMultiplier = multiplyByQ12AndRound(attackMultiplier, 6144); // 1.5倍
+                }
+                break;
+            case 'torrent':
+                if (abilityUiFlags?.['hp_condition_active'] && moveType === PokemonType.Water) {
+                    attackMultiplier = multiplyByQ12AndRound(attackMultiplier, 6144); // 1.5倍
+                }
+                break;
+            case 'overgrow':
+                if (abilityUiFlags?.['hp_condition_active'] && moveType === PokemonType.Grass) {
+                    attackMultiplier = multiplyByQ12AndRound(attackMultiplier, 6144); // 1.5倍
+                }
+                break;
+            case 'blaze':
+                if (abilityUiFlags?.['hp_condition_active'] && moveType === PokemonType.Fire) {
+                    attackMultiplier = multiplyByQ12AndRound(attackMultiplier, 6144); // 1.5倍
+                }
+                break;
+            case 'swarm':
+                if (abilityUiFlags?.['hp_condition_active'] && moveType === PokemonType.Bug) {
+                    attackMultiplier = multiplyByQ12AndRound(attackMultiplier, 6144); // 1.5倍
+                }
+                break;
+            case 'flashfire':
+                if (abilityUiFlags?.['flash_fire_boost'] && moveType === PokemonType.Fire) {
+                    attackMultiplier = multiplyByQ12AndRound(attackMultiplier, 6144); // 1.5倍
+                }
+                break;
+            case 'solarpower':
+                if ((weather === 'sun' || weather === 'harsh_sunlight') && moveCategory === 'special') {
+                    attackMultiplier = multiplyByQ12AndRound(attackMultiplier, 6144); // 1.5倍
+                }
+                break;
+            case 'rockypayload':
+                if (moveType === PokemonType.Rock) {
+                    attackMultiplier = multiplyByQ12AndRound(attackMultiplier, 6144); // 1.5倍
+                }
+                break;
+            case 'steelworker':
+                if (moveType === PokemonType.Steel) {
+                    attackMultiplier = multiplyByQ12AndRound(attackMultiplier, 6144); // 1.5倍
+                }
+                break;
+            case 'gorillatactics':
+                if (moveCategory === 'physical') {
+                    attackMultiplier = multiplyByQ12AndRound(attackMultiplier, 6144); // 1.5倍
+                }
+                break;
+            case 'dragonsmaw':
+                if (moveType === PokemonType.Dragon) {
+                    attackMultiplier = multiplyByQ12AndRound(attackMultiplier, 6144); // 1.5倍
+                }
                 break;
             case 'transistor':
-                // トランジスタ: でんきタイプの攻撃技を使うとき、攻撃/特攻が1.3倍 (5325/4096)
-                if (moveType === PokemonType.Electric) { // PokemonType.Electric を使用 (types.ts の enum と比較)
-                    attackMultiplier = applyMultiplierAndRound(attackMultiplier, 5325);
+                if (moveType === PokemonType.Electric) {
+                    attackMultiplier = multiplyByQ12AndRound(attackMultiplier, 5325); // 1.3倍
                 }
                 break;
-
             case 'hadronengine':
-                // ハドロンエンジン: 場がエレキフィールド状態の間、特攻が4/3倍 (5461/4096)
-                if (moveCategory === 'special' && field === Field.Electric) { // Field.Electric を使用 (types.ts の enum と比較)
-                    attackMultiplier = applyMultiplierAndRound(attackMultiplier, 5461);
+                if (moveCategory === 'special' && field === Field.Electric) {
+                    attackMultiplier = multiplyByQ12AndRound(attackMultiplier, 5461); // 4/3倍
                 }
                 break;
-
             case 'orichalcumpulse':
-                // ひひいろのこどう: 場がにほんばれ状態の間、攻撃が4/3倍 (5461/4096)
-                // types.ts の Weather 型定義に合わせて 'sun' と 'harsh_sunlight' をチェック
                 if (moveCategory === 'physical' && (weather === 'sun' || weather === 'harsh_sunlight')) {
-                    attackMultiplier = applyMultiplierAndRound(attackMultiplier, 5461);
+                    attackMultiplier = multiplyByQ12AndRound(attackMultiplier, 5461); // 4/3倍
                 }
                 break;
         }
     }
 
-    // 3. 防御側の特性による補正
+    // 3. 防御側の特性による補正 (攻撃側の攻撃ステータスに影響を与えるもの)
+    //    例: フラワーギフト (味方にかかる効果で、攻撃側のステータスを上げるもの)
+    //    今回は攻撃側の攻撃力を直接下げる防御側特性はリストにないため、このセクションは空。
+    //    厚い脂肪などはM値や技威力補正で処理されることが多い。
     if (defenderAbility) {
-        switch (defenderAbility.id) {
-            case 'thick fat':
-                if (moveType === 'fire' || moveType === 'ice') {
-                    attackMultiplier = applyMultiplierAndRound(attackMultiplier, 2048); // 0.5倍
-                }
-                break;
-            case 'heatproof':
-                if (moveType === 'fire') {
-                    attackMultiplier = applyMultiplierAndRound(attackMultiplier, 2048); // 0.5倍
-                }
-                break;
-            case 'water bubble':
-                if (moveType === 'fire') {
-                    attackMultiplier = applyMultiplierAndRound(attackMultiplier, 2048); // 0.5倍
-                }
-                break;
-            case 'purifying salt':
-                if (moveType === 'ghost') {
-                    attackMultiplier = applyMultiplierAndRound(attackMultiplier, 2048); // 0.5倍
-                }
-                break;
-        }
+        // switch (defenderAbility.id) {
+        //   // 例: ふしぎなうろこ (防御側が状態異常のとき防御1.5倍 -> finalDefenseCalculatorで処理)
+        // }
     }
+
 
     // 4. 攻撃側のアイテムによる補正
     if (attackerItem) {
-        switch (attackerItem.name) {
-            case 'こだわりハチマキ':
-                if (moveCategory === 'physical') {
-                    attackMultiplier = applyMultiplierAndRound(attackMultiplier, 6144);
-                }
-                break;
-            case 'こだわりメガネ':
-                if (moveCategory === 'special') {
-                    attackMultiplier = applyMultiplierAndRound(attackMultiplier, 6144);
-                }
-                break;
+        // アイテムIDで比較するのがより堅牢
+        if (attackerItem.id === 'choiceband' && moveCategory === 'physical') {
+            attackMultiplier = multiplyByQ12AndRound(attackMultiplier, 6144); // 1.5倍
+        } else if (attackerItem.id === 'choicespecs' && moveCategory === 'special') {
+            attackMultiplier = multiplyByQ12AndRound(attackMultiplier, 6144); // 1.5倍
         }
+        // ちからのハチマキ、ものしりメガネなどもここに (威力補正ではなくステータス補正の場合)
+        // いのちのたまの攻撃1.3倍は、ダメージ計算の最終補正(M値)で処理されることが多い
     }
 
+    // 最後に、元の攻撃力に全ての倍率を適用
     const finalAttack = multiplyByQ12AndRound(baseAttack, attackMultiplier);
-    return finalAttack;
+
+    return Math.max(1, finalAttack); // 攻撃力は最低1
 };
