@@ -334,15 +334,15 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
     <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
       <div className="bg-gray-800 rounded-lg shadow-xl w-full max-w-md max-h-[85vh] overflow-y-auto relative text-[12px]">
         {/* モーダルヘッダー */}
-        <div className="flex justify-between items-center mb-2 sticky top-0 bg-gray-800 py-1 -mx-1 sm:-mx-2 px-1 sm:px-2 border-b border-gray-700 z-10">
-          <h2 className="text-lg font-semibold text-white">ポケモン編集</h2>
+        <div className="flex justify-between items-center mb-1 sticky top-0 bg-gray-800 py-1 -mx-1 sm:-mx-1 px-1 sm:px-1 border-b border-gray-700 z-10">
+          <h6 className="text-lg font-semibold text-white">ポケモン編集</h6>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* ポケモン、レベル */}
-        <div className="grid grid-cols-[1fr_70px] gap-x-1.5 mb-2">
+        <div className="grid grid-cols-[1fr_70px] gap-x-1 mb-1">
           <div>
             <label className="block text-gray-300 text-[10px] font-bold mb-0.5">ポケモン</label>
             <Select classNamePrefix="react-select" options={pokemonOptions} value={pokemonOptions.find(opt => opt.value === editedMember.pokemon.id)} onChange={handlePokemonChange} placeholder="ポケモン" isClearable={false} styles={selectStylesSlightlyLessCompressed}/>
@@ -353,8 +353,8 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
           </div>
         </div>
         {/* わざ */}
-        <div className="mb-2">
-          <h3 className="text-sm font-semibold mb-1 text-white">わざ</h3>
+        <div className="mb-1">
+          <label className="block text-gray-300 text-[10px] font-bold mb-0.5">わざ</label>
           <div className="space-y-1">
             {[0, 1, 2, 3].map((index) => (
               <div key={index}> <Select classNamePrefix="react-select" options={moveOptions} value={editedMember.moves[index] ? moveOptions.find(opt => opt.value === editedMember.moves[index]?.nameEn) : null} onChange={(selectedOption) => handleMoveChange(index, selectedOption)} isClearable placeholder={`わざ${index + 1}`} styles={selectStylesSlightlyLessCompressed}/> </div>
@@ -362,7 +362,7 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
           </div>
         </div>
         {/* 持ち物、とくせい */}
-        <div className="grid grid-cols-2 gap-x-1.5 mb-2">
+        <div className="grid grid-cols-2 gap-x-1.5 mb-1">
           <div>
             <label className="block text-gray-300 text-[10px] font-bold mb-0.5">持ち物</label>
             <Select classNamePrefix="react-select" options={itemOptions} value={editedMember.item ? itemOptions.find(opt => opt.value === editedMember.item?.nameEn) : null} onChange={handleItemChange} isClearable placeholder="なし" styles={selectStylesSlightlyLessCompressed}/>
@@ -373,7 +373,7 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
           </div>
         </div>
         {/* テラス、性格 */}
-        <div className="grid grid-cols-2 gap-x-1.5 mb-2.5">
+        <div className="grid grid-cols-2 gap-x-1.5 mb-2">
           <div>
             <label className="block text-gray-300 text-[10px] font-bold mb-0.5">テラス</label>
             <Select classNamePrefix="react-select" options={PokemonTypeOptions} value={PokemonTypeOptions.find(opt => opt.value === editedMember.teraType)} onChange={handleTeraTypeChange} placeholder="テラスタイプ" styles={selectStylesSlightlyLessCompressed}/>
@@ -384,7 +384,7 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
           </div>
         </div>
 
-        <div className="mb-2.5">
+        <div className="mb-2">
           <h3 className="text-sm font-semibold mb-1 text-white">努力値 (残: {remainingEvs})</h3>
           <div className="space-y-0.5">
             {statKeys.map(stat => {
@@ -440,7 +440,7 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
           </div>
         </div>
         
-          {/* 保存・キャンセル・コピーボタン */}
+        {/* 保存・キャンセル・コピーボタン */}
         <div className="flex justify-end sticky bottom-0 gap-3 bg-gray-800 py-1 -mx-1 sm:-mx-1 px-1 sm:px-1 border-t border-gray-700 z-10">
           <button 
             onClick={handleCopyToClipboardCurrentMember} 
