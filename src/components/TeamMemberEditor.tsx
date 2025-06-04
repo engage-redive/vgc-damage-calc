@@ -331,8 +331,8 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
 
 
   return (
-    <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-1 sm:p-2">
-      <div className="bg-gray-800 p-2 sm:p-3 rounded-lg shadow-xl w-full max-w-md max-h-[85vh] overflow-y-auto relative text-[11px]">
+    <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-1 sm:p-1">
+      <div className="bg-gray-800 p-1 sm:p-1 rounded-lg shadow-xl w-full max-w-md max-h-[86vh] overflow-y-auto relative text-[11px]">
         {/* モーダルヘッダー */}
         <div className="flex justify-between items-center mb-2 sticky top-0 bg-gray-800 py-1.5 -mx-2 sm:-mx-3 px-2 sm:px-3 border-b border-gray-700 z-10">
           <h2 className="text-lg font-semibold text-white">ポケモン編集</h2>
@@ -441,7 +441,7 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
         </div>
         
         {/* 保存・キャンセル・コピーボタン */}
-        <div className="mt-3 flex justify-end space-x-1.5 sticky bottom-0 bg-gray-800 py-1.5 -mx-2 sm:-mx-3 px-2 sm:px-3 border-t border-gray-700 z-10">
+        <div className="mt-1 flex justify-end sticky bottom-0 bg-gray-800 py-1 -mx-1 sm:-mx-1 px-1 sm:px-1 border-t border-gray-700 z-10">
           <button 
             onClick={handleCopyToClipboardCurrentMember} 
             className="flex items-center gap-1 px-2.5 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded text-[11px] font-medium"
