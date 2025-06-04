@@ -331,10 +331,10 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
 
 
   return (
-    <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-1 sm:p-1">
-      <div className="bg-gray-800 p-1 sm:p-1 rounded-lg shadow-xl w-full max-w-md max-h-[86vh] overflow-y-auto relative text-[11px]">
+    <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+      <div className="bg-gray-800 rounded-lg shadow-xl w-full max-w-md max-h-[85vh] overflow-y-auto relative text-[12px]">
         {/* モーダルヘッダー */}
-        <div className="flex justify-between items-center mb-2 sticky top-0 bg-gray-800 py-1.5 -mx-2 sm:-mx-3 px-2 sm:px-3 border-b border-gray-700 z-10">
+        <div className="flex justify-between items-center mb-2 sticky top-0 bg-gray-800 py-1 -mx-1 sm:-mx-2 px-1 sm:px-2 border-b border-gray-700 z-10">
           <h2 className="text-lg font-semibold text-white">ポケモン編集</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
             <X className="h-5 w-5" />
