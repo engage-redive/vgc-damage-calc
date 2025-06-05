@@ -495,7 +495,7 @@ const TeamMemberEditor: React.FC<TeamMemberEditorProps> = ({
               }
 
               return (
-                <div key={stat} className="grid grid-cols-[20px_40px_1fr_18px] items-center gap-x-2 py-1.5">
+                <div key={stat} className="grid grid-cols-[20px_32px_1fr_20px] items-center gap-x-2 py-0.5 mr-2">
                   <label className="text-gray-300 text-[10px] font-medium whitespace-nowrap pr-0.5 text-center">
                     {getStatLabelWithNature(stat, editedMember.nature)}
                   </label>
