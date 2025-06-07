@@ -1,0 +1,27 @@
+{
+  "name": "VGCダメージ計算器",
+  "short_name": "VGC.calc",
+  "icons": [
+    {
+      "src": "/icon/ultraball.png",  // パスを修正
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon/ultraball.png",  // パスを修正
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+    // 必要であれば、他のサイズのアイコンや目的（例: "purpose": "maskable"）もここに追加できます。
+    // 例えば、小さいサイズのアイコンも指定する場合:
+    // {
+    //   "src": "/icon/ultraball.png",
+    //   "type": "image/png",
+    //   "sizes": "64x64"
+    // }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000"
+}
