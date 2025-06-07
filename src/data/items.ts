@@ -11,7 +11,7 @@ export const items: Item[] = [
   },
     },
   {
-    id: "choice Band",
+    id: "choiceband",
     name: "こだわりハチマキ",
     nameEn: "Choice Band",
     effect: {
