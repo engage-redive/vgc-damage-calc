@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Move, PokemonType } from '../types'; // パスをプロジェクトに合わせて調整
 import { Search, X } from 'lucide-react';
+import { getTypeColor, getTypeNameJp } from '../utils/uiHelpers'; 
 
 // Helper function to convert Katakana to Hiragana
 const toHiragana = (str: string): string => {
@@ -11,30 +12,7 @@ const toHiragana = (str: string): string => {
   });
 };
 
-// 日本語のタイプ名と色の定義
-const TYPE_NAME_JP: Record<string, string> = {
-  normal: 'ノーマル', fire: 'ほのお', water: 'みず', electric: 'でんき', grass: 'くさ', ice: 'こおり',
-  fighting: 'かくとう', poison: 'どく', ground: 'じめん', flying: 'ひこう', psychic: 'エスパー', bug: 'むし',
-  rock: 'いわ', ghost: 'ゴースト', dragon: 'ドラゴン', dark: 'あく', steel: 'はがね', fairy: 'フェアリー',
-  stellar: 'ステラ',
-};
 
-const TYPE_COLORS: Record<string, string> = {
-  normal: '#A8A77A', fire: '#EE8130', water: '#6390F0', electric: '#F7D02C', grass: '#7AC74C', ice: '#96D9D6',
-  fighting: '#C22E28', poison: '#A33EA1', ground: '#E2BF65', flying: '#A98FF3', psychic: '#F95587', bug: '#A6B91A',
-  rock: '#B6A136', ghost: '#735797', dragon: '#6F35FC', dark: '#705746', steel: '#B7B7CE', fairy: '#D685AD',
-  stellar: '#7A7AE6',
-};
-
-const getTypeNameJp = (type: PokemonType | string): string => {
-  const typeKey = (typeof type === 'string' ? type.toLowerCase() : type.toString().toLowerCase()) as keyof typeof TYPE_NAME_JP;
-  return TYPE_NAME_JP[typeKey] || typeKey.toString();
-};
-
-const getTypeColor = (type: PokemonType | string): string => {
-  const typeKey = (typeof type === 'string' ? type.toLowerCase() : type.toString().toLowerCase()) as keyof typeof TYPE_COLORS;
-  return TYPE_COLORS[typeKey] || '#777777';
-};
 
 interface MoveSelectProps {
   moves: Move[];

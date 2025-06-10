@@ -28,13 +28,13 @@ export const abilities: Ability[] = [
   },
 
   {
-    id: 'iron fist',
+    id: 'ironfist',
     name: 'てつのこぶし',
     nameEn: 'Iron Fist',
     side: 'attacker'
   },
     {
-    id: 'sheer force',
+    id: 'sheerforce',
     name: 'ちからずく',
     nameEn: 'Sheer Force',
     side: 'attacker'
@@ -90,12 +90,6 @@ export const abilities: Ability[] = [
   id: 'sharpness',
   name: 'きれあじ',
   nameEn: 'Sharpness',
-  side: 'attacker',
-},
-{
-  id: 'punk_rock',
-  name: 'パンクロック',
-  nameEn: 'Punk Rock',
   side: 'attacker',
 },
 {
@@ -715,11 +709,6 @@ export const abilities: Ability[] = [
     nameEn: 'Iron Barbs'
   },
   {
-    id: 'ironfist',
-    name: 'てつのこぶし',
-    nameEn: 'Iron Fist'
-  },
-  {
     id: 'justified',
     name: 'せいぎのこころ',
     nameEn: 'Justified'
@@ -1214,11 +1203,6 @@ export const abilities: Ability[] = [
     id: 'shedskin',
     name: 'だっぴ',
     nameEn: 'Shed Skin'
-  },
-  {
-    id: 'sheerforce',
-    name: 'ちからずく',
-    nameEn: 'Sheer Force'
   },
   {
     id: 'shellarmor',

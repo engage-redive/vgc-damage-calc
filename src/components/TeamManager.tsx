@@ -1,31 +1,14 @@
+// src/components/TeamManager.tsx
+
 import React, { useState, useEffect } from 'react';
-import { Pokemon, Move, Item, Ability, PokemonType } from '../types';
+import { Pokemon, Move, Item, Ability, PokemonType, TeamMemberForAttackerLoad, TeamMemberForDefenderLoad } from '../types';
 import { Nature } from '../data/natures';
-// ClipboardCopy アイコンを追加
-import { Plus, X, Copy as CopyIcon, FileDown, FileUp, UploadCloud, SendToBack, Send, ArrowLeft, ClipboardCopy } from 'lucide-react';
+import { Plus, X, Copy as CopyIcon, UploadCloud, ArrowLeft } from 'lucide-react';
 import TeamMemberCard from '../types/TeamMemberCard';
 import TeamMemberEditor from './TeamMemberEditor';
-import { TeamMemberForDefenderLoad, TeamMemberForAttackerLoad } from '../App';
-
-// TeamMember 型定義 (TeamMemberCard.tsx と Nature 型を natures.ts のものに合わせる)
-interface TeamMember {
-  id: string;
-  pokemon: Pokemon;
-  level: number;
-  item: Item | null;
-  ability: Ability | null;
-  teraType: PokemonType;
-  nature: Nature | null;
-  evs: { hp: number; attack: number; defense: number; specialAttack: number; specialDefense: number; speed: number; };
-  ivs: { hp: number; attack: number; defense: number; specialAttack: number; specialDefense: number; speed: number; };
-  moves: (Move | null)[];
-}
-
-interface Team {
-  id: string;
-  name: string;
-  members: TeamMember[];
-}
+import { TeamMember, Team, useTeamStore } from '../stores/teamStore';
+import { useAttackerStore } from '../stores/attackerStore';
+import { useDefenderStore } from '../stores/defenderStore';
 
 interface TeamManagerProps {
   pokemon: Pokemon[];
@@ -33,86 +16,50 @@ interface TeamManagerProps {
   items: Item[];
   abilities: Ability[];
   natures: Nature[];
-  onLoadAsDefender?: (member: TeamMemberForDefenderLoad) => void;
-  onLoadAsAttacker?: (member: TeamMemberForAttackerLoad) => void;
 }
 
 type View = 'list' | 'editTeam';
 
-// Helper function to capitalize first letter of a string
 const capitalize = (s: string) => {
   if (typeof s !== 'string' || s.length === 0) return '';
   return s.charAt(0).toUpperCase() + s.slice(1);
 };
 
-
 const TeamManager: React.FC<TeamManagerProps> = ({
-  pokemon, moves, items, abilities, natures, onLoadAsDefender, onLoadAsAttacker
+  pokemon, moves, items, abilities, natures
 }) => {
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+  const { teams, createTeam, deleteTeam, updateTeamName, addMemberToTeam, updateMemberInTeam, deleteMemberFromTeam } = useTeamStore();
+  const { loadFromTeamMember: loadAsAttacker } = useAttackerStore();
+  const { loadFromTeamMember: loadAsDefender } = useDefenderStore();
+
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [importText, setImportText] = useState('');
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [currentView, setCurrentView] = useState<View>('list');
   const [isNewMember, setIsNewMember] = useState(false);
+  
+  const selectedTeam = teams.find(t => t.id === selectedTeamId) || null;
 
   useEffect(() => {
-    try {
-      const savedTeams = localStorage.getItem('pokemonTeams');
-      if (savedTeams) {
-        const parsedTeams: Team[] = JSON.parse(savedTeams);
-        const hydratedTeams = parsedTeams.map(team => ({
-          ...team,
-          members: team.members.map(member => ({
-            ...member,
-            pokemon: pokemon.find(p => p.id === member.pokemon.id) || pokemon[0],
-            item: member.item ? items.find(i => i.nameEn === member.item!.nameEn) || null : null,
-            ability: member.ability ? abilities.find(a => a.nameEn === member.ability!.nameEn) || null : null,
-            nature: member.nature ? natures.find(n => n.nameEn === (member.nature as Nature).nameEn || n.name === (member.nature as Nature).name) || null : null,
-            moves: member.moves.map(m => m ? moves.find(mv => mv.nameEn === m!.nameEn || mv.name === m!.name) || null : null)
-          }))
-        }));
-        setTeams(hydratedTeams);
-        if (hydratedTeams.length === 0) {
-          const initialTeam: Team = { id: Date.now().toString(), name: 'チーム1', members: [] };
-          setTeams([initialTeam]);
-        }
-      } else {
-        const initialTeam: Team = { id: Date.now().toString(), name: 'チーム1', members: [] };
-        setTeams([initialTeam]);
-      }
-    } catch (error) {
-      console.error("localStorage からチームの読み込みに失敗しました:", error);
-      const initialTeam: Team = { id: Date.now().toString(), name: 'チーム1', members: [] };
-      setTeams([initialTeam]);
+    if (useTeamStore.getState().hydrated && teams.length === 0) {
+      createTeam();
     }
-  }, [pokemon, moves, items, abilities, natures]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('pokemonTeams', JSON.stringify(teams));
-    } catch (error)
-{
-      console.error("localStorage へのチームの保存に失敗しました:", error);
-    }
-  }, [teams]);
+  }, [teams, createTeam]);
 
   const handleCreateTeam = () => {
-    const newTeamId = Date.now().toString();
-    const newTeam: Team = { id: newTeamId, name: `チーム ${teams.length + 1}`, members: [] };
-    setTeams([...teams, newTeam]);
-    setSelectedTeam(newTeam);
+    const newTeamId = createTeam();
+    setSelectedTeamId(newTeamId);
     setCurrentView('editTeam');
   };
 
   const handleSelectTeam = (team: Team) => {
-    setSelectedTeam(team);
+    setSelectedTeamId(team.id);
     setCurrentView('editTeam');
   };
 
   const handleReturnToList = () => {
     setCurrentView('list');
-    setSelectedTeam(null);
+    setSelectedTeamId(null);
   };
 
   const statShorthandToKey = (shorthand: string): keyof TeamMember['evs'] | null => {
@@ -187,68 +134,34 @@ const TeamManager: React.FC<TeamManagerProps> = ({
       const firstAbilityName = resolvedPokemon.abilities[0];
       resolvedAbility = abilities.find(a => (a.nameEn || '').toLowerCase() === firstAbilityName.toLowerCase()) || abilities.find(a => a.name.toLowerCase() === firstAbilityName.toLowerCase()) || null;
     }
-    const resolvedNature = parsedNatureNameEnOrJp
-        ? natures.find(n =>
-            n.name.toLowerCase() === parsedNatureNameEnOrJp!.toLowerCase() ||
-            n.nameEn.toLowerCase() === parsedNatureNameEnOrJp!.toLowerCase() ||
-            n.name_jp.toLowerCase() === parsedNatureNameEnOrJp!.toLowerCase()
-          )
-        : null;
+    const resolvedNature = parsedNatureNameEnOrJp ? natures.find(n => n.name.toLowerCase() === parsedNatureNameEnOrJp!.toLowerCase() || n.nameEn.toLowerCase() === parsedNatureNameEnOrJp!.toLowerCase() || n.name_jp.toLowerCase() === parsedNatureNameEnOrJp!.toLowerCase()) : null;
     const resolvedMoves = parsedMoveNamesEnOrJp.map(name => moves.find(m => m.name.toLowerCase() === name.toLowerCase() || (m.nameEn || '').toLowerCase() === name.toLowerCase()) || null);
     while (resolvedMoves.length < 4) resolvedMoves.push(null);
     if (!parsedTeraType) parsedTeraType = resolvedPokemon.types[0];
 
-    return {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      pokemon: resolvedPokemon,
-      level: parsedLevel,
-      item: resolvedItem,
-      ability: resolvedAbility,
-      teraType: parsedTeraType!,
-      nature: resolvedNature,
-      evs: parsedEVs,
-      ivs: parsedIVs,
-      moves: resolvedMoves.slice(0, 4) as (Move | null)[],
-    };
+    return { id: `${Date.now()}-${Math.random()}`, pokemon: resolvedPokemon, level: parsedLevel, item: resolvedItem, ability: resolvedAbility, teraType: parsedTeraType!, nature: resolvedNature, evs: parsedEVs, ivs: parsedIVs, moves: resolvedMoves.slice(0, 4) as (Move | null)[] };
   };
 
   const handleParseAndAddMultipleMembers = () => {
-    if (!selectedTeam || importText.trim() === '') return;
+    if (!selectedTeamId || importText.trim() === '') return;
     const pokemonTexts = importText.split(/\n\n+/).filter(text => text.trim() !== '');
-    const newMembers: TeamMember[] = [];
-    const errors: string[] = [];
-
-    pokemonTexts.forEach((pokemonText, index) => {
-      const member = parseSinglePokemon(pokemonText);
-      if (member) newMembers.push(member);
-      else errors.push(`${index + 1}番目のポケモンの解析に失敗しました`);
-    });
-
-    if (errors.length > 0) alert(`以下のエラーが発生しました:\n${errors.join('\n')}`);
-
-    if (newMembers.length > 0) {
-      const remainingSlots = 6 - selectedTeam.members.length;
-      const membersToAdd = newMembers.slice(0, remainingSlots);
-      if (newMembers.length > remainingSlots) {
-        alert(`チームに空きがあるのは${remainingSlots}匹分です。最初の${remainingSlots}匹のみ追加されます。`);
+    pokemonTexts.forEach((text) => {
+      const member = parseSinglePokemon(text);
+      if (member) {
+        addMemberToTeam(selectedTeamId, member);
       }
-      const updatedTeam = { ...selectedTeam, members: [...selectedTeam.members, ...membersToAdd] };
-      setTeams(teams.map(team => team.id === selectedTeam.id ? updatedTeam : team));
-      setSelectedTeam(updatedTeam);
-      setImportText('');
-    }
+    });
+    setImportText('');
   };
 
   const createDefaultTeamMember = (): TeamMember => {
-    const defaultPokemon = pokemon[0] || { id: 0, name: '不明', nameEn: 'Unknown', types: ['normal' as PokemonType], abilities: [], baseStats: { hp:50, attack:50, defense:50, specialAttack:50, specialDefense:50, speed:50 } };
+    const defaultPokemon = pokemon[0];
     return {
       id: `new-${Date.now().toString()}`,
       pokemon: defaultPokemon,
-      level: 50,
-      item: null,
-      ability: null,
+      level: 50, item: null, ability: null,
       teraType: defaultPokemon.types[0] || 'normal',
-      nature: null,
+      nature: natures.find(n => n.name === 'がんばりや') || null,
       evs: { hp: 0, attack: 0, defense: 0, specialAttack: 0, specialDefense: 0, speed: 0 },
       ivs: { hp: 31, attack: 31, defense: 31, specialAttack: 31, specialDefense: 31, speed: 31 },
       moves: [null, null, null, null],
@@ -257,8 +170,7 @@ const TeamManager: React.FC<TeamManagerProps> = ({
 
   const handleAddNewMember = () => {
     if (!selectedTeam || selectedTeam.members.length >= 6) return;
-    const newMemberTemplate = createDefaultTeamMember();
-    setEditingMember(newMemberTemplate);
+    setEditingMember(createDefaultTeamMember());
     setIsNewMember(true);
   };
 
@@ -268,215 +180,87 @@ const TeamManager: React.FC<TeamManagerProps> = ({
   };
 
   const handleSaveEditedMember = (updatedMemberData: TeamMember) => {
-    if (!selectedTeam) return;
-    let finalMemberData = { ...updatedMemberData };
-    let updatedMembers;
+    if (!selectedTeamId) return;
     if (isNewMember) {
-      updatedMembers = [...selectedTeam.members, finalMemberData];
+      addMemberToTeam(selectedTeamId, updatedMemberData);
     } else {
-      updatedMembers = selectedTeam.members.map(m => (m.id === finalMemberData.id ? finalMemberData : m));
+      updateMemberInTeam(selectedTeamId, updatedMemberData);
     }
-    if (updatedMembers.length > 6) {
-        alert("チームメンバーは最大6匹までです。");
-        updatedMembers = updatedMembers.slice(0, 6);
-    }
-    const updatedTeam = { ...selectedTeam, members: updatedMembers };
-    setTeams(teams.map((team) => (team.id === selectedTeam.id ? updatedTeam : team)));
-    setSelectedTeam(updatedTeam);
     setEditingMember(null);
     setIsNewMember(false);
   };
-
+  
   const handleCloseEditor = () => {
     setEditingMember(null);
     setIsNewMember(false);
   };
 
   const handleSendToDefender = (member: TeamMember) => {
-    if (onLoadAsDefender && member.nature) {
-      const memberDataForDefenderLoad: TeamMemberForDefenderLoad = {
-        pokemon: member.pokemon, item: member.item, ability: member.ability, teraType: member.teraType,
-        nature: { nameEn: member.nature.nameEn }, evs: member.evs, ivs: member.ivs,
-      };
-      onLoadAsDefender(memberDataForDefenderLoad);
-    } else if (onLoadAsDefender) {
-        onLoadAsDefender({
-            pokemon: member.pokemon, item: member.item, ability: member.ability, teraType: member.teraType,
-            nature: null, evs: member.evs, ivs: member.ivs,
-        });
-    }
+    loadAsDefender(member);
+    // ▼▼▼ この2行を追加 ▼▼▼
+    const event = new CustomEvent('switchToDamageTab');
+    window.dispatchEvent(event);
   };
-
   const handleSendToAttacker = (member: TeamMember) => {
-    if (onLoadAsAttacker && member.nature) {
-      const memberDataForAttackerLoad: TeamMemberForAttackerLoad = {
-        pokemon: member.pokemon, item: member.item, ability: member.ability, teraType: member.teraType,
-        nature: { nameEn: member.nature.nameEn }, evs: member.evs, ivs: member.ivs,
-        moves: member.moves.slice(0, 4) as (Move | null)[], level: member.level,
-      };
-      onLoadAsAttacker(memberDataForAttackerLoad);
-    } else if (onLoadAsAttacker) {
-        onLoadAsAttacker({
-            pokemon: member.pokemon, item: member.item, ability: member.ability, teraType: member.teraType,
-            nature: null, evs: member.evs, ivs: member.ivs,
-            moves: member.moves.slice(0, 4) as (Move | null)[], level: member.level,
-        });
-    }
+    loadAsAttacker(member);
+    // ダメージ計算タブに切り替える
+    const event = new CustomEvent('switchToDamageTab');
+    window.dispatchEvent(event);
   };
 
   const handleDeleteMemberFromTeam = (memberId: string) => {
-    if (!selectedTeam) return;
-    const updatedMembers = selectedTeam.members.filter(m => m.id !== memberId);
-    const updatedTeam = { ...selectedTeam, members: updatedMembers };
-    setSelectedTeam(updatedTeam);
-    setTeams(teams.map(t => t.id === selectedTeam.id ? updatedTeam : t));
+    if (!selectedTeamId) return;
+    deleteMemberFromTeam(selectedTeamId, memberId);
   };
 
   const handleCopyToClipboard = (member: TeamMember) => {
     const { pokemon, item, ability, level, teraType, evs, nature, ivs, moves: memberMoves } = member;
-
     const statOrder: (keyof TeamMember['evs'])[] = ['hp', 'attack', 'defense', 'specialAttack', 'specialDefense', 'speed'];
-    const statShorthands: { [key in keyof TeamMember['evs']]: string } = {
-      hp: 'HP', attack: 'Atk', defense: 'Def',
-      specialAttack: 'SpA', specialDefense: 'SpD', speed: 'Spe'
-    };
-
+    const statShorthands: { [key in keyof TeamMember['evs']]: string } = { hp: 'HP', attack: 'Atk', defense: 'Def', specialAttack: 'SpA', specialDefense: 'SpD', speed: 'Spe' };
     const lines: string[] = [];
-
-    // Line 1: PokemonName @ ItemName
     let line1 = pokemon.nameEn || pokemon.name;
-    if (item) {
-      line1 += ` @ ${item.nameEn || item.name}`;
-    }
+    if (item) line1 += ` @ ${item.nameEn || item.name}`;
     lines.push(line1);
-
-    // Line 2: Ability: AbilityName
-    if (ability) {
-      lines.push(`Ability: ${ability.nameEn || ability.name}`);
-    }
-
-    // Line 3: Level: LevelValue
+    if (ability) lines.push(`Ability: ${ability.nameEn || ability.name}`);
     lines.push(`Level: ${level}`);
-
-    // Line 4: Tera Type: TeraTypeName
     lines.push(`Tera Type: ${capitalize(teraType)}`);
-
-    // Line 5: EVs
     const evStrings: string[] = [];
-    statOrder.forEach(stat => {
-      if (evs[stat] > 0) {
-        evStrings.push(`${evs[stat]} ${statShorthands[stat]}`);
-      }
-    });
-    if (evStrings.length > 0) {
-      lines.push(`EVs: ${evStrings.join(' / ')}`);
-    }
-
-    // Line 6: NatureName Nature
-    if (nature) {
-      lines.push(`${capitalize(nature.nameEn || nature.name)} Nature`);
-    }
-
-    // Line 7: IVs
+    statOrder.forEach(stat => { if (evs[stat] > 0) evStrings.push(`${evs[stat]} ${statShorthands[stat]}`); });
+    if (evStrings.length > 0) lines.push(`EVs: ${evStrings.join(' / ')}`);
+    if (nature) lines.push(`${capitalize(nature.nameEn || nature.name)} Nature`);
     const ivStrings: string[] = [];
-    statOrder.forEach(stat => {
-      if (ivs[stat] < 31) { // Showdown format typically shows IVs if they are NOT 31
-        ivStrings.push(`${ivs[stat]} ${statShorthands[stat]}`);
-      }
-    });
-    if (ivStrings.length > 0) {
-      lines.push(`IVs: ${ivStrings.join(' / ')}`);
-    }
-
-    // Line 8+: Moves
-    memberMoves.forEach(move => {
-      if (move) {
-        lines.push(`- ${move.nameEn || move.name}`);
-      }
-    });
-
-    const textToCopy = lines.join('\n');
-
-    navigator.clipboard.writeText(textToCopy)
-      .catch(err => {
-        console.error('クリップボードへのコピーに失敗しました:', err);
-        alert('クリップボードへのコピーに失敗しました。');
-      });
+    statOrder.forEach(stat => { if (ivs[stat] < 31) ivStrings.push(`${ivs[stat]} ${statShorthands[stat]}`); });
+    if (ivStrings.length > 0) lines.push(`IVs: ${ivStrings.join(' / ')}`);
+    memberMoves.forEach(move => { if (move) lines.push(`- ${move.nameEn || move.name}`); });
+    navigator.clipboard.writeText(lines.join('\n')).catch(err => console.error('クリップボードへのコピーに失敗しました:', err));
   };
-
 
   const renderTeamList = () => (
     <>
       <div className="flex justify-between items-center mb-6">
-        <div className="flex space-x-2">
-          <button
-            onClick={handleCreateTeam}
-            className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-sm"
-          >
-            <Plus className="h-4 w-4" />
-            新しいチーム
-          </button>
-        </div>
+        <button onClick={handleCreateTeam} className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-sm"><Plus className="h-4 w-4" />新しいチーム</button>
       </div>
-
       {teams.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-400 mb-4">チームがありません。自動的に「チーム1」が作成されます。</p>
-        </div>
+        <div className="text-center py-12"><p className="text-gray-400 mb-4">チームがありません。</p></div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {teams.map(team => (
-            <div
-              key={team.id}
-              className="bg-gray-800 rounded-lg p-3 border-2 border-gray-700 hover:border-blue-500 transition-colors cursor-pointer"
-              onClick={() => handleSelectTeam(team)}
-            >
+            <div key={team.id} className="bg-gray-800 rounded-lg p-3 border-2 border-gray-700 hover:border-blue-500 transition-colors cursor-pointer" onClick={() => handleSelectTeam(team)}>
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-md font-semibold truncate" title={team.name}>{team.name}</h3>
                 <div className="flex items-center space-x-1">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); alert('チーム全体のコピー機能は未実装です'); }} 
-                    className="p-1 hover:bg-gray-700 rounded-full transition-colors"
-                  >
-                    <CopyIcon className="h-3 w-3" /> 
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const newTeams = teams.filter(t => t.id !== team.id);
-                      setTeams(newTeams);
-                      if (newTeams.length === 0) {
-                        const newInitialTeam: Team = { id: Date.now().toString(), name: 'チーム1', members: [] };
-                        setTeams([newInitialTeam]);
-                        if (selectedTeam?.id === team.id) handleReturnToList();
-                      } else if (selectedTeam?.id === team.id) {
-                        setSelectedTeam(newTeams[0]);
-                        setCurrentView('list');
-                      }
-                    }}
-                    className="p-1 hover:bg-gray-700 rounded-full transition-colors text-red-500 hover:text-red-400"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); alert('チーム全体のコピー機能は未実装です'); }} className="p-1 hover:bg-gray-700 rounded-full transition-colors"><CopyIcon className="h-3 w-3" /></button>
+                  <button onClick={(e) => { e.stopPropagation(); deleteTeam(team.id); }} className="p-1 hover:bg-gray-700 rounded-full transition-colors text-red-500 hover:text-red-400"><X className="h-3 w-3" /></button>
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-1.5">
-                {team.members.slice(0, 6).map((member, index) => (
-                  <div key={member.id || index} className="relative aspect-square bg-gray-700 rounded overflow-hidden">
-                    <img
-                      src={`/icon/${member.pokemon.id.toString().padStart(3, '0')}.png`}
-                      alt={member.pokemon.name}
-                      className="w-full h-full object-contain"
-                    />
+                {team.members.slice(0, 6).map((member) => (
+                  <div key={member.id} className="relative aspect-square bg-gray-700 rounded overflow-hidden">
+                    <img src={`/icon/${member.pokemon.id.toString().padStart(3, '0')}.png`} alt={member.pokemon.name} className="w-full h-full object-contain"/>
                   </div>
                 ))}
                 {Array.from({ length: Math.max(0, 6 - team.members.length) }).map((_, index) => (
-                  <div
-                    key={`empty-${index}`}
-                    className="bg-gray-700 rounded aspect-square flex items-center justify-center"
-                  >
-                    <Plus className="h-5 w-5 text-gray-500" />
-                  </div>
+                  <div key={`empty-${index}`} className="bg-gray-700 rounded aspect-square flex items-center justify-center"><Plus className="h-5 w-5 text-gray-500" /></div>
                 ))}
               </div>
             </div>
@@ -485,7 +269,6 @@ const TeamManager: React.FC<TeamManagerProps> = ({
       )}
     </>
   );
-
 
   const renderTeamEdit = () => {
     if (!selectedTeam) return null;
@@ -503,83 +286,35 @@ const TeamManager: React.FC<TeamManagerProps> = ({
           <h2 className="text-xl font-bold">{selectedTeam.name}</h2>
           <div></div> {/* Spacer */}
         </div>
-
         {selectedTeam.members.length < 6 && (
           <div className="mb-6 p-4 bg-gray-800 rounded-lg">
             <h3 className="text-lg font-semibold mb-2">ポケモンをテキストで追加（最大6匹まで一度に追加可能）</h3>
-            <p className="text-sm text-gray-400 mb-3">
-              各ポケモンの情報を空行で区切ってください。複数匹を一度に追加できます。
-            </p>
+            <p className="text-sm text-gray-400 mb-3">各ポケモンの情報を空行で区切ってください。複数匹を一度に追加できます。</p>
             <textarea
               className="w-full h-40 p-3 bg-gray-700 border border-gray-600 rounded text-sm focus:ring-blue-500 focus:border-blue-500 font-mono"
-              placeholder={`複数匹の例（空行で区切る）:\n\nSquirtle @ Assault Vest\nLevel: 50\nAbility: Torrent\nTera Type: Water\nEVs: 252 HP / 4 Def / 252 SpA\nQuiet Nature\nIVs: 0 Atk\n- Water Gun\n- Ice Beam\n- Blizzard\n- Surf\n\nCharmander @ Life Orb\n...`}
+              placeholder={`複数匹の例（空行で区切る）:\n\nSquirtle @ Assault Vest\n...`}
               value={importText}
               onChange={(e) => setImportText(e.target.value)}
             />
             <div className="flex justify-between items-center mt-3">
-              <p className="text-xs text-gray-500">
-                残り追加可能数: {6 - selectedTeam.members.length}匹
-              </p>
-              <button
-                onClick={handleParseAndAddMultipleMembers}
-                disabled={selectedTeam.members.length >= 6 || importText.trim() === ''}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <UploadCloud className="h-4 w-4" />
-                テキストからチームに追加
-              </button>
+              <p className="text-xs text-gray-500">残り追加可能数: {6 - selectedTeam.members.length}匹</p>
+              <button onClick={handleParseAndAddMultipleMembers} disabled={selectedTeam.members.length >= 6 || importText.trim() === ''} className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"><UploadCloud className="h-4 w-4" />テキストからチームに追加</button>
             </div>
           </div>
         )}
-         {selectedTeam.members.length >= 6 && !importText &&(
-          <p className="text-center text-yellow-500 my-4">チームメンバーが一杯です（最大6匹）。</p>
-        )}
-
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {selectedTeam.members.map((member) => (
             <div key={member.id} className="relative group">
               <TeamMemberCard member={member} onClick={() => handleEditMember(member)} />
-              {/* --- ボタンの変更箇所 --- */}
               <div className="absolute top-1 right-1 flex flex-col items-end space-y-1.5 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ease-in-out">
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleDeleteMemberFromTeam(member.id); }}
-                  className="p-1.5 bg-red-600 hover:bg-red-700 rounded-full text-white flex items-center justify-center w-5 h-5" // サイズ指定を追加
-                  title={`${member.pokemon.name} をチームから削除`}
-                >
-                  <X className="h-4 w-4" /> {/* アイコンサイズも調整 */}
-                </button>
-                {onLoadAsAttacker && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleSendToAttacker(member); }}
-                    className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75 min-w-[60px] text-center" // min-width と text-center を追加
-                    title={`${member.pokemon.name} を攻撃側として計算ツールに送る`}
-                  >
-                    攻撃側へ
-                  </button>
-                )}
-                {onLoadAsDefender && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleSendToDefender(member); }}
-                    className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75 min-w-[60px] text-center" // min-width と text-center を追加
-                    title={`${member.pokemon.name} を防御側として計算ツールに送る`}
-                  >
-                    防御側へ
-                  </button>
-                )}
+                <button onClick={(e) => { e.stopPropagation(); handleDeleteMemberFromTeam(member.id); }} className="p-1.5 bg-red-600 hover:bg-red-700 rounded-full text-white flex items-center justify-center w-5 h-5" title={`${member.pokemon.name} をチームから削除`}><X className="h-4 w-4" /></button>
+                <button onClick={(e) => { e.stopPropagation(); handleSendToAttacker(member); }} className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75 min-w-[60px] text-center" title={`${member.pokemon.name} を攻撃側として計算ツールに送る`}>攻撃側へ</button>
+                <button onClick={(e) => { e.stopPropagation(); handleSendToDefender(member); }} className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75 min-w-[60px] text-center" title={`${member.pokemon.name} を防御側として計算ツールに送る`}>防御側へ</button>
               </div>
-              {/* --- ここまでボタンの変更箇所 --- */}
             </div>
           ))}
           {Array.from({ length: Math.max(0, 6 - selectedTeam.members.length) }).map((_, index) => (
-            <div
-              key={`empty-slot-${index}`}
-              className="bg-gray-800 p-3 rounded-lg shadow border border-dashed border-gray-600 flex flex-col items-center justify-center min-h-[230px] cursor-pointer hover:border-blue-500 transition-colors"
-              onClick={handleAddNewMember}
-              title="ポケモンを追加"
-            >
-              <Plus className="h-10 w-10 text-gray-500 mb-2" />
-              <span className="text-gray-400 text-sm">ポケモンを追加</span>
-            </div>
+            <div key={`empty-slot-${index}`} className="bg-gray-800 p-3 rounded-lg shadow border border-dashed border-gray-600 flex flex-col items-center justify-center min-h-[230px] cursor-pointer hover:border-blue-500 transition-colors" onClick={handleAddNewMember} title="ポケモンを追加"><Plus className="h-10 w-10 text-gray-500 mb-2" /><span className="text-gray-400 text-sm">ポケモンを追加</span></div>
           ))}
         </div>
       </>

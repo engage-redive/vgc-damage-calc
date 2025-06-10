@@ -5,12 +5,10 @@ import {
   Weather,
   Field,
   DisasterState,
-  // AttackerDetailsForModal, // モーダル表示用の型は LoggedDamageEntry 内に含まれる
-  // DefenderDetailsForModal, // モーダル表示用の型は LoggedDamageEntry 内に含まれる
-  // DamageCalculation, // LoggedDamageEntry 内に含まれる
-  // MoveCategory, // LoggedDamageEntry 内に含まれる
 } from '../types';
-import { X, Trash2, Info, RotateCcw } from 'lucide-react'; // RotateCcw アイコンを追加
+import { useHistoryStore } from '../stores/historyStore';
+import { X, Trash2, Info, RotateCcw } from 'lucide-react';
+import { getTypeNameJp, getTypeColor } from '../utils/uiHelpers';
 
 const TYPE_NAME_JP_HISTORY: Record<string, string> = {
   normal: 'ノーマル', fire: 'ほのお', water: 'みず', electric: 'でんき', grass: 'くさ', ice: 'こおり',
@@ -175,12 +173,11 @@ const getHpRangeBarColorByRemainingHp = (remainingPercentage: number) => {
 };
 
 interface LogCardProps {
-  logEntry: LoggedDamageEntry;
-  onDelete: (logId: string) => void;
-  onLoad: (logId: string) => void; // ★ 追加
+logEntry: LoggedDamageEntry;
 }
 
-const LogCard: React.FC<LogCardProps> = ({ logEntry, onDelete, onLoad }) => { // ★ onLoad を追加
+const LogCard: React.FC<LogCardProps> = ({ logEntry }) => {
+  const { deleteLog, loadLogToCalculators } = useHistoryStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const {
@@ -194,10 +191,10 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry, onDelete, onLoad }) => { //
     attackerMoveName,
     defenderPokemonName,
     hitCount,
-    globalStatesSnapshot, // isDoubleBattle はここから取得
+    globalStatesSnapshot,
   } = logEntry;
 
-  const isDoubleBattle = globalStatesSnapshot?.isDoubleBattle || false; // 古いログ形式考慮
+  const isDoubleBattle = globalStatesSnapshot?.isDoubleBattle || false;
 
   const currentDisplayMinPercentageInLog = result.minPercentage;
   const currentDisplayMaxPercentageInLog = result.maxPercentage;
@@ -216,13 +213,18 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry, onDelete, onLoad }) => { //
     hitCount,
     calculateKOChanceForHistory
   );
+  
+  const handleDeleteClick = () => {
+    deleteLog(logEntry.id);
+  };
 
   const handleLoadClick = () => {
-    if (logEntry.attackerStateSnapshot && logEntry.defenderStateSnapshot && logEntry.globalStatesSnapshot) {
-        onLoad(id);
-        setIsModalOpen(false); // モーダルが開いていれば閉じる
-    } else {
-        alert("このログは古い形式のため、計算を復元できません。");
+    const success = loadLogToCalculators(logEntry.id);
+    if (success) {
+      setIsModalOpen(false);
+      // ダメージ計算タブに切り替える
+      const event = new CustomEvent('switchToDamageTab');
+      window.dispatchEvent(event);
     }
   };
 
@@ -236,7 +238,7 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry, onDelete, onLoad }) => { //
             </span>
         </div>
         <button
-          onClick={() => onDelete(id)}
+          onClick={handleDeleteClick}
           className="text-red-400 hover:text-red-600"
           aria-label="ログを削除"
         >
@@ -307,7 +309,6 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry, onDelete, onLoad }) => { //
         <span>残りHP (最大HP: {defenderOriginalHP})</span>
       </div>
 
-      {/* ★ ボタンコンテナを追加して横並びにする */}
       <div className="mt-2 flex items-center justify-center space-x-4">
         <button
           onClick={() => setIsModalOpen(true)}
@@ -315,7 +316,6 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry, onDelete, onLoad }) => { //
         >
           <Info size={16} className="mr-1"/> 詳細を見る
         </button>
-        {/* ★ ログを復元ボタンを追加 */}
         <button
           onClick={handleLoadClick}
           className="text-sm text-green-400 hover:underline flex items-center disabled:text-gray-500 disabled:no-underline"
@@ -325,7 +325,6 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry, onDelete, onLoad }) => { //
           <RotateCcw size={16} className="mr-1"/> この計算をロード
         </button>
       </div>
-
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4">
@@ -443,7 +442,6 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry, onDelete, onLoad }) => { //
               </div>
             </div>
             
-            {/* globalStatesSnapshot から天候などを表示 */}
             {(globalStatesSnapshot?.weather || globalStatesSnapshot?.field || (globalStatesSnapshot?.disasters && Object.values(globalStatesSnapshot.disasters).some(d => d))) && (
               <div className="mt-6 pt-4 border-t border-gray-700">
                 <h3 className="text-lg font-medium text-indigo-400 mb-3">フィールド状態</h3>
@@ -498,7 +496,6 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry, onDelete, onLoad }) => { //
             </div>
 
             <div className="mt-8 flex space-x-3">
-                {/* ★ ログを復元ボタンをモーダル内に追加 */}
                 <button
                     onClick={handleLoadClick}
                     className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors flex items-center justify-center disabled:bg-gray-500"

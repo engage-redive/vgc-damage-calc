@@ -40,10 +40,65 @@ const powerCorrectionEffects: {
     condition: (ctx: EffectContext) => boolean;
 }[] = [
     {
-        id: 'technician',
-        name: 'テクニシャン',
+        id: 'analytic',
+        name: 'アナライズ',
+        q12Value: 5325, // 1.3倍
+        condition: (ctx) => ctx.attackerAbility?.id === 'analytic' // 実際には行動順の最後に攻撃した場合という条件が必要
+    },
+    // 蓄電、避雷針、貯水、呼び水（特性発動時の無効化と能力上昇は別処理）
+    // ソーラービーム（晴れ以外で威力半減）
+    {
+        id: 'solar_beam_no_sun',
+        name: 'ソーラービーム(非晴天)',
+        q12Value: 2048, // 0.5倍
+        condition: (ctx) => (ctx.move.id === 'solar_beam' || ctx.move.id === 'solar_blade') && // IDで判定する場合
+                            !(ctx.weather === 'sun' || ctx.weather === 'harsh_sunlight')
+    },
+    {
+        id: 'aura_break_dark_aura',
+        name: 'オーラブレイク(ダークオーラ影響)',
+        q12Value: 3072, // 0.75倍 (ダークオーラが1.33倍なので、その打ち消し)
+        condition: (ctx) => ctx.attackerAbility?.id === 'aura_break' && ctx.move.type === PokemonType.Dark // 実際には相手のダークオーラを考慮
+    },
+    {
+        id: 'aura_break_fairy_aura',
+        name: 'オーラブレイク(フェアリーオーラ影響)',
+        q12Value: 3072, // 0.75倍
+        condition: (ctx) => ctx.attackerAbility?.id === 'aura_break' && ctx.move.type === PokemonType.Fairy // 実際には相手のフェアリーオーラを考慮
+    },
+    {
+        id: 'dark_aura',
+        name: 'ダークオーラ',
+        q12Value: 5461, // 1.333...倍 (4/3倍) -> 5461/4096 ≒ 1.33325
+        condition: (ctx) => ctx.attackerAbility?.id === 'dark_aura' && ctx.move.type === PokemonType.Dark
+    },
+    {
+        id: 'fairy_aura',
+        name: 'フェアリーオーラ',
+        q12Value: 5461, // 1.333...倍 (4/3倍)
+        condition: (ctx) => ctx.attackerAbility?.id === 'fairy_aura' && ctx.move.type === PokemonType.Fairy
+    },
+    // 親子愛 (2回目の攻撃は0.25倍) は別処理
+    // バッテリー
+    {
+        id: 'battery',
+        name: 'バッテリー',
+        q12Value: 5325, // 1.3倍
+        condition: (ctx) => ctx.attackerAbility?.id === 'battery' && ctx.move.category === 'special' // 実際には味方の特性
+    },
+    // パワースポット
+    {
+        id: 'power_spot',
+        name: 'パワースポット',
+        q12Value: 5325, // 1.3倍
+        condition: (ctx) => ctx.attackerAbility?.id === 'power_spot' // 実際には味方の特性
+    },
+    // স্টিลワーカー、鋼の精神
+    {
+        id: 'steely_spirit',
+        name: 'はがねのせいしん',
         q12Value: 6144, // 1.5倍
-        condition: (ctx) => ctx.attackerAbility?.id === 'technician' && ctx.basePowerForTechnician <= 60
+        condition: (ctx) => ctx.attackerAbility?.id === 'steely_spirit' && ctx.move.type === PokemonType.Steel // 実際には味方の特性
     },
     {
         id: 'skin_ability',
@@ -52,16 +107,22 @@ const powerCorrectionEffects: {
         condition: (ctx) => (ctx.attackerAbility?.id === 'pixilate' || ctx.attackerAbility?.id === 'refrigerate' || ctx.attackerAbility?.id === 'aerilate' || ctx.attackerAbility?.id === 'normalize') && false // 'normalize' は実際には威力上昇しないので注意。デモ用にfalse
     },
     {
+        id: 'iron fist',
+        name: 'てつのこぶし',
+        q12Value: 4915,
+        condition: (ctx) => ctx.attackerAbility?.id === 'ironfist' && ctx.move.isPunch // 'iron fist' -> 'iron_fist' (idはスネークケースが多いと仮定)
+    },
+  {
         id: 'reckless',
         name: 'すてみ',
         q12Value: 4915,
         condition: (ctx) => ctx.attackerAbility?.id === 'reckless' && (ctx.move.recoil || ctx.move.hasHighJumpKickRecoil) // hasHighJumpKickRecoilも考慮
     },
     {
-        id: 'iron fist',
-        name: 'てつのこぶし',
-        q12Value: 4915,
-        condition: (ctx) => ctx.attackerAbility?.id === 'iron_fist' && ctx.move.isPunch // 'iron fist' -> 'iron_fist' (idはスネークケースが多いと仮定)
+        id: 'sheer force',
+        name: 'ちからずく',
+        q12Value: 5325,
+        condition: (ctx) => ctx.attackerAbility?.id === 'sheerforce' && ctx.move.hasSecondaryEffect && !ctx.move.affectedBySheerForceNegative 
     },
     {
         id: 'tough_claws',
@@ -73,7 +134,7 @@ const powerCorrectionEffects: {
         id: 'punk_rock',
         name: 'パンクロック',
         q12Value: 5325,
-        condition: (ctx) => ctx.attackerAbility?.id === 'punk_rock' && ctx.move.isSoundBased
+        condition: (ctx) => ctx.attackerAbility?.id === 'punkrock' && ctx.move.isSoundBased
     },
     {
         id: 'strong_jaw',
@@ -87,12 +148,19 @@ const powerCorrectionEffects: {
         q12Value: 6144,
         condition: (ctx) => ctx.attackerAbility?.id === 'mega_launcher' && ctx.move.isPulseAura
     },
+
+      {
+        id: 'Sharpness',
+        name: 'きれあじ',
+        q12Value: 6144,
+        condition: (ctx) => ctx.attackerAbility?.id === 'sharpness' && ctx.move.isSlash 
+    },  
     {
-        id: 'sheer force',
-        name: 'ちからずく',
-        q12Value: 5325,
-        condition: (ctx) => ctx.attackerAbility?.id === 'sheer_force' && ctx.move.hasSecondaryEffect && !ctx.move.affectedBySheerForceNegative // 'sheer force' -> 'sheer_force'
-    },
+        id: 'technician',
+        name: 'テクニシャン',
+        q12Value: 6144, // 1.5倍
+        condition: (ctx) => ctx.attackerAbility?.id === 'technician' && ctx.basePowerForTechnician <= 60
+    },  
     {
         id: 'choice_band_specs',
         name: 'ハチマキ・メガネ類',
@@ -107,8 +175,8 @@ const powerCorrectionEffects: {
     },
       {
         id: 'ogerpon_mask',
-        name: '仮面', // 効果の内容を示す名前
-        q12Value: 4915, // 1.2倍 (4096 * 1.2 ≒ 4915)
+        name: '仮面', 
+        q12Value: 4915, 
         condition: (ctx) => {
             const maskIds = ["cornerstonemask", "hearthflamemask", "wellspringmask"];
             return ctx.attackerItem?.id !== undefined && maskIds.includes(ctx.attackerItem.id);
@@ -117,11 +185,11 @@ const powerCorrectionEffects: {
     {
         id: 'normalgem',
         name: 'ノーマルジュエル',
-        q12Value: 5325, // 1.3倍に修正 (SVでは1.3倍)
+        q12Value: 5325, 
         condition: (ctx) => ctx.attackerItem?.id === 'normalgem' && ctx.move.type === 'normal'
     },
   {
-    id: 'knock_off_item_boost', // Unique ID
+    id: 'knock_off_item_boost',
     name: 'はたきおとす (持ち物あり時)',
     q12Value: 6144, // 1.5倍 (4096 * 1.5)
     condition: (ctx) =>
@@ -202,70 +270,7 @@ const powerCorrectionEffects: {
     // 以下、calculator.tsのcalculateMValueQ12 にあったが威力補正と思われるものを移動・追加
     // 晴れ・雨による炎・水技の威力変動は calculator.ts 側で処理されているためここでは不要
     // アナライズ
-    {
-        id: 'analytic',
-        name: 'アナライズ',
-        q12Value: 5325, // 1.3倍
-        condition: (ctx) => ctx.attackerAbility?.id === 'analytic' // 実際には行動順の最後に攻撃した場合という条件が必要
-    },
-    // 蓄電、避雷針、貯水、呼び水（特性発動時の無効化と能力上昇は別処理）
-    // ソーラービーム（晴れ以外で威力半減）
-    {
-        id: 'solar_beam_no_sun',
-        name: 'ソーラービーム(非晴天)',
-        q12Value: 2048, // 0.5倍
-        condition: (ctx) => (ctx.move.id === 'solar_beam' || ctx.move.id === 'solar_blade') && // IDで判定する場合
-                            !(ctx.weather === 'sun' || ctx.weather === 'harsh_sunlight')
-    },
-    // フラワーギフト（晴れ時、味方の攻撃・特防1.5倍）は攻撃力/防御力補正なのでここでは扱わない
-    // テラスタル時のタイプ一致技60未満→60化はメインロジックで処理
-    // オーラブレイク、ダークオーラ、フェアリーオーラ
-    {
-        id: 'aura_break_dark_aura',
-        name: 'オーラブレイク(ダークオーラ影響)',
-        q12Value: 3072, // 0.75倍 (ダークオーラが1.33倍なので、その打ち消し)
-        condition: (ctx) => ctx.attackerAbility?.id === 'aura_break' && ctx.move.type === PokemonType.Dark // 実際には相手のダークオーラを考慮
-    },
-    {
-        id: 'aura_break_fairy_aura',
-        name: 'オーラブレイク(フェアリーオーラ影響)',
-        q12Value: 3072, // 0.75倍
-        condition: (ctx) => ctx.attackerAbility?.id === 'aura_break' && ctx.move.type === PokemonType.Fairy // 実際には相手のフェアリーオーラを考慮
-    },
-    {
-        id: 'dark_aura',
-        name: 'ダークオーラ',
-        q12Value: 5461, // 1.333...倍 (4/3倍) -> 5461/4096 ≒ 1.33325
-        condition: (ctx) => ctx.attackerAbility?.id === 'dark_aura' && ctx.move.type === PokemonType.Dark
-    },
-    {
-        id: 'fairy_aura',
-        name: 'フェアリーオーラ',
-        q12Value: 5461, // 1.333...倍 (4/3倍)
-        condition: (ctx) => ctx.attackerAbility?.id === 'fairy_aura' && ctx.move.type === PokemonType.Fairy
-    },
-    // 親子愛 (2回目の攻撃は0.25倍) は別処理
-    // バッテリー
-    {
-        id: 'battery',
-        name: 'バッテリー',
-        q12Value: 5325, // 1.3倍
-        condition: (ctx) => ctx.attackerAbility?.id === 'battery' && ctx.move.category === 'special' // 実際には味方の特性
-    },
-    // パワースポット
-    {
-        id: 'power_spot',
-        name: 'パワースポット',
-        q12Value: 5325, // 1.3倍
-        condition: (ctx) => ctx.attackerAbility?.id === 'power_spot' // 実際には味方の特性
-    },
-    // স্টিลワーカー、鋼の精神
-    {
-        id: 'steely_spirit',
-        name: 'はがねのせいしん',
-        q12Value: 6144, // 1.5倍
-        condition: (ctx) => ctx.attackerAbility?.id === 'steely_spirit' && ctx.move.type === PokemonType.Steel // 実際には味方の特性
-    },
+
 ];
 export function calculateFinalMovePower(
     attacker: Pokemon & { isGrounded: boolean }, // isGrounded は呼び出し元(App.tsxやcalculator.ts)で適切に設定

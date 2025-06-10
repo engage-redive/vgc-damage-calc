@@ -8,7 +8,6 @@ body {
   color: #f8fafc;
 }
 
-/* Custom type background colors */
 .bg-normal { background-color: #A8A77A; }
 .bg-fire { background-color: #EE8130; }
 .bg-water { background-color: #6390F0; }
@@ -28,7 +27,6 @@ body {
 .bg-steel { background-color: #B7B7CE; }
 .bg-fairy { background-color: #D685AD; }
 
-/* Transitions for interactive elements */
 .transition-all {
   transition: all 0.2s ease-in-out;
 }
@@ -37,7 +35,6 @@ body {
   transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, color 0.2s ease-in-out;
 }
 
-/* Scrollbar styles */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -57,13 +54,11 @@ body {
   background: #475569;
 }
 
-/* Input focus effects */
 input:focus, select:focus {
   outline: none;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
 }
 
-/* Animations */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -81,15 +76,3 @@ input:focus, select:focus {
 .animate-slideIn {
   animation: slideIn 0.3s ease-out;
 }
-
-/* 
-  TeamMemberEditor.tsx の StatSlider に className="hide-stat-slider-real-value" を渡した場合、
-  StatSlider.tsx 内部の関連要素を非表示にするためのクラス（直接適用されるわけではないが、
-  JavaScript側でこのクラス名を見て条件分岐するために使う想定だった）。
-  今回はJavaScript側で直接レンダリングを制御するため、このCSSルールは必須ではなくなります。
-*/
-/* 
-.hide-stat-slider-real-value .stat-slider__real-value-display {
-  visibility: hidden; 
-}
-*/

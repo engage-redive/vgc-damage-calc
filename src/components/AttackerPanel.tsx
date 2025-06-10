@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Pokemon, Move, StatCalculation, NatureModifier, PokemonType, Item, Ability, TeraBurstEffectiveType, MoveCategory, ProtosynthesisBoostTarget, AttackerState } from '../types';
 import PokemonSelect from './PokemonSelect';
 import MoveSelect from './MoveSelect';
@@ -12,125 +12,15 @@ import HpDependentPowerInputs from './moveSpecific/HpDependentPowerInputs';
 import FoulPlayDisplay from './moveSpecific/FoulPlayDisplay';
 import RankSelector from './RankSelector';
 import HitCountSelect from '../calculation/HitCountSelect';
-
-// Default stat calculation object to prevent undefined errors
-const DEFAULT_STAT_CALCULATION: StatCalculation = {
-  base: 0,
-  iv: 31,
-  ev: 0,
-  nature: 1.0,
-  rank: 0,
-  final: 0
-};
-
-const TYPE_NAME_JP: Record<string, string> = {
-  normal: 'ノーマル', fire: 'ほのお', water: 'みず', electric: 'でんき', grass: 'くさ', ice: 'こおり',
-  fighting: 'かくとう', poison: 'どく', ground: 'じめん', flying: 'ひこう', psychic: 'エスパー', bug: 'むし',
-  rock: 'いわ', ghost: 'ゴースト', dragon: 'ドラゴン', dark: 'あく', steel: 'はがね', fairy: 'フェアリー',
-  stellar: 'ステラ',
-};
-
-const TYPE_COLORS: Record<string, string> = {
-  normal: '#A8A77A', fire: '#EE8130', water: '#6390F0', electric: '#F7D02C', grass: '#7AC74C', ice: '#96D9D6',
-  fighting: '#C22E28', poison: '#A33EA1', ground: '#E2BF65', flying: '#A98FF3', psychic: '#F95587', bug: '#A6B91A',
-  rock: '#B6A136', ghost: '#735797', dragon: '#6F35FC', dark: '#705746', steel: '#B7B7CE', fairy: '#D685AD',
-  stellar: '#7A7AE6',
-};
-
-const getTypeNameJp = (type: PokemonType | string): string => {
-  const typeKey = (typeof type === 'string' ? type.toLowerCase() : type.toString().toLowerCase()) as keyof typeof TYPE_NAME_JP;
-  return TYPE_NAME_JP[typeKey] || typeKey.toString();
-};
-
-const getTypeColor = (type: PokemonType | string): string => {
-  const typeKey = (typeof type === 'string' ? type.toLowerCase() : type.toString().toLowerCase()) as keyof typeof TYPE_COLORS;
-  return TYPE_COLORS[typeKey] || '#777777';
-};
-
-const calculateHp = (base: number, iv: number, ev: number, level: number): number => {
-  if (base <= 0) return 0;
-  if (base === 1) return 1;
-  return Math.floor(((2 * base + iv + Math.floor(ev / 4)) * level) / 100) + level + 10;
-};
-
-const calculateBaseStatValue = (
-  base: number, iv: number, ev: number, level: number, nature: NatureModifier
-): number => {
-  if (!base || base <= 0) return 0;
-  let stat = Math.floor(((2 * base + iv + Math.floor(ev / 4)) * level) / 100) + 5;
-  stat = Math.floor(stat * nature);
-  return stat;
-};
-
-const calculateFinalStatWithRank = (
-  base: number, iv: number, ev: number, level: number, nature: NatureModifier, rank: number
-): number => {
-  let baseStatVal = calculateBaseStatValue(base, iv, ev, level, nature);
-  if (rank !== 0) {
-    const rankMultiplier = rank > 0 ? (2 + rank) / 2 : 2 / (2 - rank);
-    baseStatVal = Math.floor(baseStatVal * rankMultiplier);
-  }
-  return baseStatVal;
-};
-
-const calculateFinalStatForTeraBlast = (
-    pokemonBaseStat: number, statCalc: StatCalculation
-): number => {
-    if (!pokemonBaseStat) return 0;
-    let final = calculateBaseStatValue(pokemonBaseStat, statCalc.iv, statCalc.ev, 50, statCalc.nature);
-    if (statCalc.rank !== 0) {
-        const rankMultiplier = statCalc.rank > 0 ? (2 + statCalc.rank) / 2 : 2 / (2 - statCalc.rank);
-        final = Math.floor(final * rankMultiplier);
-    }
-    return final;
-};
-
-const findClosestEvForBaseValue = (
-  targetBaseValue: number,
-  pokemonSpeciesStat: number,
-  nature: NatureModifier,
-  level: number = 50,
-  iv: number = 31
-): number => {
-  if (pokemonSpeciesStat <= 0) return 0;
-  if (targetBaseValue <= 0) return 0;
-
-  const statAt0Ev = calculateBaseStatValue(pokemonSpeciesStat, iv, 0, level, nature);
-  if (targetBaseValue <= statAt0Ev) {
-    return 0;
-  }
-
-  const statAt252Ev = calculateBaseStatValue(pokemonSpeciesStat, iv, 252, level, nature);
-  if (targetBaseValue >= statAt252Ev) {
-    return 252;
-  }
-
-  let closestEv = 0;
-  let smallestDiff = Infinity;
-
-  for (let ev = 0; ev <= 252; ev += 4) {
-    const calculatedStat = calculateBaseStatValue(pokemonSpeciesStat, iv, ev, level, nature);
-    const diff = Math.abs(calculatedStat - targetBaseValue);
-
-    if (diff < smallestDiff) {
-      smallestDiff = diff;
-      closestEv = ev;
-    } else if (diff === smallestDiff) {
-      closestEv = Math.min(closestEv, ev);
-    }
-  }
-  return closestEv;
-};
+import { useAttackerStore } from '../stores/attackerStore';
+import { useDefenderStore } from '../stores/defenderStore';
+import { getTypeColor, getTypeNameJp } from '../utils/uiHelpers'; 
 
 interface AttackerPanelProps {
   pokemon: Pokemon[];
   moves: Move[];
   items: Item[];
   abilities: Ability[];
-  attackers: AttackerState[];
-  onSetAttackers: (attackers: AttackerState[]) => void;
-  defenderAttackStatForFoulPlay: StatCalculation;
-  onDefenderOffensiveStatChange: (updates: Partial<Pick<StatCalculation, 'ev' | 'rank'>>) => void;
 }
 
 const AttackerPanel: React.FC<AttackerPanelProps> = ({
@@ -138,686 +28,86 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
   moves,
   items,
   abilities,
-  attackers,
-  onSetAttackers,
-  defenderAttackStatForFoulPlay,
-  onDefenderOffensiveStatChange,
 }) => {
-   const createNewDefaultAttackerState = (): AttackerState => {
-    const defaultPokemon = pokemonList.length > 0 ? pokemonList[0] : null;
-    const defaultAttackStatBase = defaultPokemon?.baseStats.attack || 0;
-    const defaultSpAttackStatBase = defaultPokemon?.baseStats.specialAttack || 0;
-    const defaultDefenseStatBase = defaultPokemon?.baseStats.defense || 0;
-    const defaultSpeedStatBase = defaultPokemon?.baseStats.speed || 0;
-    const defaultHpBase = defaultPokemon?.baseStats.hp || 0;
-
-    let initialAbility: Ability | null = null;
-    if (defaultPokemon && defaultPokemon.abilities.length > 0 && abilities.length > 0) {
-      const firstAbilityNameEnFromPokedex = defaultPokemon.abilities[0];
-      initialAbility = abilities.find(ab => ab.nameEn.toLowerCase() === firstAbilityNameEnFromPokedex.toLowerCase()) || null;
-     }
-
-    const initialAttackEv = 0;
-    const initialSpecialAttackEv = 0;
-    const initialOtherEv = 0;
-
-    const initialActualMaxHp = defaultPokemon ? calculateHp(defaultHpBase, 31, initialOtherEv, 50) : 1;
-
-    const defaultAttackStat: StatCalculation = {
-        base: defaultAttackStatBase,
-        iv: 31,
-        ev: initialAttackEv,
-        nature: 1.0,
-        rank: 0,
-        final: calculateBaseStatValue(defaultAttackStatBase, 31, initialAttackEv, 50, 1.0)
-    };
-    const defaultSpecialAttackStat: StatCalculation = {
-        base: defaultSpAttackStatBase,
-        iv: 31,
-        ev: initialSpecialAttackEv,
-        nature: 1.0,
-        rank: 0,
-        final: calculateBaseStatValue(defaultSpAttackStatBase, 31, initialSpecialAttackEv, 50, 1.0)
-    };
-    const defaultDefenseStat: StatCalculation = {
-        base: defaultDefenseStatBase,
-        iv: 31,
-        ev: initialOtherEv,
-        nature: 1.0,
-        rank: 0,
-        final: calculateBaseStatValue(defaultDefenseStatBase, 31, initialOtherEv, 50, 1.0)
-    };
-    const defaultSpeedStat: StatCalculation = {
-        base: defaultSpeedStatBase,
-        iv: 31,
-        ev: initialOtherEv,
-        nature: 1.0,
-        rank: 0,
-        final: calculateBaseStatValue(defaultSpeedStatBase, 31, initialOtherEv, 50, 1.0)
-    };
-
-    return {
-      pokemon: defaultPokemon,
-      move: null,
-      effectiveMove: null,
-      item: null,
-      ability: initialAbility,
-      attackStat: defaultAttackStat,
-      specialAttackStat: defaultSpecialAttackStat,
-      defenseStat: defaultDefenseStat,
-      speedStat: defaultSpeedStat,
-      attackInputValue: defaultAttackStat.final.toString(),
-      specialAttackInputValue: defaultSpecialAttackStat.final.toString(),
-      defenseInputValue: defaultDefenseStat.final.toString(),
-      speedInputValue: defaultSpeedStat.final.toString(),
-      hpEv: initialOtherEv,
-      actualMaxHp: initialActualMaxHp,
-      currentHp: initialActualMaxHp,
-      teraType: null,
-      isStellar: false,
-      isBurned: false,
-      hasHelpingHand: false,
-      hasFlowerGift: false,
-      isEnabled: true,
-      teraBlastUserSelectedCategory: 'auto',
-      teraBlastDeterminedType: null,
-      teraBlastDeterminedCategory: null,
-      starstormDeterminedCategory: null,
-      photonGeyserDeterminedCategory: null,
-      selectedHitCount: null,
-      protosynthesisBoostedStat: initialAbility?.id === 'protosynthesis' ? 'attack' : null,
-      protosynthesisManualTrigger: false,
-      quarkDriveBoostedStat: initialAbility?.id === 'quark_drive' ? 'attack' : null,
-      quarkDriveManualTrigger: false,
-      moveUiOptionStates: {},
-      abilityUiFlags: {},
-      loadedMoves: null,
-    };
-  };
-
-  useEffect(() => {
-    const newAttackersArray = attackers.map(attacker => {
-      let updatedAttacker = { ...attacker };
-
-      if (!attacker.move?.isTeraBlast) {
-        if (attacker.teraBlastDeterminedType !== null || attacker.teraBlastDeterminedCategory !== null || attacker.teraBlastUserSelectedCategory !== 'auto') {
-          updatedAttacker = { ...updatedAttacker, teraBlastDeterminedType: null, teraBlastDeterminedCategory: null, teraBlastUserSelectedCategory: 'auto' };
-        }
-      } else {
-        let determinedType: TeraBurstEffectiveType | null = null;
-        let determinedCategory: MoveCategory | null = attacker.move.category as MoveCategory;
-        const isTerastallized = attacker.teraType !== null || attacker.isStellar;
-
-        if (isTerastallized) {
-          if (attacker.isStellar) determinedType = 'stellar';
-          else if (attacker.teraType) determinedType = attacker.teraType;
-
-          if (attacker.teraBlastUserSelectedCategory === 'physical') determinedCategory = MoveCategory.Physical;
-          else if (attacker.teraBlastUserSelectedCategory === 'special') determinedCategory = MoveCategory.Special;
-          else {
-            if (attacker.pokemon) {
-              const finalAttackForCompare = calculateFinalStatForTeraBlast(attacker.pokemon.baseStats.attack, attacker.attackStat || DEFAULT_STAT_CALCULATION);
-              const finalSpecialAttackForCompare = calculateFinalStatForTeraBlast(attacker.pokemon.baseStats.specialAttack, attacker.specialAttackStat || DEFAULT_STAT_CALCULATION);
-              determinedCategory = finalAttackForCompare >= finalSpecialAttackForCompare ? MoveCategory.Physical : MoveCategory.Special;
-            } else {
-              determinedCategory = attacker.move.category as MoveCategory;
-            }
-          }
-        } else {
-          determinedType = PokemonType.Normal;
-          determinedCategory = attacker.move.category as MoveCategory;
-        }
-
-        if (attacker.teraBlastDeterminedType !== determinedType || attacker.teraBlastDeterminedCategory !== determinedCategory) {
-            updatedAttacker = { ...updatedAttacker, teraBlastDeterminedType: determinedType, teraBlastDeterminedCategory: determinedCategory };
-        }
-      }
-
-      if (attacker.move?.id === "terastarstorm" && attacker.pokemon?.id === "1024-s") {
-        if (attacker.pokemon && attacker.attackStat && attacker.specialAttackStat) {
-            const finalAttack = attacker.attackStat.final;
-            const finalSpecialAttack = attacker.specialAttackStat.final;
-            const newStarstormCategory = finalAttack > finalSpecialAttack ? MoveCategory.Physical : MoveCategory.Special;
-            if (attacker.starstormDeterminedCategory !== newStarstormCategory) {
-                updatedAttacker = { ...updatedAttacker, starstormDeterminedCategory: newStarstormCategory };
-            }
-        }
-      } else {
-        if (attacker.starstormDeterminedCategory !== null) {
-            updatedAttacker = { ...updatedAttacker, starstormDeterminedCategory: null };
-        }
-      }
-
-      if (attacker.move?.id === "photongeyser") {
-        if (attacker.pokemon && attacker.attackStat && attacker.specialAttackStat) {
-            const finalAttack = attacker.attackStat.final;
-            const finalSpecialAttack = attacker.specialAttackStat.final;
-            const newPhotonGeyserCategory = finalAttack > finalSpecialAttack ? MoveCategory.Physical : MoveCategory.Special;
-            if (attacker.photonGeyserDeterminedCategory !== newPhotonGeyserCategory) {
-                updatedAttacker = { ...updatedAttacker, photonGeyserDeterminedCategory: newPhotonGeyserCategory };
-            }
-        }
-      } else {
-        if (attacker.photonGeyserDeterminedCategory !== null) {
-            updatedAttacker = { ...updatedAttacker, photonGeyserDeterminedCategory: null };
-        }
-      }
-      return updatedAttacker;
-    });
-
-    if (JSON.stringify(newAttackersArray) !== JSON.stringify(attackers)) {
-        onSetAttackers(newAttackersArray);
-    }
-  }, [attackers, onSetAttackers]);
-
-  const updateAttackerState = useCallback((index: number, updates: Partial<AttackerState>) => {
-    const newAttackers = [...attackers];
-    const currentAttacker = newAttackers[index];
-    if (!currentAttacker) return;
-
-    let tempAttacker = { ...currentAttacker, ...updates };
-
-    if (updates.move || updates.pokemon) {
-        tempAttacker.effectiveMove = null;
-        if (updates.move?.id !== "terastarstorm" || updates.pokemon?.id !== "1024-s") {
-            tempAttacker.starstormDeterminedCategory = null;
-        }
-        if (updates.move?.id !== "photongeyser") {
-            tempAttacker.photonGeyserDeterminedCategory = null;
-        }
-    }
-
-
-    if (updates.pokemon !== undefined && updates.pokemon !== currentAttacker.pokemon) {
-        const newPokemon = updates.pokemon;
-        const baseAttack = newPokemon?.baseStats.attack || 0;
-        const baseSpAttack = newPokemon?.baseStats.specialAttack || 0;
-        const baseDefense = newPokemon?.baseStats.defense || 0;
-        const baseSpeed = newPokemon?.baseStats.speed || 0;
-        const baseHp = newPokemon?.baseStats.hp || 0;
-
-        const initialAttackEv = 252;
-        const initialSpecialAttackEv = 252;
-        const initialOtherEv = 0;
-
-        tempAttacker.hpEv = initialOtherEv;
-        const newActualMaxHp = newPokemon ? calculateHp(baseHp, 31, tempAttacker.hpEv, 50) : 1;
-        tempAttacker.actualMaxHp = newActualMaxHp;
-        tempAttacker.currentHp = newActualMaxHp;
-
-        tempAttacker.attackStat = {
-            base: baseAttack,
-            iv: 31,
-            ev: initialAttackEv,
-            nature: 1.0,
-            rank: 0,
-            final: calculateBaseStatValue(baseAttack, 31, initialAttackEv, 50, 1.0)
-        };
-        tempAttacker.specialAttackStat = {
-            base: baseSpAttack,
-            iv: 31,
-            ev: initialSpecialAttackEv,
-            nature: 1.0,
-            rank: 0,
-            final: calculateBaseStatValue(baseSpAttack, 31, initialSpecialAttackEv, 50, 1.0)
-        };
-        tempAttacker.defenseStat = {
-            base: baseDefense,
-            iv: 31,
-            ev: initialOtherEv,
-            nature: 1.0,
-            rank: 0,
-            final: calculateBaseStatValue(baseDefense, 31, initialOtherEv, 50, 1.0)
-        };
-        tempAttacker.speedStat = {
-            base: baseSpeed,
-            iv: 31,
-            ev: initialOtherEv,
-            nature: 1.0,
-            rank: 0,
-            final: calculateBaseStatValue(baseSpeed, 31, initialOtherEv, 50, 1.0)
-        };
-
-        if (updates.move === undefined) tempAttacker.move = null;
-        if (updates.ability === undefined) {
-             let initialAbilityForNewPokemon: Ability | null = null;
-            if (newPokemon && newPokemon.abilities.length > 0 && abilities.length > 0) {
-                const firstAbilityNameEnFromPokedex = newPokemon.abilities[0];
-                initialAbilityForNewPokemon = abilities.find(ab => ab.nameEn.toLowerCase() === firstAbilityNameEnFromPokedex.toLowerCase()) || null;
-             }
-             tempAttacker.ability = initialAbilityForNewPokemon;
-
-            if (initialAbilityForNewPokemon?.id === 'protosynthesis') {
-                tempAttacker.protosynthesisBoostedStat = 'attack';
-                tempAttacker.protosynthesisManualTrigger = false;
-            } else {
-                tempAttacker.protosynthesisBoostedStat = null;
-                tempAttacker.protosynthesisManualTrigger = false;
-            }
-             if (initialAbilityForNewPokemon?.id === 'quark_drive') {
-                tempAttacker.quarkDriveBoostedStat = 'attack';
-                tempAttacker.quarkDriveManualTrigger = false;
-            } else {
-                tempAttacker.quarkDriveBoostedStat = null;
-                tempAttacker.quarkDriveManualTrigger = false;
-            }
-            tempAttacker.abilityUiFlags = {};
-        }
-        if (updates.item === undefined) tempAttacker.item = null;
-        tempAttacker.teraType = null;
-        tempAttacker.isStellar = false;
-        tempAttacker.effectiveMove = null;
-
-        tempAttacker.attackInputValue = tempAttacker.attackStat.final.toString();
-        tempAttacker.specialAttackInputValue = tempAttacker.specialAttackStat.final.toString();
-        tempAttacker.defenseInputValue = tempAttacker.defenseStat.final.toString();
-        tempAttacker.speedInputValue = tempAttacker.speedStat.final.toString();
-
-        if (tempAttacker.ability?.id !== 'protosynthesis') {
-            tempAttacker.protosynthesisBoostedStat = null;
-            tempAttacker.protosynthesisManualTrigger = false;
-        }
-        if (tempAttacker.ability?.id !== 'quark_drive') {
-            tempAttacker.quarkDriveBoostedStat = null;
-            tempAttacker.quarkDriveManualTrigger = false;
-        }
-
-        tempAttacker.moveUiOptionStates = {};
-        if (updates.move?.isRankBasedPower) { // ポケモン変更時に新しい技が威力変動技なら初期化
-            tempAttacker.moveUiOptionStates['rankBasedPowerValue'] = 20;
-        }
-        tempAttacker.selectedHitCount = null;
-        tempAttacker.teraBlastUserSelectedCategory = 'auto';
-        tempAttacker.teraBlastDeterminedType = null;
-        tempAttacker.teraBlastDeterminedCategory = null;
-        tempAttacker.starstormDeterminedCategory = null;
-        tempAttacker.photonGeyserDeterminedCategory = null;
-      　tempAttacker.loadedMoves = null;
-
-    } else {
-        if (updates.hpEv !== undefined && tempAttacker.pokemon) {
-          const newActualMaxHp = calculateHp(tempAttacker.pokemon.baseStats.hp, 31, updates.hpEv, 50);
-          tempAttacker.actualMaxHp = newActualMaxHp;
-          if (tempAttacker.currentHp > newActualMaxHp) {
-            tempAttacker.currentHp = newActualMaxHp;
-          }
-        }
-
-        if (updates.attackStat && tempAttacker.pokemon) {
-            tempAttacker.attackStat = { ...currentAttacker.attackStat || DEFAULT_STAT_CALCULATION, ...updates.attackStat };
-            tempAttacker.attackStat.final = calculateFinalStatWithRank(
-                tempAttacker.pokemon.baseStats.attack,
-                tempAttacker.attackStat.iv,
-                tempAttacker.attackStat.ev,
-                50,
-                tempAttacker.attackStat.nature,
-                tempAttacker.attackStat.rank
-            );
-            if (updates.attackInputValue === undefined) {
-                tempAttacker.attackInputValue = tempAttacker.attackStat.final.toString();
-            }
-        }
-        if (updates.specialAttackStat && tempAttacker.pokemon) {
-            tempAttacker.specialAttackStat = { ...currentAttacker.specialAttackStat || DEFAULT_STAT_CALCULATION, ...updates.specialAttackStat };
-            tempAttacker.specialAttackStat.final = calculateFinalStatWithRank(
-                tempAttacker.pokemon.baseStats.specialAttack,
-                tempAttacker.specialAttackStat.iv,
-                tempAttacker.specialAttackStat.ev,
-                50,
-                tempAttacker.specialAttackStat.nature,
-                tempAttacker.specialAttackStat.rank
-            );
-            if (updates.specialAttackInputValue === undefined) {
-                tempAttacker.specialAttackInputValue = tempAttacker.specialAttackStat.final.toString();
-            }
-        }
-        if (updates.defenseStat && tempAttacker.pokemon) {
-            tempAttacker.defenseStat = { ...currentAttacker.defenseStat || DEFAULT_STAT_CALCULATION, ...updates.defenseStat };
-            tempAttacker.defenseStat.final = calculateFinalStatWithRank(
-                tempAttacker.pokemon.baseStats.defense,
-                tempAttacker.defenseStat.iv,
-                tempAttacker.defenseStat.ev,
-                50,
-                tempAttacker.defenseStat.nature,
-                tempAttacker.defenseStat.rank
-            );
-            if (updates.defenseInputValue === undefined) {
-                tempAttacker.defenseInputValue = tempAttacker.defenseStat.final.toString();
-            }
-        }
-        if (updates.speedStat && tempAttacker.pokemon) {
-            tempAttacker.speedStat = { ...currentAttacker.speedStat || DEFAULT_STAT_CALCULATION, ...updates.speedStat };
-            tempAttacker.speedStat.final = calculateFinalStatWithRank(
-                tempAttacker.pokemon.baseStats.speed,
-                tempAttacker.speedStat.iv,
-                tempAttacker.speedStat.ev,
-                50,
-                tempAttacker.speedStat.nature,
-                tempAttacker.speedStat.rank
-            );
-            if (updates.speedInputValue === undefined) {
-                tempAttacker.speedInputValue = tempAttacker.speedStat.final.toString();
-            }
-        }
-        if (updates.ability !== undefined && updates.ability !== currentAttacker.ability) {
-            tempAttacker.abilityUiFlags = {};
-        }
-    }
-
-    if (updates.ability !== undefined) {
-        const prevAbilityId = currentAttacker.ability?.id;
-        const newAbilityId = updates.ability?.id;
-
-        if (newAbilityId === 'protosynthesis' && prevAbilityId !== 'protosynthesis') {
-            tempAttacker.protosynthesisBoostedStat = 'attack';
-            tempAttacker.protosynthesisManualTrigger = false;
-        } else if (newAbilityId !== 'protosynthesis' && prevAbilityId === 'protosynthesis') {
-            tempAttacker.protosynthesisBoostedStat = null;
-            tempAttacker.protosynthesisManualTrigger = false;
-        }
-
-        if (newAbilityId === 'quark_drive' && prevAbilityId !== 'quark_drive') {
-            tempAttacker.quarkDriveBoostedStat = 'attack';
-            tempAttacker.quarkDriveManualTrigger = false;
-        } else if (newAbilityId !== 'quark_drive' && prevAbilityId === 'quark_drive') {
-            tempAttacker.quarkDriveBoostedStat = null;
-            tempAttacker.quarkDriveManualTrigger = false;
-        }
-    }
-
-    if (updates.move !== undefined && updates.move?.id !== currentAttacker.move?.id) {
-        // moveUiOptionStates は handleMoveChange で処理されるため、ここでは直接変更しない
-        // ただし、updates.moveUiOptionStates が直接渡された場合はそれを優先する
-        if (updates.moveUiOptionStates === undefined) {
-            const newMoveUiOptionStates = { ...(currentAttacker.moveUiOptionStates || {}) };
-            if (updates.move?.isRankBasedPower) {
-                newMoveUiOptionStates['rankBasedPowerValue'] = 20;
-            } else {
-                delete newMoveUiOptionStates['rankBasedPowerValue'];
-            }
-             // 他の move specific UI options もここでリセットするなら追加
-            Object.keys(newMoveUiOptionStates).forEach(key => {
-                if (key !== 'rankBasedPowerValue' && !(updates.move?.uiOption && key === updates.move.uiOption.key)) {
-                    delete newMoveUiOptionStates[key];
-                }
-            });
-            tempAttacker.moveUiOptionStates = newMoveUiOptionStates;
-        }
-
-
-        if (!updates.move?.isTeraBlast) {
-            tempAttacker.teraBlastUserSelectedCategory = 'auto';
-        } else if (updates.move?.isTeraBlast && !currentAttacker.move?.isTeraBlast) {
-             tempAttacker.teraBlastUserSelectedCategory = 'auto';
-        }
-        if (updates.move?.id !== "terastarstorm") {
-            tempAttacker.starstormDeterminedCategory = null;
-        }
-        if (updates.move?.id !== "photongeyser") {
-            tempAttacker.photonGeyserDeterminedCategory = null;
-        }
-        const newMove = updates.move;
-        if (newMove && typeof newMove.multihit === 'number' && newMove.multihit > 1) {
-            tempAttacker.selectedHitCount = newMove.multihit;
-        } else if (newMove && newMove.multihit === '2-5') {
-            tempAttacker.selectedHitCount = 2;
-        }
-         else {
-            tempAttacker.selectedHitCount = null;
-        }
-        tempAttacker.effectiveMove = null;
-    }
-
-
-    newAttackers[index] = tempAttacker;
-    onSetAttackers(newAttackers);
-  }, [attackers, onSetAttackers, abilities]);
-
-  const addAttacker = () => {
-    if (attackers.length < 2) {
-      onSetAttackers([...attackers, createNewDefaultAttackerState()]);
-    }
-  };
-
-  const removeAttacker = (index: number) => {
-    if (attackers.length > 0) {
-      onSetAttackers(attackers.filter((_, i) => i !== index));
-    }
-  };
-
-  const toggleAttacker = (index: number) => updateAttackerState(index, { isEnabled: !attackers[index].isEnabled });
-
-  const handlePokemonChange = (pokemon: Pokemon | null, index: number) => {
-    let initialAbilityForNewPokemon: Ability | null = null;
-    if (pokemon && pokemon.abilities.length > 0 && abilities.length > 0) {
-      const firstAbilityNameEnFromPokedex = pokemon.abilities[0];
-      initialAbilityForNewPokemon = abilities.find(ab => ab.nameEn.toLowerCase() === firstAbilityNameEnFromPokedex.toLowerCase()) || null;
-     }
-     const newMoveUiOptionStates = {}; // ポケモン変更時に技固有UIもリセット
-     updateAttackerState(index, {
-       pokemon, teraType: null, isStellar: false, move: null, item: null,
-      ability: initialAbilityForNewPokemon,
-      effectiveMove: null, starstormDeterminedCategory: null,
-      photonGeyserDeterminedCategory: null,
-      abilityUiFlags: {},
-      loadedMoves: null,
-      moveUiOptionStates: newMoveUiOptionStates, // リセットされた値を渡す
-     });
-  };
-
-  const handleMoveChange = (move: Move | null, index: number) => {
-    const currentAttacker = attackers[index];
-    const newMoveUiOptionStates = { ...(currentAttacker.moveUiOptionStates || {}) };
-
-    // 既存の rankBasedPowerValue 以外の move specific UI options をクリア
-    Object.keys(newMoveUiOptionStates).forEach(key => {
-        if (key !== 'rankBasedPowerValue' && !(move?.uiOption && key === move.uiOption.key)) {
-            delete newMoveUiOptionStates[key];
-        }
-    });
-
-    if (move?.isRankBasedPower) {
-        // 既に rankBasedPowerValue が設定されていればそれを維持、なければ20を設定
-        if (newMoveUiOptionStates['rankBasedPowerValue'] === undefined) {
-            newMoveUiOptionStates['rankBasedPowerValue'] = 20;
-        }
-    } else {
-        delete newMoveUiOptionStates['rankBasedPowerValue'];
-    }
-    // 新しい技の uiOption があれば初期化 (通常はfalse)
-    if (move?.uiOption) {
-        newMoveUiOptionStates[move.uiOption.key] = false;
-    }
-
-
-    updateAttackerState(index, {
-        move,
-        effectiveMove: null,
-        teraBlastDeterminedCategory: null,
-        teraBlastDeterminedType: null,
-        starstormDeterminedCategory: null,
-        photonGeyserDeterminedCategory: null,
-        selectedHitCount: null, // 技変更でリセット
-        moveUiOptionStates: newMoveUiOptionStates
-    });
-  };
-
-
-  const handleHitCountChange = (count: number | null, index: number) => {
-    updateAttackerState(index, { selectedHitCount: count });
-  };
-  const handleItemChange = (item: Item | null, index: number) => updateAttackerState(index, { item });
-  const handleAbilityChange = (ability: Ability | null, index: number) => {
-    updateAttackerState(index, { ability, abilityUiFlags: {} });
-  };
-
-  const handleProtosynthesisBoostedStatChange = (stat: ProtosynthesisBoostTarget | null, attackerIndex: number) => {
-    updateAttackerState(attackerIndex, { protosynthesisBoostedStat: stat });
-  };
-  const handleProtosynthesisManualTriggerChange = (isActive: boolean, attackerIndex: number) => {
-    updateAttackerState(attackerIndex, { protosynthesisManualTrigger: isActive });
-  };
-
-  const handleQuarkDriveBoostedStatChange = (stat: ProtosynthesisBoostTarget | null, attackerIndex: number) => {
-    updateAttackerState(attackerIndex, { quarkDriveBoostedStat: stat });
-  };
-  const handleQuarkDriveManualTriggerChange = (isActive: boolean, attackerIndex: number) => {
-    updateAttackerState(attackerIndex, { quarkDriveManualTrigger: isActive });
-  };
-
-  const handleCurrentHpChange = (newCurrentHp: number, index: number) => {
-    updateAttackerState(index, { currentHp: newCurrentHp });
-  };
+  const { 
+    attackers, addAttacker, removeAttacker, updateAttacker, 
+    updateStat, updateStatValue, updateStatFromInput, setPokemon, setMove 
+  } = useAttackerStore();
+  
+  const { attackStat: defenderAttackStat, updateStat: updateDefenderStat } = useDefenderStore();
+  
+  const handleDefenderOffensiveStatChange = useCallback((updates: Partial<Pick<StatCalculation, 'ev' | 'rank'>>) => {
+    updateDefenderStat('attack', updates);
+  }, [updateDefenderStat]);
+  
+  // ▼▼▼ 全てのハンドラ関数をここに定義 ▼▼▼
+  const toggleAttacker = (index: number) => updateAttacker(index, { isEnabled: !attackers[index].isEnabled });
+  const handlePokemonChange = (pokemon: Pokemon | null, index: number) => setPokemon(index, pokemon);
+  const handleItemChange = (item: Item | null, index: number) => updateAttacker(index, { item });
+  const handleAbilityChange = (ability: Ability | null, index: number) => updateAttacker(index, { ability, abilityUiFlags: {} });
+  
+  const handleHitCountChange = (count: number | null, index: number) => updateAttacker(index, { selectedHitCount: count });
+  const handleCurrentHpChange = (newCurrentHp: number, index: number) => updateAttacker(index, { currentHp: newCurrentHp });
   const handleHpEvChange = (ev: number, index: number) => {
-    let validEv = Math.floor(ev / 4) * 4;
-    validEv = Math.max(0, Math.min(validEv, 252));
-    updateAttackerState(index, { hpEv: validEv });
+    const validEv = Math.max(0, Math.min(Math.floor(ev / 4) * 4, 252));
+    updateAttacker(index, { hpEv: validEv });
   };
+  
+  const handleAttackEvChange = (ev: number, index: number) => updateStat(index, 'attack', { ev: Math.max(0, Math.min(Math.floor(ev / 4) * 4, 252)) });
+  const handleSpecialAttackEvChange = (ev: number, index: number) => updateStat(index, 'specialAttack', { ev: Math.max(0, Math.min(Math.floor(ev / 4) * 4, 252)) });
+  const handleDefenseEvChange = (ev: number, index: number) => updateStat(index, 'defense', { ev: Math.max(0, Math.min(Math.floor(ev / 4) * 4, 252)) });
+  const handleSpeedEvChange = (ev: number, index: number) => updateStat(index, 'speed', { ev: Math.max(0, Math.min(Math.floor(ev / 4) * 4, 252)) });
 
-  const handleAttackEvChange = (ev: number, index: number) => {
-    let validEv = Math.floor(ev / 4) * 4;
-    validEv = Math.max(0, Math.min(validEv, 252));
-    updateAttackerState(index, { attackStat: { ...attackers[index].attackStat || DEFAULT_STAT_CALCULATION, ev: validEv } });
-  };
-  const handleSpecialAttackEvChange = (ev: number, index: number) => {
-    let validEv = Math.floor(ev / 4) * 4;
-    validEv = Math.max(0, Math.min(validEv, 252));
-    updateAttackerState(index, { specialAttackStat: { ...attackers[index].specialAttackStat || DEFAULT_STAT_CALCULATION, ev: validEv } });
-  };
-  const handleDefenseEvChange = (ev: number, index: number) => {
-    let validEv = Math.floor(ev / 4) * 4;
-    validEv = Math.max(0, Math.min(validEv, 252));
-    updateAttackerState(index, { defenseStat: { ...attackers[index].defenseStat || DEFAULT_STAT_CALCULATION, ev: validEv } });
-  };
-  const handleSpeedEvChange = (ev: number, index: number) => {
-    let validEv = Math.floor(ev / 4) * 4;
-    validEv = Math.max(0, Math.min(validEv, 252));
-    updateAttackerState(index, { speedStat: { ...attackers[index].speedStat || DEFAULT_STAT_CALCULATION, ev: validEv } });
-  };
+  const handleAttackNatureChange = (nature: NatureModifier, index: number) => updateStat(index, 'attack', { nature });
+  const handleSpecialAttackNatureChange = (nature: NatureModifier, index: number) => updateStat(index, 'specialAttack', { nature });
+  const handleDefenseNatureChange = (nature: NatureModifier, index: number) => updateStat(index, 'defense', { nature });
+  const handleSpeedNatureChange = (nature: NatureModifier, index: number) => updateStat(index, 'speed', { nature });
 
-  const handleAttackNatureChange = (nature: NatureModifier, index: number) => updateAttackerState(index, { attackStat: { ...attackers[index].attackStat || DEFAULT_STAT_CALCULATION, nature } });
-  const handleSpecialAttackNatureChange = (nature: NatureModifier, index: number) => updateAttackerState(index, { specialAttackStat: { ...attackers[index].specialAttackStat || DEFAULT_STAT_CALCULATION, nature } });
-  const handleDefenseNatureChange = (nature: NatureModifier, index: number) => updateAttackerState(index, { defenseStat: { ...attackers[index].defenseStat || DEFAULT_STAT_CALCULATION, nature } });
-  const handleSpeedNatureChange = (nature: NatureModifier, index: number) => updateAttackerState(index, { speedStat: { ...attackers[index].speedStat || DEFAULT_STAT_CALCULATION, nature } });
+  const handleAttackRankChange = (rank: number, index: number) => updateStat(index, 'attack', { rank });
+  const handleSpecialAttackRankChange = (rank: number, index: number) => updateStat(index, 'specialAttack', { rank });
+  const handleDefenseRankChange = (rank: number, index: number) => updateStat(index, 'defense', { rank });
+  const handleSpeedRankChange = (rank: number, index: number) => updateStat(index, 'speed', { rank });
 
-  const handleAttackRankChange = (rank: number, index: number) => updateAttackerState(index, { attackStat: { ...attackers[index].attackStat || DEFAULT_STAT_CALCULATION, rank } });
-  const handleSpecialAttackRankChange = (rank: number, index: number) => updateAttackerState(index, { specialAttackStat: { ...attackers[index].specialAttackStat || DEFAULT_STAT_CALCULATION, rank } });
-  const handleDefenseRankChange = (rank: number, index: number) => updateAttackerState(index, { defenseStat: { ...attackers[index].defenseStat || DEFAULT_STAT_CALCULATION, rank } });
-  const handleSpeedRankChange = (rank: number, index: number) => updateAttackerState(index, { speedStat: { ...attackers[index].speedStat || DEFAULT_STAT_CALCULATION, rank } });
+  const handleBurnChange = (burned: boolean, index: number) => updateAttacker(index, { isBurned: burned });
+  const handleHelpingHandChange = (helped: boolean, index: number) => updateAttacker(index, { hasHelpingHand: helped });
+  
+  const handleAttackInputChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => updateStatValue(index, 'attack', e.target.value);
+  const handleSpecialAttackInputChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => updateStatValue(index, 'specialAttack', e.target.value);
+  const handleDefenseInputChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => updateStatValue(index, 'defense', e.target.value);
+  const handleSpeedInputChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => updateStatValue(index, 'speed', e.target.value);
+  
+  const handleAttackInputBlur = (index: number) => updateStatFromInput(index, 'attack');
+  const handleSpecialAttackInputBlur = (index: number) => updateStatFromInput(index, 'specialAttack');
+  const handleDefenseInputBlur = (index: number) => updateStatFromInput(index, 'defense');
+  const handleSpeedInputBlur = (index: number) => updateStatFromInput(index, 'speed');
+  
+  const handleProtosynthesisBoostedStatChange = (stat: ProtosynthesisBoostTarget | null, index: number) => updateAttacker(index, { protosynthesisBoostedStat: stat });
+  const handleProtosynthesisManualTriggerChange = (isActive: boolean, index: number) => updateAttacker(index, { protosynthesisManualTrigger: isActive });
+  const handleQuarkDriveBoostedStatChange = (stat: ProtosynthesisBoostTarget | null, index: number) => updateAttacker(index, { quarkDriveBoostedStat: stat });
+  const handleQuarkDriveManualTriggerChange = (isActive: boolean, index: number) => updateAttacker(index, { quarkDriveManualTrigger: isActive });
+  // ▲▲▲ 全てのハンドラ関数をここに定義 ▲▲▲
 
   const handleToggleTera = (attackerIndex: number) => {
     const attacker = attackers[attackerIndex];
     if (!attacker.pokemon || !attacker.move) return;
-
-    let newTeraType: PokemonType | null = null;
-    let newIsStellar = attacker.isStellar;
-
-    if (attacker.teraType === null && !attacker.isStellar) {
-      newIsStellar = false;
-      if (attacker.pokemon.name.startsWith("オーガポン") && attacker.move.id === "ivycudgel") {
-        const pokemonId = attacker.pokemon.id.toString();
-        if (pokemonId.endsWith("-w")) newTeraType = PokemonType.Water;
-        else if (pokemonId.endsWith("-h")) newTeraType = PokemonType.Fire;
-        else if (pokemonId.endsWith("-c")) newTeraType = PokemonType.Rock;
-        else newTeraType = PokemonType.Grass;
-      } else {
-        newTeraType = attacker.move.type;
-      }
-    } else {
-      newTeraType = null;
-      newIsStellar = false;
-    }
-    updateAttackerState(attackerIndex, { teraType: newTeraType, isStellar: newIsStellar });
+    const newTeraType = attacker.teraType === null ? attacker.move.type : null;
+    updateAttacker(attackerIndex, { teraType: newTeraType, isStellar: false });
   };
-
+  
   const handleToggleStellar = (attackerIndex: number) => {
     const attacker = attackers[attackerIndex];
-    if (!attacker.pokemon || !attacker.move) return;
-
+    if (!attacker.pokemon) return;
     const newIsStellar = !attacker.isStellar;
-    let newTeraType = attacker.teraType;
-
-    if (newIsStellar) {
-      newTeraType = null;
-    }
-    updateAttackerState(attackerIndex, { isStellar: newIsStellar, teraType: newTeraType });
+    updateAttacker(attackerIndex, { isStellar: newIsStellar, teraType: newIsStellar ? null : attacker.teraType });
   };
 
-  const handleBurnChange = (burned: boolean, index: number) => updateAttackerState(index, { isBurned: burned });
-  const handleHelpingHandChange = (helped: boolean, index: number) => updateAttackerState(index, { hasHelpingHand: helped });
-  const handleTeraBlastCategorySelect = (category: 'physical' | 'special' | 'auto', index: number) => updateAttackerState(index, { teraBlastUserSelectedCategory: category });
-
-  const handleAttackInputChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
-    const newValue = e.target.value;
-    updateAttackerState(index, { attackInputValue: newValue });
+  const handleTeraBlastCategorySelect = (category: 'physical' | 'special' | 'auto', index: number) => {
+    updateAttacker(index, { teraBlastUserSelectedCategory: category });
   };
 
-  const handleSpecialAttackInputChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
-    const newValue = e.target.value;
-    updateAttackerState(index, { specialAttackInputValue: newValue });
+  const handleRankBasedPowerChange = (power: number, index: number) => {
+    updateAttacker(index, { moveUiOptionStates: { ...attackers[index].moveUiOptionStates, 'rankBasedPowerValue': power }});
   };
-
-  const handleDefenseInputChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
-    const newValue = e.target.value;
-    updateAttackerState(index, { defenseInputValue: newValue });
-  };
-
-  const handleSpeedInputChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
-    const newValue = e.target.value;
-    updateAttackerState(index, { speedInputValue: newValue });
-  };
-
-  const handleStatInputBlur = (
-    index: number,
-    statType: 'attack' | 'specialAttack' | 'defense' | 'speed'
-  ) => {
-    const attacker = attackers[index];
-    if (!attacker.pokemon) {
-      const currentStat = attacker[`${statType}Stat` as keyof AttackerState] as StatCalculation || DEFAULT_STAT_CALCULATION;
-      const resetValue = currentStat && currentStat.final > 0 ? currentStat.final.toString() : "";
-      updateAttackerState(index, { [`${statType}InputValue`]: resetValue } as Partial<AttackerState>);
-      return;
-    }
-
-    const stat = attacker[`${statType}Stat` as keyof AttackerState] as StatCalculation || DEFAULT_STAT_CALCULATION;
-    const inputValueStr = attacker[`${statType}InputValue` as keyof AttackerState] as string;
-    const baseStat = attacker.pokemon.baseStats[statType];
-
-    let targetFinalValue = parseInt(inputValueStr, 10);
-    let newEv = stat.ev;
-
-    if (!isNaN(targetFinalValue) && targetFinalValue >= 0) {
-      const rankMultiplier = stat.rank !== 0 ? (stat.rank > 0 ? (2 + stat.rank) / 2 : 2 / (2 - stat.rank)) : 1;
-      const targetBaseStatValue = Math.floor(targetFinalValue / rankMultiplier);
-
-      newEv = findClosestEvForBaseValue(
-        targetBaseStatValue,
-        baseStat,
-        stat.nature,
-        50,
-        stat.iv
-      );
-    }
-
-    const finalStat = calculateFinalStatWithRank(
-      baseStat,
-      stat.iv,
-      newEv,
-      50,
-      stat.nature,
-      stat.rank
-    );
-
-    updateAttackerState(index, {
-      [`${statType}InputValue`]: finalStat.toString(),
-      [`${statType}Stat`]: { ...stat, ev: newEv, final: finalStat },
-    } as Partial<AttackerState>);
-  };
-
-  const handleAttackInputBlur = (index: number) => handleStatInputBlur(index, 'attack');
-  const handleSpecialAttackInputBlur = (index: number) => handleStatInputBlur(index, 'specialAttack');
-  const handleDefenseInputBlur = (index: number) => handleStatInputBlur(index, 'defense');
-  const handleSpeedInputBlur = (index: number) => handleStatInputBlur(index, 'speed');
 
   const rankBasedPowerOptions = useMemo(() => {
     const options = [];
@@ -827,76 +117,32 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
     return options;
   }, []);
 
-  const handleRankBasedPowerChange = (power: number, index: number) => {
-    const attacker = attackers[index];
-    if (!attacker.move?.isRankBasedPower) return;
-
-    const newUiOptionStates = {
-        ...(attacker.moveUiOptionStates || {}),
-        ['rankBasedPowerValue']: power,
-    };
-    updateAttackerState(index, { moveUiOptionStates: newUiOptionStates });
+  const calculateBaseStatValue = (base: number, iv: number, ev: number, level: number, nature: NatureModifier): number => {
+    if (!base || base <= 0) return 0;
+    let stat = Math.floor(((2 * base + iv + Math.floor(ev / 4)) * level) / 100) + 5;
+    stat = Math.floor(stat * nature);
+    return stat;
   };
 
-
   const renderAttackerSection = (attacker: AttackerState, index: number) => {
-      const attackBaseValueForDisplay = attacker.attackStat && attacker.pokemon ? calculateBaseStatValue(
-          attacker.pokemon.baseStats.attack,
-          attacker.attackStat.iv,
-          attacker.attackStat.ev || 0,
-          50,
-          attacker.attackStat.nature
-      ) : 0;
+    const attackBaseValueForDisplay = attacker.attackStat && attacker.pokemon ? calculateBaseStatValue(attacker.pokemon.baseStats.attack, attacker.attackStat.iv, attacker.attackStat.ev || 0, 50, attacker.attackStat.nature) : 0;
+    const specialAttackBaseValueForDisplay = attacker.specialAttackStat && attacker.pokemon ? calculateBaseStatValue(attacker.pokemon.baseStats.specialAttack, attacker.specialAttackStat.iv, attacker.specialAttackStat.ev || 0, 50, attacker.specialAttackStat.nature) : 0;
+    const defenseBaseValueForDisplay = attacker.defenseStat && attacker.pokemon ? calculateBaseStatValue(attacker.pokemon.baseStats.defense, attacker.defenseStat.iv, attacker.defenseStat.ev || 0, 50, attacker.defenseStat.nature) : 0;
 
-      const specialAttackBaseValueForDisplay = attacker.specialAttackStat && attacker.pokemon ? calculateBaseStatValue(
-          attacker.pokemon.baseStats.specialAttack,
-          attacker.specialAttackStat.iv,
-          attacker.specialAttackStat.ev || 0,
-          50,
-          attacker.specialAttackStat.nature
-      ) : 0;
+    const showTeraBlastSettings = attacker.move?.isTeraBlast && (attacker.teraType !== null || attacker.isStellar) && attacker.isEnabled;
+    const showStarstormCategoryInfo = attacker.move?.id === "terastarstorm" && attacker.pokemon?.id === "1024-s" && attacker.starstormDeterminedCategory && attacker.isEnabled;
+    const showPhotonGeyserCategoryInfo = attacker.move?.id === "photongeyser" && attacker.photonGeyserDeterminedCategory && attacker.isEnabled;
+    const isProtosynthesisSelected = attacker.ability?.id === 'protosynthesis' && attacker.isEnabled && attacker.pokemon;
+    const isQuarkDriveSelected = attacker.ability?.id === 'quark_drive' && attacker.isEnabled && attacker.pokemon;
 
-      const defenseBaseValueForDisplay = attacker.defenseStat && attacker.pokemon ? calculateBaseStatValue(
-          attacker.pokemon.baseStats.defense,
-          attacker.defenseStat.iv,
-          attacker.defenseStat.ev || 0,
-          50,
-          attacker.defenseStat.nature
-      ) : 0;
+    const moveName = attacker.move?.name;
+    let currentStatInputsToRender = null;
+    let hpEvSliderToShow = null;
+    let hpDependentInputsToShow = null;
+    let defenderAttackControlsToShow = null;
 
-      const speedBaseValueForDisplay = attacker.speedStat && attacker.pokemon ? calculateBaseStatValue(
-          attacker.pokemon.baseStats.speed,
-          attacker.speedStat.iv,
-          attacker.speedStat.ev || 0,
-          50,
-          attacker.speedStat.nature
-      ) : 0;
-
-      const showTeraBlastSettings = attacker.move?.isTeraBlast &&
-                                (attacker.teraType !== null || attacker.isStellar) &&
-                                attacker.isEnabled;
-
-      const showStarstormCategoryInfo = attacker.move?.id === "terastarstorm" &&
-                                        attacker.pokemon?.id === "1024-s" &&
-                                        attacker.starstormDeterminedCategory &&
-                                        attacker.isEnabled;
-
-      const showPhotonGeyserCategoryInfo = attacker.move?.id === "photongeyser" &&
-                                          attacker.photonGeyserDeterminedCategory &&
-                                          attacker.isEnabled;
-
-
-      const isProtosynthesisSelected = attacker.ability?.id === 'protosynthesis' && attacker.isEnabled && attacker.pokemon;
-      const isQuarkDriveSelected = attacker.ability?.id === 'quark_drive' && attacker.isEnabled && attacker.pokemon;
-
-      const moveName = attacker.move?.name;
-      let currentStatInputsToRender = null;
-      let hpEvSliderToShow = null;
-      let hpDependentInputsToShow = null;
-      let defenderAttackControlsToShow = null;
-
-      const showRankBasedPowerSelect = attacker.move?.isRankBasedPower && attacker.isEnabled && attacker.pokemon;
-      const selectedRankBasedPower = attacker.moveUiOptionStates?.['rankBasedPowerValue'] as number | undefined ?? 20;
+    const showRankBasedPowerSelect = attacker.move?.isRankBasedPower && attacker.isEnabled && attacker.pokemon;
+    const selectedRankBasedPower = attacker.moveUiOptionStates?.['rankBasedPowerValue'] as number | undefined ?? 20;
 
 
       const attackInputsJsx = attacker.pokemon ? (
@@ -1080,36 +326,34 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
           currentStatInputsToRender = null; // Or a placeholder if nothing is selected
       }
 
-      if (moveName === "イカサマ") {
-        currentStatInputsToRender = <FoulPlayDisplay />;
-        hpEvSliderToShow = null;
-        hpDependentInputsToShow = null;
-        defenderAttackControlsToShow = (
-          <>
-            <div className="mt-3">
-              <StatSlider
-                label="相手のこうげき努力値"
-                value={defenderAttackStatForFoulPlay.ev}
-                max={252}
-                step={4}
-                onChange={(newEv) => {
-                  let validEv = Math.floor(newEv / 4) * 4;
-                  validEv = Math.max(0, Math.min(validEv, 252));
-                  onDefenderOffensiveStatChange({ ev: validEv });
-                }}
-                disabled={!attacker.isEnabled || !attacker.pokemon || defenderAttackStatForFoulPlay.base === 0}
-                currentStat={defenderAttackStatForFoulPlay.final}
-                baseStat={defenderAttackStatForFoulPlay.base}
-              />
-            </div>
-            <div className="mt-3">
-              <RankSelector
-                value={defenderAttackStatForFoulPlay.rank}
-                onChange={(newRank) => onDefenderOffensiveStatChange({ rank: newRank })}
-                label="相手のこうげきランク"
-                disabled={!attacker.isEnabled || !attacker.pokemon || defenderAttackStatForFoulPlay.base === 0}
-              />
-            </div>
+    if (moveName === "イカサマ") {
+      currentStatInputsToRender = <FoulPlayDisplay />;
+      hpEvSliderToShow = null;
+      hpDependentInputsToShow = null;
+      defenderAttackControlsToShow = (
+        <>
+          <div className="mt-3">
+            <StatSlider
+              label="相手のこうげき努力値"
+              // ▼▼▼ ここを修正 ▼▼▼
+              value={defenderAttackStat.ev}
+              max={252}
+              step={4}
+              onChange={(newEv) => handleDefenderOffensiveStatChange({ ev: Math.max(0, Math.min(Math.floor(newEv / 4) * 4, 252)) })}
+              disabled={!attacker.isEnabled || !attacker.pokemon || defenderAttackStat.base === 0}
+              currentStat={defenderAttackStat.final}
+              baseStat={defenderAttackStat.base}
+            />
+          </div>
+          <div className="mt-3">
+            <RankSelector
+              // ▼▼▼ ここを修正 ▼▼▼
+              value={defenderAttackStat.rank}
+              onChange={(newRank) => handleDefenderOffensiveStatChange({ rank: newRank })}
+              label="相手のこうげきランク"
+              disabled={!attacker.isEnabled || !attacker.pokemon || defenderAttackStat.base === 0}
+            />
+          </div>
           </>
         );
       } else if ((moveName === "ふんか" || moveName === "しおふき") && attacker.move) {
@@ -1194,18 +438,18 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
 
           <PokemonSelect pokemon={pokemonList} selected={attacker.pokemon} onChange={(p) => handlePokemonChange(p, index)} label="" disabled={!attacker.isEnabled}/>
 
-          <div className="my-4">
+ <div className="my-4">
             <MoveSelect
                 moves={moves}
                 selected={attacker.effectiveMove ? attacker.effectiveMove : attacker.move}
-                onChange={(m) => handleMoveChange(m, index)}
+                onChange={(m) => setMove(index, m)} // ★★★ ここを修正 ★★★
                 label="わざ"
                 onToggleTera={() => handleToggleTera(index)}
                 currentAttackerTeraType={attacker.teraType}
                 isStellar={attacker.isStellar}
                 onToggleStellar={() => handleToggleStellar(index)}
                 disabled={!attacker.isEnabled || !attacker.pokemon}
-              　loadedMoves={attacker.loadedMoves}
+                loadedMoves={attacker.loadedMoves}
             />
           </div>
 
@@ -1266,7 +510,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                         ...(attacker.moveUiOptionStates || {}),
                         [key]: e.target.checked,
                       };
-                      updateAttackerState(index, { moveUiOptionStates: newUiOptionStates });
+                      updateAttacker(index, { moveUiOptionStates: newUiOptionStates });
                     }}
                     className="w-4 h-4 rounded border-gray-500 bg-gray-800 text-blue-500 mr-2 focus:ring-blue-500 focus:ring-offset-gray-900"
                   />
@@ -1284,7 +528,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                 determinedCategory={attacker.teraBlastDeterminedCategory}
                 isEnabled={attacker.isEnabled}
                 onTeraTypeChange={(type) => {
-                    updateAttackerState(index, { teraType: type, isStellar: type === null ? attacker.isStellar : false });
+                    updateAttacker(index, { teraType: type, isStellar: type === null ? attacker.isStellar : false });
                 }}
                 onCategorySelect={(cat) => handleTeraBlastCategorySelect(cat, index)}
             />
@@ -1332,7 +576,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                     boostedStat: attacker.protosynthesisBoostedStat,
                 } : undefined}
                 onProtosynthesisConfigChange={isProtosynthesisSelected ? (config) => {
-                  updateAttackerState(index, {
+                  updateAttacker(index, {
                     protosynthesisManualTrigger: config.manualTrigger,
                     protosynthesisBoostedStat: config.boostedStat,
                   });
@@ -1342,7 +586,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                   boostedStat: attacker.quarkDriveBoostedStat,
                 } : undefined}
                 onQuarkDriveConfigChange={isQuarkDriveSelected ? (config) => {
-                  updateAttackerState(index, {
+                  updateAttacker(index, {
                     quarkDriveManualTrigger: config.manualTrigger,
                     quarkDriveBoostedStat: config.boostedStat,
                   });
@@ -1363,7 +607,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                         checked={!!attacker.abilityUiFlags?.[trigger.key]}
                         onChange={(e) => {
                           const newFlags = { ...(attacker.abilityUiFlags || {}), [trigger.key]: e.target.checked };
-                          updateAttackerState(index, { abilityUiFlags: newFlags });
+                          updateAttacker(index, { abilityUiFlags: newFlags });
                         }}
                         className="w-3.5 h-3.5 rounded border-gray-500 bg-gray-800 text-blue-500 mr-1.5 focus:ring-blue-500 focus:ring-offset-gray-900"
                       />
