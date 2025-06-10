@@ -307,10 +307,91 @@ export const useAttackerStore = create<AttackerStore>((set, get) => ({
         return { attackers: newAttackers };
       });
     },
-    // loadFromSnapshot, loadFromTeamMember は変更なしのため省略
-    loadFromSnapshot: (snapshot) => { /* ... */ },
-    loadFromTeamMember: (member) => { /* ... */ },
-  }));
+    loadFromSnapshot: (snapshot) => {
+    // スナップショットのIDを元に、各データを検索
+    const pokemon = pokedex.find(p => String(p.id) === String(snapshot.pokemonId));
+    const move = moves.find(m => m.id === snapshot.moveId) || null;
+    const item = items.find(i => i.id === snapshot.itemId) || null;
+    const ability = abilities.find(a => a.id === snapshot.abilityId) || null;
+
+    if (!pokemon) {
+        console.error("Attacker Pokemon not found from snapshot for ID:", snapshot.pokemonId);
+        alert("ログの復元に必要な攻撃側のポケモンデータが見つかりませんでした。");
+        return;
+    }
+
+    // スナップショットから能力値を復元するヘルパー関数
+    const restoreStat = (snap: StatCalculationSnapshot, base: number): StatCalculation => {
+        const newStat = { base, iv: snap.iv, ev: snap.ev, nature: snap.nature, rank: snap.rank, final: 0 };
+        newStat.final = calculateFinalStatWithRank(base, snap.iv, snap.ev, 50, snap.nature, snap.rank);
+        return newStat;
+    };
+
+    // 各能力値を復元
+    const attackStat = restoreStat(snapshot.attackStat, pokemon.baseStats.attack);
+    const specialAttackStat = restoreStat(snapshot.specialAttackStat, pokemon.baseStats.specialAttack);
+    const defenseStat = restoreStat(snapshot.defenseStat, pokemon.baseStats.defense);
+    const speedStat = restoreStat(snapshot.speedStat, pokemon.baseStats.speed);
+
+    // HPを再計算
+    const actualMaxHp = calculateHp(pokemon.baseStats.hp, 31, snapshot.hpEv, 50);
+
+    // スナップショットを元に、新しいAttackerStateオブジェクトを完全に再構築
+    const newAttackerState: AttackerState = {
+        pokemon,
+        move,
+        item,
+        ability,
+        attackStat,
+        specialAttackStat,
+        defenseStat,
+        speedStat,
+        attackInputValue: attackStat.final.toString(),
+        specialAttackInputValue: specialAttackStat.final.toString(),
+        defenseInputValue: defenseStat.final.toString(),
+        speedInputValue: speedStat.final.toString(),
+        hpEv: snapshot.hpEv,
+        actualMaxHp,
+        currentHp: snapshot.currentHp,
+        teraType: snapshot.teraType,
+        loadedTeraType: snapshot.loadedTeraType,
+        isStellar: snapshot.isStellar,
+        isBurned: snapshot.isBurned,
+        hasHelpingHand: snapshot.hasHelpingHand,
+        hasFlowerGift: snapshot.hasFlowerGift || false, // 念のためフォールバック
+        isEnabled: true, // ロードした計算は常に有効化
+        teraBlastUserSelectedCategory: snapshot.teraBlastUserSelectedCategory,
+        starstormDeterminedCategory: snapshot.starstormDeterminedCategory,
+        photonGeyserDeterminedCategory: snapshot.photonGeyserDeterminedCategory,
+        selectedHitCount: snapshot.selectedHitCount,
+        protosynthesisBoostedStat: snapshot.protosynthesisBoostedStat,
+        protosynthesisManualTrigger: snapshot.protosynthesisManualTrigger,
+        quarkDriveBoostedStat: snapshot.quarkDriveBoostedStat,
+        quarkDriveManualTrigger: snapshot.quarkDriveManualTrigger,
+        moveUiOptionStates: snapshot.moveUiOptionStates || {},
+        abilityUiFlags: snapshot.abilityUiFlags || {},
+        // 以下のプロパティは再計算時に設定される
+        effectiveMove: null,
+        teraBlastDeterminedType: null,
+        teraBlastDeterminedCategory: null,
+        loadedMoves: null,
+    };
+    
+    // ストアのattackers配列を、ロードしたポケモン1体のみを含む新しい配列で上書きする
+    set({ attackers: [newAttackerState] });
+
+    // 変更をUIに反映させるために、派生ステート（effectiveMoveなど）の再計算をトリガー
+    get().recalculateAll(0);
+},
+  loadFromTeamMember: (member) => {
+    // 現在この機能は直接使用されていませんが、
+    // 型エラーを防ぐためにプレースホルダーとして実装します。
+    // 必要に応じて、チームメンバーから攻撃側を設定するロジックをここに記述します。
+    console.log("loadFromTeamMember called with:", member);
+},
+// ▲▲▲ ここまで追加 ▲▲▲
+
+})); // <-- この閉じ括弧が正しく解釈されるようになります
 
 useGlobalStateStore.subscribe(() => useAttackerStore.getState().attackers.forEach((_, index) => useAttackerStore.getState().recalculateAll(index)));
 useDefenderStore.subscribe(() => useAttackerStore.getState().attackers.forEach((_, index) => useAttackerStore.getState().recalculateAll(index)));

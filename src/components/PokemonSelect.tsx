@@ -303,4 +303,4 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
   );
 };
 
-export default PokemonSelect;
+export default PokemonSelect
