@@ -1050,11 +1050,6 @@ export const abilities: Ability[] = [
     nameEn: 'Purifying Salt'
   },
   {
-    id: 'quarkdrive',
-    name: 'クォークチャージ',
-    nameEn: 'Quark Drive'
-  },
-  {
     id: 'queenlymajesty',
     name: 'じょおうのいげん',
     nameEn: 'Queenly Majesty'

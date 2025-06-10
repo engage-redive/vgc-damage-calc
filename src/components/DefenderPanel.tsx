@@ -7,13 +7,12 @@ import StatSlider from './StatSlider';
 import RankSelector from './RankSelector';
 import { useGlobalStateStore } from '../stores/globalStateStore';
 import { useDefenderStore } from '../stores/defenderStore';
+import { getTypeColor, getTypeNameJp } from '../utils/uiHelpers';
 
 const ALL_POKEMON_TYPES = ["normal", "fire", "water", "grass", "electric", "ice", "fighting", "poison", "ground", "flying", "psychic", "bug", "rock", "ghost", "dragon", "dark", "steel", "fairy"] as const;
 const LEVEL = 50;
 const PROTOSYNTHESIS_ABILITY_ID = 'protosynthesis';
 const QUARK_DRIVE_ABILITY_ID = 'quark_drive';
-import { getTypeColor, getTypeNameJp } from '../utils/uiHelpers';
-
 
 interface DefenderPanelProps {
   pokemonList: Pokemon[];
@@ -39,9 +38,7 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
     pokemon: selectedPokemon, item: selectedItem, ability: selectedAbility,
     hpStat, defenseStat, specialDefenseStat,
     hpInputValue, defenseInputValue, specialDefenseInputValue,
-    protosynthesisBoostedStat, protosynthesisManualTrigger,
-    quarkDriveBoostedStat, quarkDriveManualTrigger,
-    defender2Item, defender2Ability, userModifiedTypes,
+    defender2Item, defender2Ability, userModifiedTypes,quarkDriveManualTrigger,quarkDriveBoostedStat,
     setPokemon, updateStat, updateStatValue, updateStatFromInput,
     setDefenderState, setDefender2Item, setDefender2Ability, setUserModifiedTypes
   } = useDefenderStore();
@@ -92,14 +89,14 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
   const handleDefenseRankChangeDirect = (rank: number) => updateStat('defense', { rank });
   const handleSpecialDefenseRankChangeDirect = (rank: number) => updateStat('specialDefense', { rank });
 
-  const handleProtosynthesisBoostedStatChangeForDefender = (stat: ProtosynthesisBoostTarget | null) => setDefenderState({ protosynthesisBoostedStat: stat });
-  const handleProtosynthesisManualTriggerChangeForDefender = (isActive: boolean) => setDefenderState({ protosynthesisManualTrigger: isActive });
-  const handleQuarkDriveBoostedStatChangeForDefender = (stat: ProtosynthesisBoostTarget | null) => setDefenderState({ quarkDriveBoostedStat: stat });
-  const handleQuarkDriveManualTriggerChangeForDefender = (isActive: boolean) => setDefenderState({ quarkDriveManualTrigger: isActive });
-  const handleAbilityChangeForDefender = (ability: Ability | null) => setDefenderState({ ability });
-
   const isProtosynthesisSelectedOnDefender = selectedAbility?.id === PROTOSYNTHESIS_ABILITY_ID && selectedPokemon;
   const isQuarkDriveSelectedOnDefender = selectedAbility?.id === QUARK_DRIVE_ABILITY_ID && selectedPokemon;
+    
+  const boostableStats: { value: ProtosynthesisBoostTarget; label: string }[] = [
+    { value: 'attack', label: '攻撃' }, { value: 'defense', label: '防御' },
+    { value: 'specialAttack', label: '特攻' }, { value: 'specialDefense', label: '特防' },
+    { value: 'speed', label: '素早さ' },
+  ];
 
   const hpBaseValueForDisplay = selectedPokemon ? calculateBaseStatValue(selectedPokemon.baseStats.hp, hpStat.iv, hpStat.ev, LEVEL, hpStat.nature, true) : 0;
   const defenseBaseValueForDisplay = selectedPokemon ? calculateBaseStatValue(selectedPokemon.baseStats.defense, defenseStat.iv, defenseStat.ev, LEVEL, defenseStat.nature) : 0;
@@ -228,20 +225,78 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
         </div>
         <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 bg-slate-700 rounded-lg mt-1.5 mb-1.5 shadow">
           <span className="text-sm font-medium text-gray-300 whitespace-nowrap pl-1 w-20">特性</span>
-          <div className="w-full"><AbilitySelect abilities={abilities} selected={selectedAbility} onChange={handleAbilityChangeForDefender} label="" side="defender" selectedPokemon={selectedPokemon} disabled={!selectedPokemon} onProtosynthesisConfigChange={isProtosynthesisSelectedOnDefender ? (config) => setDefenderState({ protosynthesisManualTrigger: config.manualTrigger, protosynthesisBoostedStat: config.boostedStat }) : undefined} onQuarkDriveConfigChange={isQuarkDriveSelectedOnDefender ? (config) => setDefenderState({ quarkDriveManualTrigger: config.manualTrigger, quarkDriveBoostedStat: config.boostedStat }) : undefined} /></div>
+          <div className="w-full"><AbilitySelect abilities={abilities} selected={selectedAbility} onChange={(ability) => setDefenderState({ ability })} label="" side="defender" selectedPokemon={selectedPokemon} disabled={!selectedPokemon} /></div>
         </div>
+        
         {isProtosynthesisSelectedOnDefender && (
-          <div className="mt-4 p-3 bg-gray-700 rounded-md">
-            <h5 className="text-sm font-semibold text-yellow-400 mb-2">こだいかっせい 設定</h5>
-            <div className="mb-2"><label htmlFor="proto-stat-defender" className="block text-xs font-medium text-gray-300 mb-1">上昇する能力:</label><select id="proto-stat-defender" value={protosynthesisBoostedStat || ''} onChange={(e) => handleProtosynthesisBoostedStatChangeForDefender(e.target.value as ProtosynthesisBoostTarget | null)} className="w-full bg-gray-800 border border-gray-600 text-white py-1.5 px-2 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm" disabled={!selectedPokemon}><option value="" disabled>選択してください</option><option value="attack">こうげき</option><option value="defense">ぼうぎょ</option><option value="specialAttack">とくこう</option><option value="specialDefense">とくぼう</option><option value="speed">すばやさ</option></select></div>
-            <div className="flex items-center gap-2"><input type="checkbox" id="proto-manual-defender" checked={!!protosynthesisManualTrigger} onChange={(e) => handleProtosynthesisManualTriggerChangeForDefender(e.target.checked)} className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-gray-700" disabled={!selectedPokemon} /><label htmlFor="proto-manual-defender" className="text-xs text-gray-300">手動で発動させる</label></div>
+          <div className="mt-3 p-3 border border-yellow-600/50 rounded-md bg-yellow-900/30 space-y-3">
+            <p className="text-sm text-yellow-300 -mb-1">こだいかっせい 設定:</p>
+            <div>
+              <label htmlFor="proto-manual-defender" className="flex items-center text-sm text-white cursor-pointer">
+                <input
+                  type="checkbox"
+                  id="proto-manual-defender"
+                  className="h-4 w-4 text-yellow-500 bg-gray-700 border-gray-600 rounded focus:ring-yellow-400 focus:ring-offset-gray-800"
+                  // ▼▼▼ ストアの最新の値を参照するように修正 ▼▼▼
+                  checked={!!protosynthesisManualTrigger}
+                  onChange={(e) => setDefenderState({ protosynthesisManualTrigger: e.target.checked })}
+                  disabled={!selectedPokemon}
+                />
+                <span className="ml-2">手動で発動する</span>
+              </label>
+            </div>
+            <div>
+              <label htmlFor="proto-stat-defender" className="block text-sm font-medium text-white mb-1">上昇させる能力:</label>
+              <select
+                id="proto-stat-defender"
+                // ▼▼▼ ストアの最新の値を参照するように修正 ▼▼▼
+                value={protosynthesisBoostedStat || ''}
+                onChange={(e) => setDefenderState({ protosynthesisBoostedStat: e.target.value as ProtosynthesisBoostTarget | null })}
+                disabled={!selectedPokemon}
+                className="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm pl-3 pr-10 py-2 text-left focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm text-white"
+              >
+                <option value="">選択してください</option>
+                {boostableStats.map(stat => (
+                  <option key={stat.value} value={stat.value}>{stat.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
         )}
+
         {isQuarkDriveSelectedOnDefender && (
-          <div className="mt-4 p-3 bg-gray-700 rounded-md">
-            <h5 className="text-sm font-semibold text-purple-400 mb-2">クォークチャージ 設定</h5>
-            <div className="mb-2"><label htmlFor="quark-stat-defender" className="block text-xs font-medium text-gray-300 mb-1">上昇する能力:</label><select id="quark-stat-defender" value={quarkDriveBoostedStat || ''} onChange={(e) => handleQuarkDriveBoostedStatChangeForDefender(e.target.value as ProtosynthesisBoostTarget | null)} className="w-full bg-gray-800 border border-gray-600 text-white py-1.5 px-2 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm" disabled={!selectedPokemon}><option value="" disabled>選択してください</option><option value="attack">こうげき</option><option value="defense">ぼうぎょ</option><option value="specialAttack">とくこう</option><option value="specialDefense">とくぼう</option><option value="speed">すばやさ</option></select></div>
-            <div className="flex items-center gap-2"><input type="checkbox" id="quark-manual-defender" checked={!!quarkDriveManualTrigger} onChange={(e) => handleQuarkDriveManualTriggerChangeForDefender(e.target.checked)} className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-gray-700" disabled={!selectedPokemon} /><label htmlFor="quark-manual-defender" className="text-xs text-gray-300">手動で発動させる</label></div>
+          <div className="mt-3 p-3 border border-purple-600/50 rounded-md bg-purple-900/30 space-y-3">
+            <p className="text-sm text-purple-300 -mb-1">クォークチャージ 設定:</p>
+            <div>
+              <label htmlFor="quark-manual-defender" className="flex items-center text-sm text-white cursor-pointer">
+                <input
+                  type="checkbox"
+                  id="quark-manual-defender"
+                  className="h-4 w-4 text-purple-500 bg-gray-700 border-gray-600 rounded focus:ring-purple-400 focus:ring-offset-gray-800"
+                  // ▼▼▼ ストアの最新の値を参照するように修正 ▼▼▼
+                  checked={!!quarkDriveManualTrigger}
+                  onChange={(e) => setDefenderState({ quarkDriveManualTrigger: e.target.checked })}
+                  disabled={!selectedPokemon}
+                />
+                <span className="ml-2">手動で発動する</span>
+              </label>
+            </div>
+            <div>
+              <label htmlFor="quark-stat-defender" className="block text-sm font-medium text-white mb-1">上昇させる能力:</label>
+              <select
+                id="quark-stat-defender"
+                // ▼▼▼ ストアの最新の値を参照するように修正 ▼▼▼
+                value={quarkDriveBoostedStat || ''}
+                onChange={(e) => setDefenderState({ quarkDriveBoostedStat: e.target.value as ProtosynthesisBoostTarget | null })}
+                disabled={!selectedPokemon}
+                className="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm pl-3 pr-10 py-2 text-left focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 sm:text-sm text-white"
+              >
+                <option value="">選択してください</option>
+                {boostableStats.map(stat => (
+                  <option key={stat.value} value={stat.value}>{stat.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
         )}
       </div>

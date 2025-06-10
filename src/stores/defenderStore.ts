@@ -1,18 +1,8 @@
 // src/stores/defenderStore.ts
 import { create } from 'zustand';
 import {
-  DefenderState,
-  Pokemon,
-  Item,
-  Ability,
-  StatCalculation,
-  NatureModifier,
-  PokemonType,
-  ProtosynthesisBoostTarget,
-  DefenderStateSnapshotForLog,
-  StatCalculationSnapshot,
-  Nature,
-  TeamMember,
+  DefenderState, Pokemon, Item, Ability, StatCalculation, NatureModifier,
+  PokemonType, ProtosynthesisBoostTarget, DefenderStateSnapshotForLog, StatCalculationSnapshot, Nature, TeamMember,
 } from '../types';
 import { pokedex } from '../data/pokedex';
 import { items } from '../data/items';
@@ -20,7 +10,7 @@ import { abilities } from '../data/abilities';
 import { natures } from '../data/natures';
 import { useGlobalStateStore } from './globalStateStore';
 
-// ユーティリティ関数
+// (ユーティリティ関数は変更なしのため省略)
 const calculateStat = (base: number, iv: number, ev: number, level: number, nature: NatureModifier, isHp: boolean, rank: number = 0): number => {
     let finalStat: number;
     if (isHp) {
@@ -37,16 +27,13 @@ const calculateStat = (base: number, iv: number, ev: number, level: number, natu
     }
     return Math.max(1, finalStat);
 };
-
 const findClosestEv = (target: number, base: number, iv: number, nature: NatureModifier, isHp: boolean, rank: number = 0): number => {
     if (base <= 0 || target <= 0) return 0;
     if (isHp && base === 1) return 0;
-
     const statAt0 = calculateStat(base, iv, 0, 50, nature, isHp, rank);
     if (target <= statAt0) return 0;
     const statAt252 = calculateStat(base, iv, 252, 50, nature, isHp, rank);
     if (target >= statAt252) return 252;
-    
     let closestEv = 0;
     let smallestDiff = Infinity;
     for (let ev = 0; ev <= 252; ev += 4) {
@@ -59,15 +46,14 @@ const findClosestEv = (target: number, base: number, iv: number, nature: NatureM
     }
     return closestEv;
 };
-
 const getNatureModifierValueFromDetails = (natureDetails: Nature | undefined, statField: 'attack' | 'defense' | 'specialDefense' | 'speed'): NatureModifier => {
     if (!natureDetails) return 1.0;
     if (natureDetails.increasedStat === statField) return 1.1;
     if (natureDetails.decreasedStat === statField) return 0.9;
     return 1.0;
 };
+// (ここまでユーティリティ関数)
 
-// 初期状態
 const createInitialDefenderState = (): DefenderState => {
   const initialPokemon = pokedex.find(p => p.name === "カイリュー") || pokedex[0];
   const initialAbility = abilities.find(a => a.nameEn.toLowerCase() === initialPokemon.abilities[0].toLowerCase()) || null;
@@ -100,7 +86,6 @@ const createInitialDefenderState = (): DefenderState => {
   };
 };
 
-// ストアの型定義
 interface DefenderStore extends DefenderState {
   defender2Item: Item | null;
   defender2Ability: Ability | null;
@@ -123,7 +108,32 @@ export const useDefenderStore = create<DefenderStore>((set, get) => ({
   defender2Ability: null,
   userModifiedTypes: null,
 
-  setDefenderState: (updates) => set(updates),
+  setDefenderState: (updates) => set(state => {
+    const currentState = { ...state };
+    const newState = { ...currentState, ...updates };
+
+    // 特性が変更された場合の処理
+    if (updates.ability !== undefined && updates.ability?.id !== currentState.ability?.id) {
+        const newAbilityId = updates.ability?.id;
+        
+        if (newAbilityId === 'protosynthesis') {
+            newState.protosynthesisBoostedStat = 'defense';
+            newState.protosynthesisManualTrigger = false;
+        } else {
+            newState.protosynthesisBoostedStat = null;
+            newState.protosynthesisManualTrigger = false;
+        }
+
+        if (newAbilityId === 'quark_drive') {
+            newState.quarkDriveBoostedStat = 'defense';
+            newState.quarkDriveManualTrigger = false;
+        } else {
+            newState.quarkDriveBoostedStat = null;
+            newState.quarkDriveManualTrigger = false;
+        }
+    }
+    return newState;
+  }),
 
   setPokemon: (pokemon) => {
     if (!pokemon) {
@@ -150,7 +160,9 @@ export const useDefenderStore = create<DefenderStore>((set, get) => ({
       speedInputValue: speedStat.final.toString(),
       hpEv: 0, actualMaxHp: hpStat.final, userModifiedTypes: null,
       protosynthesisBoostedStat: initialAbility?.id === 'protosynthesis' ? 'defense' : null,
+      protosynthesisManualTrigger: false,
       quarkDriveBoostedStat: initialAbility?.id === 'quark_drive' ? 'defense' : null,
+      quarkDriveManualTrigger: false,
     });
     useGlobalStateStore.getState().setDefenderIsTerastallized(false);
   },

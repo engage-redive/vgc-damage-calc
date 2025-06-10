@@ -42,6 +42,10 @@ function App() {
       hpStat: defenderHpStat, defenseStat: defenderDefenseStat, specialDefenseStat: defenderSpecialDefenseStat,
       attackStat: defenderAttackStat, speedStat: defenderSpeedStat,
       userModifiedTypes, defender2Item, defender2Ability,
+      protosynthesisBoostedStat: defenderProtosynthesisBoostedStat,
+      protosynthesisManualTrigger: defenderProtosynthesisManualTrigger,
+      quarkDriveBoostedStat: defenderQuarkDriveBoostedStat,
+      quarkDriveManualTrigger: defenderQuarkDriveManualTrigger,
     } = useDefenderStore();
     const { addLog } = useHistoryStore();
 
@@ -118,8 +122,8 @@ function App() {
             const isAttackerProtosynthesisActive = attackerState.ability?.id === 'protosynthesis' && attackerState.protosynthesisBoostedStat !== null && ((attackerState.item?.name === 'ブーストエナジー') || (weather === 'sun' || weather === 'harsh_sunlight') || attackerState.protosynthesisManualTrigger);
             const isAttackerQuarkDriveActive = attackerState.ability?.id === 'quark_drive' && attackerState.quarkDriveBoostedStat !== null && ((attackerState.item?.name === 'ブーストエナジー') || field === 'electric' || attackerState.quarkDriveManualTrigger);
             
-            const isDefenderProtosynthesisActive = currentDefenderAbility?.id === 'protosynthesis' && defenderPokemon?.protosynthesisBoostedStat !== null && ((currentDefenderItem?.name === 'ブーストエナジー') || (weather === 'sun' || weather === 'harsh_sunlight') || defenderPokemon?.protosynthesisManualTrigger);
-            const isDefenderQuarkDriveActive = currentDefenderAbility?.id === 'quark_drive' && defenderPokemon?.quarkDriveBoostedStat !== null && ((currentDefenderItem?.name === 'ブーストエナジー') || field === 'electric' || defenderPokemon?.quarkDriveManualTrigger);
+            const isDefenderProtosynthesisActive = currentDefenderAbility?.id === 'protosynthesis' && defenderProtosynthesisBoostedStat !== null && ((currentDefenderItem?.name === 'ブーストエナジー') || (weather === 'sun' || weather === 'harsh_sunlight') || defenderProtosynthesisManualTrigger);
+            const isDefenderQuarkDriveActive = currentDefenderAbility?.id === 'quark_drive' && defenderQuarkDriveBoostedStat !== null && ((currentDefenderItem?.name === 'ブーストエナジー') || field === 'electric' || defenderQuarkDriveManualTrigger);
             
             return calculateDamage(
                 attackerState.pokemon, { ...defenderPokemon, types: defenderCurrentTypes }, moveForCalc,
@@ -130,9 +134,9 @@ function App() {
                 attackerState.ability, null, currentDefenderAbility, null, weather, disasters, hasFriendGuard,
                 attackerTeraBlastConfig, defenderIsTerastallized,
                 isAttackerProtosynthesisActive, attackerState.protosynthesisBoostedStat,
-                isDefenderProtosynthesisActive, defenderPokemon?.protosynthesisBoostedStat,
+                isDefenderProtosynthesisActive, defenderProtosynthesisBoostedStat,
                 isAttackerQuarkDriveActive, attackerState.quarkDriveBoostedStat,
-                isDefenderQuarkDriveActive, defenderPokemon?.quarkDriveBoostedStat,
+                isDefenderQuarkDriveActive, defenderQuarkDriveBoostedStat,
                 attackerState.moveUiOptionStates,
                 attackerState.abilityUiFlags
             );
@@ -142,7 +146,12 @@ function App() {
         attackers, 
         defenderPokemon, defenderItem, defenderAbility, defenderHpStat, defenderDefenseStat, defenderSpecialDefenseStat, defenderAttackStat, defenderSpeedStat,
         defenderCurrentTypes, isDoubleBattle, hasReflect, hasLightScreen, weather, field, disasters, hasFriendGuard, defenderIsTerastallized,
-        userModifiedTypes, defender2Item, defender2Ability, moves
+        userModifiedTypes, defender2Item, defender2Ability, moves,
+        defenderProtosynthesisBoostedStat,
+        defenderProtosynthesisManualTrigger,
+        defenderQuarkDriveBoostedStat,
+        defenderQuarkDriveManualTrigger,
+
     ]);
     
 

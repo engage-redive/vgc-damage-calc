@@ -40,11 +40,11 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
     updateDefenderStat('attack', updates);
   }, [updateDefenderStat]);
   
-  // ▼▼▼ 全てのハンドラ関数をここに定義 ▼▼▼
+  // ▼▼▼ ハンドラ関数 ▼▼▼
   const toggleAttacker = (index: number) => updateAttacker(index, { isEnabled: !attackers[index].isEnabled });
   const handlePokemonChange = (pokemon: Pokemon | null, index: number) => setPokemon(index, pokemon);
   const handleItemChange = (item: Item | null, index: number) => updateAttacker(index, { item });
-  const handleAbilityChange = (ability: Ability | null, index: number) => updateAttacker(index, { ability, abilityUiFlags: {} });
+  const handleAbilityChange = (ability: Ability | null, index: number) => updateAttacker(index, { ability });
   
   const handleHitCountChange = (count: number | null, index: number) => updateAttacker(index, { selectedHitCount: count });
   const handleCurrentHpChange = (newCurrentHp: number, index: number) => updateAttacker(index, { currentHp: newCurrentHp });
@@ -80,12 +80,8 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
   const handleSpecialAttackInputBlur = (index: number) => updateStatFromInput(index, 'specialAttack');
   const handleDefenseInputBlur = (index: number) => updateStatFromInput(index, 'defense');
   const handleSpeedInputBlur = (index: number) => updateStatFromInput(index, 'speed');
-  
-  const handleProtosynthesisBoostedStatChange = (stat: ProtosynthesisBoostTarget | null, index: number) => updateAttacker(index, { protosynthesisBoostedStat: stat });
-  const handleProtosynthesisManualTriggerChange = (isActive: boolean, index: number) => updateAttacker(index, { protosynthesisManualTrigger: isActive });
-  const handleQuarkDriveBoostedStatChange = (stat: ProtosynthesisBoostTarget | null, index: number) => updateAttacker(index, { quarkDriveBoostedStat: stat });
-  const handleQuarkDriveManualTriggerChange = (isActive: boolean, index: number) => updateAttacker(index, { quarkDriveManualTrigger: isActive });
-  // ▲▲▲ 全てのハンドラ関数をここに定義 ▲▲▲
+
+  // ▲▲▲ ハンドラ関数 ▲▲▲
 
   const handleToggleTera = (attackerIndex: number) => {
     const attacker = attackers[attackerIndex];
@@ -123,6 +119,12 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
     stat = Math.floor(stat * nature);
     return stat;
   };
+    
+  const boostableStats: { value: ProtosynthesisBoostTarget; label: string }[] = [
+    { value: 'attack', label: '攻撃' }, { value: 'defense', label: '防御' },
+    { value: 'specialAttack', label: '特攻' }, { value: 'specialDefense', label: '特防' },
+    { value: 'speed', label: '素早さ' },
+  ];
 
   const renderAttackerSection = (attacker: AttackerState, index: number) => {
     const attackBaseValueForDisplay = attacker.attackStat && attacker.pokemon ? calculateBaseStatValue(attacker.pokemon.baseStats.attack, attacker.attackStat.iv, attacker.attackStat.ev || 0, 50, attacker.attackStat.nature) : 0;
@@ -132,6 +134,7 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
     const showTeraBlastSettings = attacker.move?.isTeraBlast && (attacker.teraType !== null || attacker.isStellar) && attacker.isEnabled;
     const showStarstormCategoryInfo = attacker.move?.id === "terastarstorm" && attacker.pokemon?.id === "1024-s" && attacker.starstormDeterminedCategory && attacker.isEnabled;
     const showPhotonGeyserCategoryInfo = attacker.move?.id === "photongeyser" && attacker.photonGeyserDeterminedCategory && attacker.isEnabled;
+    
     const isProtosynthesisSelected = attacker.ability?.id === 'protosynthesis' && attacker.isEnabled && attacker.pokemon;
     const isQuarkDriveSelected = attacker.ability?.id === 'quark_drive' && attacker.isEnabled && attacker.pokemon;
 
@@ -335,7 +338,6 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
           <div className="mt-3">
             <StatSlider
               label="相手のこうげき努力値"
-              // ▼▼▼ ここを修正 ▼▼▼
               value={defenderAttackStat.ev}
               max={252}
               step={4}
@@ -347,7 +349,6 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
           </div>
           <div className="mt-3">
             <RankSelector
-              // ▼▼▼ ここを修正 ▼▼▼
               value={defenderAttackStat.rank}
               onChange={(newRank) => handleDefenderOffensiveStatChange({ rank: newRank })}
               label="相手のこうげきランク"
@@ -438,11 +439,11 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
 
           <PokemonSelect pokemon={pokemonList} selected={attacker.pokemon} onChange={(p) => handlePokemonChange(p, index)} label="" disabled={!attacker.isEnabled}/>
 
- <div className="my-4">
+          <div className="my-4">
             <MoveSelect
                 moves={moves}
                 selected={attacker.effectiveMove ? attacker.effectiveMove : attacker.move}
-                onChange={(m) => setMove(index, m)} // ★★★ ここを修正 ★★★
+                onChange={(m) => setMove(index, m)}
                 label="わざ"
                 onToggleTera={() => handleToggleTera(index)}
                 currentAttackerTeraType={attacker.teraType}
@@ -473,7 +474,6 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
               </select>
             </div>
           )}
-
 
           {attacker.move && typeof attacker.move.multihit === 'number' && attacker.move.multihit > 1 && attacker.isEnabled && attacker.pokemon && (
             <HitCountSelect
@@ -571,29 +571,78 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
                 side="attacker"
                 selectedPokemon={attacker.pokemon}
                 disabled={!attacker.isEnabled || !attacker.pokemon}
-                 protosynthesisConfig={ isProtosynthesisSelected ? {
-                    manualTrigger: attacker.protosynthesisManualTrigger,
-                    boostedStat: attacker.protosynthesisBoostedStat,
-                } : undefined}
-                onProtosynthesisConfigChange={isProtosynthesisSelected ? (config) => {
-                  updateAttacker(index, {
-                    protosynthesisManualTrigger: config.manualTrigger,
-                    protosynthesisBoostedStat: config.boostedStat,
-                  });
-                } : undefined}
-                quarkDriveConfig={isQuarkDriveSelected ? {
-                  manualTrigger: attacker.quarkDriveManualTrigger,
-                  boostedStat: attacker.quarkDriveBoostedStat,
-                } : undefined}
-                onQuarkDriveConfigChange={isQuarkDriveSelected ? (config) => {
-                  updateAttacker(index, {
-                    quarkDriveManualTrigger: config.manualTrigger,
-                    quarkDriveBoostedStat: config.boostedStat,
-                  });
-                } : undefined}
               />
             </div>
           </div>
+          
+          {isProtosynthesisSelected && (
+            <div className="mt-3 p-3 border border-yellow-600/50 rounded-md bg-yellow-900/30 space-y-3">
+              <p className="text-sm text-yellow-300 -mb-1">こだいかっせい 設定:</p>
+              <div>
+                <label htmlFor={`proto-manual-${index}`} className="flex items-center text-sm text-white cursor-pointer">
+                  <input
+                    type="checkbox"
+                    id={`proto-manual-${index}`}
+                    className="h-4 w-4 text-yellow-500 bg-gray-700 border-gray-600 rounded focus:ring-yellow-400 focus:ring-offset-gray-800"
+                    checked={attacker.protosynthesisManualTrigger}
+                    onChange={(e) => updateAttacker(index, { protosynthesisManualTrigger: e.target.checked })}
+                    disabled={!attacker.isEnabled}
+                  />
+                  <span className="ml-2">手動で発動する</span>
+                </label>
+              </div>
+              <div>
+                <label htmlFor={`proto-stat-${index}`} className="block text-sm font-medium text-white mb-1">上昇させる能力:</label>
+                <select
+                  id={`proto-stat-${index}`}
+                  value={attacker.protosynthesisBoostedStat || ''}
+                  onChange={(e) => updateAttacker(index, { protosynthesisBoostedStat: e.target.value as ProtosynthesisBoostTarget | null })}
+                  disabled={!attacker.isEnabled}
+                  className="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm pl-3 pr-10 py-2 text-left focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm text-white"
+                >
+                  <option value="">選択してください</option>
+                  {boostableStats.map(stat => (
+                    <option key={stat.value} value={stat.value}>{stat.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {isQuarkDriveSelected && (
+            <div className="mt-3 p-3 border border-purple-600/50 rounded-md bg-purple-900/30 space-y-3">
+                <p className="text-sm text-purple-300 -mb-1">クォークチャージ 設定:</p>
+                <div>
+                  <label htmlFor={`quark-manual-${index}`} className="flex items-center text-sm text-white cursor-pointer">
+                    <input
+                        type="checkbox"
+                        id={`quark-manual-${index}`}
+                        className="h-4 w-4 text-purple-500 bg-gray-700 border-gray-600 rounded focus:ring-purple-400 focus:ring-offset-gray-800"
+                        checked={attacker.quarkDriveManualTrigger}
+                        onChange={(e) => updateAttacker(index, { quarkDriveManualTrigger: e.target.checked })}
+                        disabled={!attacker.isEnabled}
+                    />
+                    <span className="ml-2">手動で発動する</span>
+                  </label>
+                </div>
+                <div>
+                  <label htmlFor={`quark-stat-${index}`} className="block text-sm font-medium text-white mb-1">上昇させる能力:</label>
+                  <select
+                      id={`quark-stat-${index}`}
+                      value={attacker.quarkDriveBoostedStat || ''}
+                      onChange={(e) => updateAttacker(index, { quarkDriveBoostedStat: e.target.value as ProtosynthesisBoostTarget | null })}
+                      disabled={!attacker.isEnabled}
+                      className="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm pl-3 pr-10 py-2 text-left focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 sm:text-sm text-white"
+                  >
+                    <option value="">選択してください</option>
+                    {boostableStats.map(stat => (
+                        <option key={stat.value} value={stat.value}>{stat.label}</option>
+                    ))}
+                  </select>
+                </div>
+            </div>
+          )}
+
           {attacker.ability?.uiTriggers && attacker.isEnabled && attacker.pokemon && (
             <div className="mt-3 p-3 bg-gray-700/50 rounded-md space-y-2">
               <h5 className="text-sm font-semibold text-gray-300 mb-1">{attacker.ability.name} 追加設定</h5>
@@ -618,75 +667,6 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
               ))}
             </div>
           )}
-
-
-          {isProtosynthesisSelected && (
-            <div className="mt-4 p-3 bg-gray-700 ">
-              <h5 className="text-sm font-semibold text-yellow-400 mb-2">こだいかっせい 設定</h5>
-              <div className="mb-1">
-                <label htmlFor={`proto-stat-${index}`} className="block text-xs font-medium text-gray-300 mb-1">上昇する能力:</label>
-                <select
-                  id={`proto-stat-${index}`}
-                  value={attacker.protosynthesisBoostedStat || ''}
-                  onChange={(e) => handleProtosynthesisBoostedStatChange(e.target.value as ProtosynthesisBoostTarget | '', index)}
-                  className="w-full bg-gray-800 border border-gray-600 text-white py-1.5 px-2 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
-                  disabled={!attacker.isEnabled}
-                >
-                  <option value="" disabled>選択してください</option>
-                  <option value="attack">こうげき</option>
-                  <option value="defense">ぼうぎょ</option>
-                  <option value="specialAttack">とくこう</option>
-                  <option value="specialDefense">とくぼう</option>
-                  <option value="speed">すばやさ</option>
-                </select>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id={`proto-manual-${index}`}
-                  checked={attacker.protosynthesisManualTrigger}
-                  onChange={(e) => handleProtosynthesisManualTriggerChange(e.target.checked, index)}
-                  className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-gray-700"
-                  disabled={!attacker.isEnabled}
-                />
-                <label htmlFor={`proto-manual-${index}`} className="text-xs text-gray-300">手動で発動させる</label>
-              </div>
-            </div>
-          )}
-          {isQuarkDriveSelected && (
-            <div className="mt-4 p-3 bg-gray-700 rounded-md">
-              <h5 className="text-sm font-semibold text-purple-400 mb-2">クォークチャージ 設定</h5>
-              <div className="mb-2">
-                <label htmlFor={`quark-stat-${index}`} className="block text-xs font-medium text-gray-300 mb-1">上昇する能力:</label>
-                <select
-                  id={`quark-stat-${index}`}
-                  value={attacker.quarkDriveBoostedStat || ''}
-                  onChange={(e) => handleQuarkDriveBoostedStatChange(e.target.value as ProtosynthesisBoostTarget | '', index)}
-                  className="w-full bg-gray-800 border border-gray-600 text-white py-1.5 px-2 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
-                  disabled={!attacker.isEnabled}
-                >
-                  <option value="" disabled>選択してください</option>
-                  <option value="attack">こうげき</option>
-                  <option value="defense">ぼうぎょ</option>
-                  <option value="specialAttack">とくこう</option>
-                  <option value="specialDefense">とくぼう</option>
-                  <option value="speed">すばやさ</option>
-                </select>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id={`quark-manual-${index}`}
-                  checked={attacker.quarkDriveManualTrigger}
-                  onChange={(e) => handleQuarkDriveManualTriggerChange(e.target.checked, index)}
-                  className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-gray-700"
-                  disabled={!attacker.isEnabled}
-                />
-                <label htmlFor={`quark-manual-${index}`} className="text-xs text-gray-300">手動で発動させる</label>
-              </div>
-            </div>
-          )}
-
 
           {hpDependentInputsToShow && (
             <div className="mt-6">
