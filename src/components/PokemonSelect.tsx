@@ -1,5 +1,3 @@
-// PokemonSelect.tsx (修正後)
-
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Pokemon } from '../types';
 import { ChevronDown, Search } from 'lucide-react';
@@ -58,34 +56,20 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
     });
   }, [pokemon]);
   
-  // ▼▼▼ ここを修正しました ▼▼▼
   const filteredPokemon = useMemo(() => {
     if (!searchTerm) return uniquePokemonList;
-
     const termLower = searchTerm.toLowerCase();
     const termAsHiragana = toHiragana(searchTerm);
-
     return uniquePokemonList.filter(p => {
       const nameHiragana = toHiragana(p.name);
       const nameEnLower = (p as any).nameEn?.toLowerCase() || '';
-      
-      // 英語名での部分一致をチェック
-      // (例: "caly" で "Calyrex" がヒットする)
-      if (nameEnLower && nameEnLower.includes(termLower)) {
-        return true;
-      }
-      
-      // 日本語名での前方一致をチェック
-      // (例: 「ばどれ」で「バドレックス」がヒットする)
-      if (nameHiragana.startsWith(termAsHiragana)) {
-        return true;
-      }
-      
-      return false;
+      return nameEnLower.includes(termLower) || nameHiragana.startsWith(termAsHiragana);
     });
   }, [uniquePokemonList, searchTerm]);
-  // ▲▲▲ 修正ここまで ▲▲▲
 
+  // ▼▼▼ 修正点 1: useEffectの責務を正しく分離する ▼▼▼
+
+  // クリックで外側を閉じるためのuseEffect
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
@@ -99,34 +83,40 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
   
+  // ドロップダウンが開いた時の初期化用useEffect
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => searchInputRef.current?.focus(), 50);
       
-      if (selected) {
-        const selectedIndex = filteredPokemon.findIndex(p => p.name === selected.name);
+      // 検索語が空の時に、選択中のポケモンをハイライトする
+      if (selected && !searchTerm) {
+        const selectedIndex = uniquePokemonList.findIndex(p => p.name === selected.name);
         setHighlightedIndex(selectedIndex !== -1 ? selectedIndex : 0);
       } else {
         setHighlightedIndex(0);
       }
     } else {
+      // 閉じたときはハイライトをリセット
       setHighlightedIndex(-1);
     }
-  }, [isOpen]); 
+    // 依存配列からfilteredPokemonを削除し、開閉時のみ実行されるようにする
+  }, [isOpen]);
 
+  // 検索語が変更された時にハイライトを先頭に戻すuseEffect
   useEffect(() => {
-    if (isOpen) {
-      setHighlightedIndex(filteredPokemon.length > 0 ? 0 : -1);
-    }
-  }, [searchTerm, filteredPokemon, isOpen]); // isOpenを依存配列に追加
+    // isOpenのチェックは不要。filteredPokemonが変わるのは検索時=開いている時のみ
+    setHighlightedIndex(filteredPokemon.length > 0 ? 0 : -1);
+  }, [searchTerm]); // 依存配列をsearchTermのみにする
 
+  // ハイライトされた項目にスクロールするuseEffect
   useEffect(() => {
     if (isOpen && highlightedIndex >= 0 && listRef.current && filteredPokemon[highlightedIndex]) {
       const optionId = getOptionId(filteredPokemon[highlightedIndex].name);
       const listItem = listRef.current.querySelector(`#${CSS.escape(optionId)}`);
       listItem?.scrollIntoView({ block: 'nearest' });
     }
-  }, [highlightedIndex, isOpen, filteredPokemon, getOptionId]);
+  }, [highlightedIndex]); // 依存配列をhighlightedIndexのみに絞る
+  // ▲▲▲ 修正点 1 ここまで ▲▲▲
 
   const handleSelectPokemon = (p: Pokemon) => {
     onChange(p);
@@ -134,7 +124,8 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
     setSearchTerm('');
     buttonRef.current?.focus();
   };
-
+  
+  // ▼▼▼ 修正点 2: キー操作ハンドラを堅牢にする ▼▼▼
   const handleKeyDown = (event: React.KeyboardEvent) => {
     const listHasItems = filteredPokemon.length > 0;
     switch (event.key) {
@@ -154,7 +145,7 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
         if (!isOpen) {
           setIsOpen(true);
         } else if (listHasItems) {
-          setHighlightedIndex(p => (p + 1) % filteredPokemon.length);
+          setHighlightedIndex(prev => (prev + 1) % filteredPokemon.length);
         }
         break;
       case 'ArrowUp':
@@ -162,7 +153,7 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
         if (!isOpen) {
           setIsOpen(true);
         } else if (listHasItems) {
-          setHighlightedIndex(p => (p - 1 + filteredPokemon.length) % filteredPokemon.length);
+          setHighlightedIndex(prev => (prev - 1 + filteredPokemon.length) % filteredPokemon.length);
         }
         break;
       case 'Escape':
@@ -173,9 +164,7 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
         }
         break;
       case 'Tab':
-        if (isOpen) {
-          setIsOpen(false);
-        }
+        if (isOpen) setIsOpen(false);
         break;
       default:
         break;
@@ -192,15 +181,13 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
         }
         break;
       case 'ArrowDown':
-        event.preventDefault();
-        if (listHasItems) {
-          setHighlightedIndex(p => (p + 1) % filteredPokemon.length);
-        }
-        break;
       case 'ArrowUp':
         event.preventDefault();
-        if (listHasItems) {
-          setHighlightedIndex(p => (p - 1 + filteredPokemon.length) % filteredPokemon.length);
+        // 検索ボックスからリストにフォーカスを移すような操作感にする
+        if(listHasItems) {
+            listRef.current?.focus();
+            // 上下のキー操作は、ul要素のonKeyDownで処理させる
+            handleKeyDown(event);
         }
         break;
       case 'Escape':
@@ -212,6 +199,7 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
         break;
     }
   };
+  // ▲▲▲ 修正点 2 ここまで ▲▲▲
 
   const renderListItems = () => (
     <>
@@ -279,7 +267,7 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
           aria-haspopup="listbox" aria-expanded={isOpen}
           aria-labelledby={`${baseId}-label ${buttonId}`}
           aria-controls={isOpen ? listboxId : undefined}
-          aria-activedescendant={isOpen && highlightedIndex >= 0 && filteredPokemon.length > 0 && filteredPokemon[highlightedIndex] ? getOptionId(filteredPokemon[highlightedIndex].name) : undefined}
+          aria-activedescendant={isOpen && highlightedIndex >= 0 && filteredPokemon[highlightedIndex] ? getOptionId(filteredPokemon[highlightedIndex].name) : undefined}
         >
           <span className="block truncate">{selected ? selected.name : 'ポケモンを選択'}</span>
           <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none"><ChevronDown className="h-4 w-4 text-gray-400" /></span>
@@ -290,9 +278,9 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
             <div className="sticky top-0 z-10 bg-gray-800 p-2 border-b border-gray-700">
               {renderSearchInput()}
             </div>
-            <ul ref={listRef} id={listboxId} tabIndex={-1} role="listbox" onKeyDown={handleKeyDown} className="p-2 overflow-y-auto flex-grow space-y-1"
+            <ul ref={listRef} id={listboxId} tabIndex={-1} role="listbox" onKeyDown={handleKeyDown} className="p-2 overflow-y-auto flex-grow space-y-1 focus:outline-none"
               aria-labelledby={`${baseId}-label`}
-              aria-activedescendant={highlightedIndex >= 0 && filteredPokemon.length > 0 && filteredPokemon[highlightedIndex] ? getOptionId(filteredPokemon[highlightedIndex].name) : undefined}
+              aria-activedescendant={highlightedIndex >= 0 && filteredPokemon[highlightedIndex] ? getOptionId(filteredPokemon[highlightedIndex].name) : undefined}
             >
               {renderListItems()}
             </ul>
@@ -303,4 +291,4 @@ const PokemonSelect: React.FC<PokemonSelectProps> = ({
   );
 };
 
-export default PokemonSelect
+export default PokemonSelect;
