@@ -108,6 +108,7 @@ export interface Move {
   uiOption?: MoveUiOption;
   dynamicEffectId?: string;
   isRankBasedPower?: boolean; // ★ 追加: アシストパワー/つけあがるのような威力変動技かを示すフラグ
+  variablePowers?: number[]; // ★★★ 変更点 ★★★
 }
 
 export interface Item {
@@ -186,6 +187,7 @@ export interface AttackerStateSnapshotForLog {
   loadedTeraType: PokemonType | null; // ★ 追加
   isStellar: boolean;
   isBurned: boolean;
+  isCritical?: boolean; // ★★★ 修正点 ★★★ 急所モードの状態を追加
   hasHelpingHand: boolean;
   hasFlowerGift: boolean; // 念のため追加
   teraBlastUserSelectedCategory: 'physical' | 'special' | 'auto';
@@ -197,6 +199,8 @@ export interface AttackerStateSnapshotForLog {
   quarkDriveBoostedStat: QuarkDriveBoostTarget | null;
   quarkDriveManualTrigger: boolean;
   moveUiOptionStates: { [key: string]: boolean };
+  abilityUiFlags: { [key: string]: boolean }; // ★ 追加
+  variableHitStates?: boolean[]; // ★★★ 変更点 ★★★
 }
 
 export interface DefenderStateSnapshotForLog {
@@ -263,6 +267,7 @@ export interface AttackerState {
   loadedTeraType: PokemonType | null; // ★ 追加
   isStellar: boolean;
   isBurned: boolean;
+  isCritical?: boolean; // ★★★ 修正点 ★★★ 急所モードの状態を追加
   hasHelpingHand: boolean;
   hasFlowerGift: boolean;
   isEnabled: boolean;
@@ -279,6 +284,7 @@ export interface AttackerState {
   loadedMoves?: (Move | null)[] | null; // ★ チーム
   abilityUiFlags: { [key: string]: boolean }; // ★追加: 特性固有UIの状態 (例: { 'guts_active': true })
   photonGeyserDeterminedCategory: MoveCategory | null; // ★
+  variableHitStates?: boolean[]; // ★★★ 変更点 ★★★
 }
 
 export interface DefenderState {

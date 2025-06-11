@@ -46,7 +46,9 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
   const handleItemChange = (item: Item | null, index: number) => updateAttacker(index, { item });
   const handleAbilityChange = (ability: Ability | null, index: number) => updateAttacker(index, { ability });
   
-  const handleHitCountChange = (count: number | null, index: number) => updateAttacker(index, { selectedHitCount: count });
+  const handleHitCountChange = (count: number, index: number) => {
+    updateAttacker(index, { selectedHitCount: count });
+  };
   const handleCurrentHpChange = (newCurrentHp: number, index: number) => updateAttacker(index, { currentHp: newCurrentHp });
   const handleHpEvChange = (ev: number, index: number) => {
     const validEv = Math.max(0, Math.min(Math.floor(ev / 4) * 4, 252));
@@ -80,6 +82,24 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
   const handleSpecialAttackInputBlur = (index: number) => updateStatFromInput(index, 'specialAttack');
   const handleDefenseInputBlur = (index: number) => updateStatFromInput(index, 'defense');
   const handleSpeedInputBlur = (index: number) => updateStatFromInput(index, 'speed');
+  
+  const handleVariableHitChange = (hitIndex: number, checked: boolean, attackerIndex: number) => {
+    const attacker = attackers[attackerIndex];
+    if (!attacker.variableHitStates) return;
+    const newStates = [...attacker.variableHitStates];
+    newStates[hitIndex] = checked;
+
+    // --- ここに連動ロジックを移設 ---
+    // もしチェックが外された場合、それ以降のヒットもすべてチェックを外す
+    if (!checked) {
+        for (let i = hitIndex + 1; i < newStates.length; i++) {
+            newStates[i] = false;
+        }
+    }
+    // チェックを入れた場合は、後続の状態は変更しない
+    
+    updateAttacker(attackerIndex, { variableHitStates: newStates });
+  };
 
   // ▲▲▲ ハンドラ関数 ▲▲▲
 
@@ -137,6 +157,8 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
     
     const isProtosynthesisSelected = attacker.ability?.id === 'protosynthesis' && attacker.isEnabled && attacker.pokemon;
     const isQuarkDriveSelected = attacker.ability?.id === 'quark_drive' && attacker.isEnabled && attacker.pokemon;
+
+    const isVariablePowerMove = attacker.move?.variablePowers && attacker.move.variablePowers.length > 0;
 
     const moveName = attacker.move?.name;
     let currentStatInputsToRender = null;
@@ -475,7 +497,28 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
             </div>
           )}
 
-          {attacker.move && typeof attacker.move.multihit === 'number' && attacker.move.multihit > 1 && attacker.isEnabled && attacker.pokemon && (
+          {isVariablePowerMove && attacker.move && attacker.isEnabled && (
+            <div className="mt-3 p-3 bg-gray-700/50 rounded-md space-y-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                ヒット回数 ({attacker.move.name})
+              </label>
+              {attacker.move.variablePowers?.map((power, hitIdx) => (
+                <label key={hitIdx} htmlFor={`variable-hit-${index}-${hitIdx}`} className="flex items-center text-sm text-gray-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    id={`variable-hit-${index}-${hitIdx}`}
+                    checked={!!attacker.variableHitStates?.[hitIdx]}
+                    onChange={(e) => handleVariableHitChange(hitIdx, e.target.checked, index)}
+                    disabled={!attacker.isEnabled || (hitIdx > 0 && !attacker.variableHitStates?.[hitIdx-1])}
+                    className="w-4 h-4 rounded border-gray-500 bg-gray-800 text-blue-500 mr-2 focus:ring-blue-500 focus:ring-offset-gray-900"
+                  />
+                  {hitIdx + 1}回目 (威力: {power})
+                </label>
+              ))}
+            </div>
+          )}
+
+          {attacker.move && typeof attacker.move.multihit === 'number' && attacker.move.multihit > 1 && !isVariablePowerMove && attacker.isEnabled && attacker.pokemon && (
             <HitCountSelect
               label="ヒット回数"
               maxHits={attacker.move.multihit}
@@ -484,9 +527,9 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
               disabled={!attacker.isEnabled || !attacker.pokemon}
             />
           )}
-          {attacker.move && attacker.move.multihit === '2-5' && attacker.isEnabled && attacker.pokemon && (
+          {attacker.move && attacker.move.multihit === '2-5' && !isVariablePowerMove && attacker.isEnabled && attacker.pokemon && (
              <HitCountSelect
-              label="ヒット回数 (2-5回)"
+              label="ヒット回数"
               maxHits={5}
               minHits={2}
               selectedCount={attacker.selectedHitCount}

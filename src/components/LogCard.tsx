@@ -9,6 +9,7 @@ import {
 import { useHistoryStore } from '../stores/historyStore';
 import { X, Trash2, Info, RotateCcw } from 'lucide-react';
 import { getTypeNameJp, getTypeColor } from '../utils/uiHelpers';
+import { moves } from '../data/moves'; // ★ movesデータをインポート
 
 const TYPE_NAME_JP_HISTORY: Record<string, string> = {
   normal: 'ノーマル', fire: 'ほのお', water: 'みず', electric: 'でんき', grass: 'くさ', ice: 'こおり',
@@ -20,8 +21,8 @@ const TYPE_NAME_JP_HISTORY: Record<string, string> = {
 const TYPE_COLORS_HISTORY: Record<string, string> = {
   normal: '#A8A77A', fire: '#EE8130', water: '#6390F0', electric: '#F7D02C', grass: '#7AC74C', ice: '#96D9D6',
   fighting: '#C22E28', poison: '#A33EA1', ground: '#E2BF65', flying: '#A98FF3', psychic: '#F95587', bug: '#A6B91A',
-  rock: '#B6A136', ghost: '#735797', dragon: '#6F35FC', dark: '#705746', steel: '#B7B7CE', fairy: '#D685AD',
-  stellar: '#7A7AE6',
+  rock: '#B6A136', ghost: '#735797', dragon: '#6F35FC', dark: '##705746', steel: '##B7B7CE', fairy: '##D685AD',
+  stellar: '##7A7AE6',
 };
 
 const WEATHER_NAME_JP_HISTORY: Record<string, string> = {
@@ -122,11 +123,13 @@ const calculateKOChanceForHistory = (damagesPerUsage: number[], hp: number, usag
     return Math.min(100, koProb * 100);
 };
 
+// ★ 修正: isVariablePowerMove を引数に追加
 const getKOTextHistory = (
   damagesPerSingleHitDistribution: number[],
   hp: number,
   currentHitCount: number,
   calculateKOChance: (damagesPerUsage: number[], hp: number, usagesToTest: number) => number,
+  isVariablePowerMove: boolean, // ★ 引数追加
   showPercentage: boolean = true
 ): string => {
     if (!damagesPerSingleHitDistribution || damagesPerSingleHitDistribution.length !== 16) {
@@ -134,7 +137,10 @@ const getKOTextHistory = (
     }
     if (hp <= 0) return "確定1発";
 
-    const damagesPerUsage = damagesPerSingleHitDistribution.map(d => d * currentHitCount);
+    // ★ 修正: isVariablePowerMove に応じてヒット数を決定
+    const koHitCount = isVariablePowerMove ? 1 : currentHitCount;
+    const damagesPerUsage = damagesPerSingleHitDistribution.map(d => d * koHitCount);
+
     const minDamagePerUsage = Math.min(...damagesPerUsage);
     const maxDamagePerUsage = Math.max(...damagesPerUsage);
 
@@ -173,7 +179,7 @@ const getHpRangeBarColorByRemainingHp = (remainingPercentage: number) => {
 };
 
 interface LogCardProps {
-logEntry: LoggedDamageEntry;
+  logEntry: LoggedDamageEntry;
 }
 
 const LogCard: React.FC<LogCardProps> = ({ logEntry }) => {
@@ -191,27 +197,38 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry }) => {
     attackerMoveName,
     defenderPokemonName,
     hitCount,
+    attackerStateSnapshot,
     globalStatesSnapshot,
   } = logEntry;
 
+  const isCritical = !!attackerStateSnapshot?.isCritical;
+
+  const moveData = attackerStateSnapshot ? moves.find(m => m.id === attackerStateSnapshot.moveId) : null;
+  const isVariablePowerMove = !!(moveData?.variablePowers && moveData.variablePowers.length > 0);
+
+  const displayHitCount = isVariablePowerMove ? 1 : hitCount;
+
   const isDoubleBattle = globalStatesSnapshot?.isDoubleBattle || false;
 
-  const currentDisplayMinPercentageInLog = result.minPercentage;
-  const currentDisplayMaxPercentageInLog = result.maxPercentage;
+  const minDamageDisplay = (isCritical ? result.critMinDamage : result.minDamage) * displayHitCount;
+  const maxDamageDisplay = (isCritical ? result.critMaxDamage : result.maxDamage) * displayHitCount;
+  
+  const minPercentageDisplay = isCritical ? result.critMinPercentage : result.minPercentage;
+  const maxPercentageDisplay = isCritical ? result.critMaxPercentage : result.maxPercentage;
 
-  const clampedCurrentDisplayMinPercentageInLog = Math.min(100, currentDisplayMinPercentageInLog);
-  const clampedCurrentDisplayMaxPercentageInLog = Math.min(100, currentDisplayMaxPercentageInLog);
+  const clampedCurrentDisplayMinPercentageInLog = Math.min(100, minPercentageDisplay);
+  const clampedCurrentDisplayMaxPercentageInLog = Math.min(100, maxPercentageDisplay);
 
   const actualRemainingHPMinPercentageInLog = Math.max(0, 100 - clampedCurrentDisplayMaxPercentageInLog);
   const actualRemainingHPMaxPercentageInLog = Math.max(0, 100 - clampedCurrentDisplayMinPercentageInLog);
-
-  const minDamageDisplay = result.minDamage * hitCount;
-  const maxDamageDisplay = result.maxDamage * hitCount;
+  
+  const damagesForKO = isCritical ? result.criticalDamages : result.normalDamages;
   const koTextDisplay = getKOTextHistory(
-    result.normalDamages,
+    damagesForKO,
     defenderOriginalHP,
     hitCount,
-    calculateKOChanceForHistory
+    calculateKOChanceForHistory,
+    isVariablePowerMove 
   );
   
   const handleDeleteClick = () => {
@@ -222,7 +239,6 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry }) => {
     const success = loadLogToCalculators(logEntry.id);
     if (success) {
       setIsModalOpen(false);
-      // ダメージ計算タブに切り替える
       const event = new CustomEvent('switchToDamageTab');
       window.dispatchEvent(event);
     }
@@ -235,6 +251,7 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry }) => {
             <span className="text-xs text-gray-400">
                 {new Date(timestamp).toLocaleString()}
                 {isDoubleBattle && <span className="ml-2 px-1.5 py-0.5 text-xs bg-blue-500 text-white rounded-full">ダブル</span>}
+                {isCritical && <span className="ml-2 px-1.5 py-0.5 text-xs bg-red-600 text-white rounded-full">急所</span>}
             </span>
         </div>
         <button
@@ -264,12 +281,12 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry }) => {
                 {hitCount > 1 && <span className="text-xs"> ({hitCount}回)</span>}
             </p>
             <p className="text-lg font-bold my-1">
-                <span className={getDamageColorHistory(result.minPercentage)}>{minDamageDisplay}</span>
+                <span className={getDamageColorHistory(minPercentageDisplay)}>{minDamageDisplay}</span>
                 {' ~ '}
-                <span className={getDamageColorHistory(result.maxPercentage)}>{maxDamageDisplay}</span>
+                <span className={getDamageColorHistory(maxPercentageDisplay)}>{maxDamageDisplay}</span>
             </p>
             <p className="text-xs text-gray-300">
-                ({formatPercentageHistory(result.minPercentage)}% ~ {formatPercentageHistory(result.maxPercentage)}%)
+                ({formatPercentageHistory(minPercentageDisplay)}% ~ {formatPercentageHistory(maxPercentageDisplay)}%)
             </p>
             <p className="text-xs font-semibold mt-1">{koTextDisplay}</p>
         </div>
@@ -347,24 +364,24 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry }) => {
             <div className="mb-2">
               <p className="text-sm text-gray-400 mb-1">通常{hitCount > 1 && ` (${hitCount}回)`}</p>
               <p className="text-white font-medium">
-                <span className={getDamageColorHistory(result.minPercentage)}>{result.minDamage * hitCount}</span>
+                <span className={getDamageColorHistory(result.minPercentage)}>{result.minDamage * displayHitCount}</span>
                 {' - '}
-                <span className={getDamageColorHistory(result.maxPercentage)}>{result.maxDamage * hitCount}</span>
+                <span className={getDamageColorHistory(result.maxPercentage)}>{result.maxDamage * displayHitCount}</span>
                 <span className="text-sm text-gray-400 ml-2">
                   ({formatPercentageHistory(result.minPercentage)}% - {formatPercentageHistory(result.maxPercentage)}%)
-                  {' '}{getKOTextHistory(result.normalDamages, defenderOriginalHP, hitCount, calculateKOChanceForHistory)}
+                  {' '}{getKOTextHistory(result.normalDamages, defenderOriginalHP, hitCount, calculateKOChanceForHistory, isVariablePowerMove)}
                 </span>
               </p>
             </div>
             <div className="mb-4">
               <p className="text-sm text-red-400 mb-1">急所{hitCount > 1 && ` (${hitCount}回)`}</p>
               <p className="text-white font-medium">
-                <span className={getDamageColorHistory(result.critMinPercentage)}>{result.critMinDamage * hitCount}</span>
+                <span className={getDamageColorHistory(result.critMinPercentage)}>{result.critMinDamage * displayHitCount}</span>
                 {' - '}
-                <span className={getDamageColorHistory(result.critMaxPercentage)}>{result.critMaxDamage * hitCount}</span>
+                <span className={getDamageColorHistory(result.critMaxPercentage)}>{result.critMaxDamage * displayHitCount}</span>
                 <span className="text-sm text-gray-400 ml-2">
                   ({formatPercentageHistory(result.critMinPercentage)}% - {formatPercentageHistory(result.critMaxPercentage)}%)
-                  {' '}{getKOTextHistory(result.criticalDamages, defenderOriginalHP, hitCount, calculateKOChanceForHistory)}
+                  {' '}{getKOTextHistory(result.criticalDamages, defenderOriginalHP, hitCount, calculateKOChanceForHistory, isVariablePowerMove)}
                 </span>
               </p>
             </div>
@@ -458,9 +475,9 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry }) => {
             <div className="mt-4 pt-4 border-t border-gray-700">
               <h4 className="text-white font-medium text-sm mb-2">通常ダメージ分布{hitCount > 1 && ` (技1回あたり)`}</h4>
               <div className="grid grid-cols-8 gap-[2px] text-[10px]">
-                {result.normalDamages.map((damagePerHit, i) => {
+                {result.normalDamages.map((damageValue, i) => {
                   const factor = 0.85 + i * 0.01;
-                  const totalDamage = damagePerHit * hitCount;
+                  const totalDamage = isVariablePowerMove ? damageValue : (damageValue * hitCount);
                   const percentage = defenderOriginalHP > 0 ? (totalDamage / defenderOriginalHP) * 100 : 0;
                   return (
                     <div
@@ -478,9 +495,9 @@ const LogCard: React.FC<LogCardProps> = ({ logEntry }) => {
             <div className="mt-4">
               <h4 className="text-red-400 font-medium text-sm mb-2">急所ダメージ分布{hitCount > 1 && ` (技1回あたり)`}</h4>
               <div className="grid grid-cols-8 gap-[2px] text-[10px]">
-                {result.criticalDamages.map((damagePerHit, i) => {
+                {result.criticalDamages.map((damageValue, i) => {
                    const factor = 0.85 + i * 0.01;
-                   const totalDamage = damagePerHit * hitCount;
+                   const totalDamage = isVariablePowerMove ? damageValue : (damageValue * hitCount);
                   const percentage = defenderOriginalHP > 0 ? (totalDamage / defenderOriginalHP) * 100 : 0;
                   return (
                     <div

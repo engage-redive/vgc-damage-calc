@@ -11,9 +11,11 @@ import {
   MoveCategory,
 } from '../types';
 import { useGlobalStateStore } from '../stores/globalStateStore';
+import { useAttackerStore } from '../stores/attackerStore';
 import { X, ChevronUp, ChevronDown } from 'lucide-react';
 
 interface DamageResultProps {
+  attackerIndex: number;
   result: DamageCalculation | null;
   defenderHP: number;
   combinedResult?: {
@@ -36,6 +38,7 @@ interface DamageResultProps {
   onSaveLog?: () => void;
   showIndividualAttackResults: boolean;
   onToggleShowIndividualAttackResults: () => void;
+  isVariablePowerMove?: boolean;
 }
 
 const TYPE_NAME_JP_MODAL: Record<string, string> = {
@@ -87,16 +90,24 @@ const getHpRangeBarColorByRemainingHp = (remainingPercentage: number) => {
 };
 
 const DamageResult: React.FC<DamageResultProps> = ({
-  result, defenderHP, combinedResult, attackerPokemonName, attackerMoveName,
+  attackerIndex, result, defenderHP, combinedResult, attackerPokemonName, attackerMoveName,
   attackerMoveNameForDisplay, defenderPokemonName, hitCount = 1, attackerDetails,
   defenderDetails, weather, field, disasters, resultIdSuffix, onSaveLog,
   showIndividualAttackResults, onToggleShowIndividualAttackResults,
+  isVariablePowerMove = false,
 }) => {
   const { isDoubleBattle, setIsDoubleBattle } = useGlobalStateStore();
+  const { attackers, setIsCritical } = useAttackerStore(); // attackerStoreから状態とアクションを取得
   
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isCriticalModeActive, setIsCriticalModeActive] = useState(false);
   const [modalRoot, setModalRoot] = useState<HTMLElement | null>(null);
+
+  // isCriticalModeActiveをuseStateからattackerStoreに移行
+  const isCriticalModeActive = !!attackers[attackerIndex]?.isCritical;
+  const handleCriticalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // attackerStoreのアクションを呼び出して状態を更新
+    setIsCritical(attackerIndex, e.target.checked);
+  };
 
   useEffect(() => {
     setModalRoot(document.getElementById('modal-root'));
@@ -120,13 +131,15 @@ const DamageResult: React.FC<DamageResultProps> = ({
     );
   }
 
-  const multiHitMinDamage = result.minDamage * hitCount;
-  const multiHitMaxDamage = result.maxDamage * hitCount;
+  const displayHitCount = isVariablePowerMove ? 1 : hitCount;
+
+  const multiHitMinDamage = result.minDamage * displayHitCount;
+  const multiHitMaxDamage = result.maxDamage * displayHitCount;
   const multiHitMinPercentage = defenderHP > 0 ? Math.max(0, (multiHitMinDamage / defenderHP) * 100) : 0;
   const multiHitMaxPercentage = defenderHP > 0 ? Math.max(0, (multiHitMaxDamage / defenderHP) * 100) : 0;
 
-  const multiHitCritMinDamage = result.critMinDamage * hitCount;
-  const multiHitCritMaxDamage = result.critMaxDamage * hitCount;
+  const multiHitCritMinDamage = result.critMinDamage * displayHitCount;
+  const multiHitCritMaxDamage = result.critMaxDamage * displayHitCount;
   const multiHitCritMinPercentage = defenderHP > 0 ? Math.max(0, (multiHitCritMinDamage / defenderHP) * 100) : 0;
   const multiHitCritMaxPercentage = defenderHP > 0 ? Math.max(0, (multiHitCritMaxDamage / defenderHP) * 100) : 0;
 
@@ -223,7 +236,10 @@ const DamageResult: React.FC<DamageResultProps> = ({
   const getKOText = (damagesPerSingleHitDistribution: number[], hp: number, currentHitCount: number, showPercentage: boolean = true): string => {
     if (!damagesPerSingleHitDistribution || damagesPerSingleHitDistribution.length !== 16) return "計算不可";
     if (hp <= 0) return "確定1発";
-    const damagesPerUsage = damagesPerSingleHitDistribution.map(d => d * currentHitCount);
+    
+    const koHitCount = isVariablePowerMove ? 1 : currentHitCount;
+    const damagesPerUsage = damagesPerSingleHitDistribution.map(d => d * koHitCount);
+
     const minDamagePerUsage = Math.min(...damagesPerUsage);
     const maxDamagePerUsage = Math.max(...damagesPerUsage);
     if (maxDamagePerUsage <= 0) return "ダメージなし";
@@ -333,11 +349,11 @@ const DamageResult: React.FC<DamageResultProps> = ({
         )}
         <div className="mt-4 pt-4 border-t border-gray-700">
           <h4 className="text-white font-medium text-sm mb-2">通常ダメージ分布{hitCount > 1 && ` (技1回あたり)`}</h4>
-          <div className="grid grid-cols-8 gap-[2px] text-[10px]">{result.normalDamages.map((damagePerHit, i) => { const factor = 0.85 + i * 0.01; const totalDamage = damagePerHit * hitCount; const percentage = defenderHP > 0 ? (totalDamage / defenderHP) * 100 : 0; return (<div key={`normal-dist-${i}`} className="bg-gray-700 p-[2px] rounded text-center leading-tight"><div className="text-gray-400">×{factor.toFixed(2)}</div><div className={getDamageColor(percentage)}>{totalDamage}</div></div>);})}</div>
+          <div className="grid grid-cols-8 gap-[2px] text-[10px]">{result.normalDamages.map((damageValue, i) => { const factor = 0.85 + i * 0.01; const totalDamage = isVariablePowerMove ? damageValue : (damageValue * hitCount); const percentage = defenderHP > 0 ? (totalDamage / defenderHP) * 100 : 0; return (<div key={`normal-dist-${i}`} className="bg-gray-700 p-[2px] rounded text-center leading-tight"><div className="text-gray-400">×{factor.toFixed(2)}</div><div className={getDamageColor(percentage)}>{totalDamage}</div></div>);})}</div>
         </div>
         <div className="mt-4">
           <h4 className="text-red-400 font-medium text-sm mb-2">急所ダメージ分布{hitCount > 1 && ` (技1回あたり)`}</h4>
-          <div className="grid grid-cols-8 gap-[2px] text-[10px]">{result.criticalDamages.map((damagePerHit, i) => { const factor = 0.85 + i * 0.01; const totalDamage = damagePerHit * hitCount; const percentage = defenderHP > 0 ? (totalDamage / defenderHP) * 100 : 0; return (<div key={`crit-dist-${i}`} className="bg-gray-700 p-[2px] rounded text-center leading-tight"><div className="text-gray-400">×{factor.toFixed(2)}</div><div className={getDamageColor(percentage)}>{totalDamage}</div></div>);})}</div>
+          <div className="grid grid-cols-8 gap-[2px] text-[10px]">{result.criticalDamages.map((damageValue, i) => { const factor = 0.85 + i * 0.01; const totalDamage = isVariablePowerMove ? damageValue : (damageValue * hitCount); const percentage = defenderHP > 0 ? (totalDamage / defenderHP) * 100 : 0; return (<div key={`crit-dist-${i}`} className="bg-gray-700 p-[2px] rounded text-center leading-tight"><div className="text-gray-400">×{factor.toFixed(2)}</div><div className={getDamageColor(percentage)}>{totalDamage}</div></div>);})}</div>
         </div>
         <div className="mt-8"><button onClick={() => setIsModalOpen(false)} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors">閉じる</button></div>
       </div>
@@ -382,7 +398,7 @@ const DamageResult: React.FC<DamageResultProps> = ({
                 <label htmlFor={uniqueDoubleBattleId} className="ml-1 text-xs md:text-sm text-gray-300">ダブル</label>
               </div>
               <div className="flex items-center">
-                <input type="checkbox" id={uniqueCriticalModeId} checked={isCriticalModeActive} onChange={() => setIsCriticalModeActive(!isCriticalModeActive)} className="w-3 h-3 md:w-4 md:h-4 text-red-600 bg-gray-700 border-gray-600 rounded focus:ring-red-500 focus:ring-offset-gray-800 focus:ring-1"/>
+                <input type="checkbox" id={uniqueCriticalModeId} checked={isCriticalModeActive} onChange={handleCriticalChange} className="w-3 h-3 md:w-4 md:h-4 text-red-600 bg-gray-700 border-gray-600 rounded focus:ring-red-500 focus:ring-offset-gray-800 focus:ring-1"/>
                 <label htmlFor={uniqueCriticalModeId} className={`ml-1 text-xs md:text-sm ${isCriticalModeActive ? 'text-red-400 font-semibold' : 'text-gray-300'}`}>急所</label>
               </div>
               <button onClick={openModalAndSaveLog} className="text-xs md:text-sm text-blue-400 hover:underline disabled:text-gray-500 disabled:no-underline" disabled={!attackerDetails || !defenderDetails}>詳細</button>

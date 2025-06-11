@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import {
   AttackerState, Pokemon, Move, Item, Ability, StatCalculation, NatureModifier,
   PokemonType, TeraBurstEffectiveType, MoveCategory, ProtosynthesisBoostTarget,
-  AttackerStateSnapshotForLog, StatCalculationSnapshot, MoveDynamicContext, Nature, TeamMember, DefenderState,
+  AttackerStateSnapshotForLog, StatCalculationSnapshot, MoveDynamicContext, Nature, DefenderState,
 } from '../types';
 import { pokedex } from '../data/pokedex';
 import { moves } from '../data/moves';
@@ -13,6 +13,21 @@ import { natures } from '../data/natures';
 import { getEffectiveMoveProperties } from '../utils/moveEffects';
 import { useGlobalStateStore } from './globalStateStore';
 import { useDefenderStore } from './defenderStore';
+
+// TeamMember 型をインポートリストに追加する必要があります。TeamMemberForAttackerLoad などから類推して定義します。
+// もし TeamMember が別のファイルで定義されている場合は、そちらからインポートしてください。
+interface TeamMember {
+  pokemon: Pokemon;
+  item: Item | null;
+  ability: Ability | null;
+  teraType: PokemonType;
+  nature: { nameEn: string; } | null;
+  evs: { hp: number; attack: number; defense: number; specialAttack: number; specialDefense: number; speed: number; };
+  ivs: { hp: number; attack: number; defense: number; specialAttack: number; specialDefense: number; speed: number; };
+  moves: (Move | null)[];
+  level: number;
+}
+
 
 // ユーティリティ関数 (変更なし)
 const calculateHp = (base: number, iv: number, ev: number, level: number): number => {
@@ -54,7 +69,7 @@ const findClosestEvForBaseValue = (targetBaseValue: number, pokemonSpeciesStat: 
   }
   return closestEv;
 };
-const getNatureModifierValueFromDetails = (natureDetails: Nature | undefined, statField: 'attack' | 'specialAttack' | 'defense' | 'speed'): NatureModifier => {
+const getNatureModifierValueFromDetails = (natureDetails: Nature | undefined, statField: 'attack' | 'specialAttack' | 'defense' | 'specialDefense' | 'speed'): NatureModifier => {
     if (!natureDetails) return 1.0;
     if (natureDetails.increasedStat === statField) return 1.1;
     if (natureDetails.decreasedStat === statField) return 0.9;
@@ -75,9 +90,7 @@ const createInitialAttackerState = (): AttackerState => {
   const attackStat = createStat(initialPokemon.baseStats.attack, 252);
   const specialAttackStat = createStat(initialPokemon.baseStats.specialAttack);
   const defenseStat = createStat(initialPokemon.baseStats.defense);
-  // ▼▼▼ ここから追加/変更 ▼▼▼
-  const specialDefenseStat = createStat(initialPokemon.baseStats.specialDefense); // 特防も初期化
-  // ▲▲▲ ここまで追加/変更 ▲▲▲
+  const specialDefenseStat = createStat(initialPokemon.baseStats.specialDefense);
   const speedStat = createStat(initialPokemon.baseStats.speed);
   const hpEv = 0;
   const actualMaxHp = calculateHp(initialPokemon.baseStats.hp, 31, hpEv, 50);
@@ -88,12 +101,10 @@ const createInitialAttackerState = (): AttackerState => {
     attackInputValue: attackStat.final.toString(),
     specialAttackInputValue: specialAttackStat.final.toString(),
     defenseInputValue: defenseStat.final.toString(),
-    // ▼▼▼ ここから追加/変更 ▼▼▼
-    specialDefenseInputValue: specialDefenseStat.final.toString(), // 特防入力値も初期化
-    // ▲▲▲ ここまで追加/変更 ▲▲▲
+    specialDefenseInputValue: specialDefenseStat.final.toString(),
     speedInputValue: speedStat.final.toString(),
     hpEv, actualMaxHp, currentHp: actualMaxHp,
-    teraType: null, loadedTeraType: null, isStellar: false, isBurned: false, hasHelpingHand: false, hasFlowerGift: false, isEnabled: true,
+    teraType: null, loadedTeraType: null, isStellar: false, isBurned: false, isCritical: false, hasHelpingHand: false, hasFlowerGift: false, isEnabled: true,
     teraBlastUserSelectedCategory: 'auto', teraBlastDeterminedType: null, teraBlastDeterminedCategory: null,
     starstormDeterminedCategory: null, photonGeyserDeterminedCategory: null, selectedHitCount: null,
     protosynthesisBoostedStat: initialAbility?.id === 'protosynthesis' ? 'attack' : null,
@@ -101,6 +112,7 @@ const createInitialAttackerState = (): AttackerState => {
     quarkDriveBoostedStat: initialAbility?.id === 'quark_drive' ? 'attack' : null,
     quarkDriveManualTrigger: false,
     moveUiOptionStates: {}, abilityUiFlags: {}, loadedMoves: null,
+    variableHitStates: [],
   };
 };
 
@@ -110,11 +122,10 @@ interface AttackerStore {
   setAttackers: (attackers: AttackerState[]) => void;
   addAttacker: () => void;
   removeAttacker: (index: number) => void;
-  // ▼▼▼ statFieldの型に 'specialDefense' を追加 ▼▼▼
+  setIsCritical: (index: number, isCritical: boolean) => void; // ★★★ 修正点 ★★★ アクションを追加
   updateStat: (index: number, statField: 'attack' | 'specialAttack' | 'defense' | 'specialDefense' | 'speed', updates: Partial<StatCalculation>) => void;
   updateStatValue: (index: number, statField: 'attack' | 'specialAttack' | 'defense' | 'specialDefense' | 'speed', value: string) => void;
   updateStatFromInput: (index: number, statField: 'attack' | 'specialAttack' | 'defense' | 'specialDefense' | 'speed') => void;
-  // ▲▲▲ ここまで修正 ▲▲▲
   setPokemon: (index: number, pokemon: Pokemon | null) => void;
   setMove: (index: number, move: Move | null) => void;
   recalculateAll: (index: number) => void;
@@ -177,6 +188,19 @@ export const useAttackerStore = create<AttackerStore>((set, get) => ({
       set(state => ({
         attackers: state.attackers.filter((_, i) => i !== index)
       }));
+    },
+
+    // ★★★ 修正点 ★★★ setIsCriticalアクションを実装
+    setIsCritical: (index, isCritical) => {
+      set(state => {
+        const newAttackers = [...state.attackers];
+        const attacker = newAttackers[index];
+        if (attacker) {
+          newAttackers[index] = { ...attacker, isCritical };
+          return { attackers: newAttackers };
+        }
+        return state;
+      });
     },
 
     updateStat: (index, statField, updates) => {
@@ -242,9 +266,7 @@ export const useAttackerStore = create<AttackerStore>((set, get) => ({
       const attackStat = createStat(pokemon.baseStats.attack, 252);
       const specialAttackStat = createStat(pokemon.baseStats.specialAttack, 0);
       const defenseStat = createStat(pokemon.baseStats.defense, 0);
-      // ▼▼▼ ここから追加/変更 ▼▼▼
-      const specialDefenseStat = createStat(pokemon.baseStats.specialDefense, 0); // 特防も初期化
-      // ▲▲▲ ここまで追加/変更 ▲▲▲
+      const specialDefenseStat = createStat(pokemon.baseStats.specialDefense, 0);
       const speedStat = createStat(pokemon.baseStats.speed, 0);
       const hpEv = 0;
       const actualMaxHp = calculateHp(pokemon.baseStats.hp, 31, hpEv, 50);
@@ -255,12 +277,10 @@ export const useAttackerStore = create<AttackerStore>((set, get) => ({
           attackInputValue: attackStat.final.toString(),
           specialAttackInputValue: specialAttackStat.final.toString(),
           defenseInputValue: defenseStat.final.toString(),
-          // ▼▼▼ ここから追加/変更 ▼▼▼
-          specialDefenseInputValue: specialDefenseStat.final.toString(), // 特防入力値も初期化
-          // ▲▲▲ ここまで追加/変更 ▲▲▲
+          specialDefenseInputValue: specialDefenseStat.final.toString(),
           speedInputValue: speedStat.final.toString(),
           hpEv, actualMaxHp, currentHp: actualMaxHp,
-          move: null, item: null, teraType: null, loadedTeraType: null, isStellar: false, 
+          move: null, item: null, teraType: null, loadedTeraType: null, isStellar: false, isCritical: false,
           moveUiOptionStates: {}, abilityUiFlags: {}, loadedMoves: null,
       });
     },
@@ -274,10 +294,25 @@ export const useAttackerStore = create<AttackerStore>((set, get) => ({
       } else if (!move?.isRankBasedPower) {
         delete newMoveUiOptionStates['rankBasedPowerValue'];
       }
+      
       let newSelectedHitCount: number | null = null;
-      if (move && typeof move.multihit === 'number') newSelectedHitCount = move.multihit;
-      else if (move && move.multihit === '2-5') newSelectedHitCount = 2;
-      get().updateAttacker(index, { move, moveUiOptionStates: newMoveUiOptionStates, selectedHitCount: newSelectedHitCount });
+      let newVariableHitStates: boolean[] = [];
+
+      if (move?.variablePowers && move.variablePowers.length > 0) {
+        newVariableHitStates = move.variablePowers.map(() => true);
+        newSelectedHitCount = null;
+      } else if (move && typeof move.multihit === 'number') {
+        newSelectedHitCount = move.multihit;
+      } else if (move && move.multihit === '2-5') {
+        newSelectedHitCount = 2;
+      }
+      
+      get().updateAttacker(index, { 
+        move, 
+        moveUiOptionStates: newMoveUiOptionStates, 
+        selectedHitCount: newSelectedHitCount,
+        variableHitStates: newVariableHitStates,
+      });
     },
     
     recalculateAll: (index) => {
@@ -320,6 +355,7 @@ export const useAttackerStore = create<AttackerStore>((set, get) => ({
         return { attackers: newAttackers };
       });
     },
+    
     loadFromSnapshot: (snapshot) => {
       const pokemon = pokedex.find(p => String(p.id) === String(snapshot.pokemonId));
       const move = moves.find(m => m.id === snapshot.moveId) || null;
@@ -341,15 +377,17 @@ export const useAttackerStore = create<AttackerStore>((set, get) => ({
       const attackStat = restoreStat(snapshot.attackStat, pokemon.baseStats.attack);
       const specialAttackStat = restoreStat(snapshot.specialAttackStat, pokemon.baseStats.specialAttack);
       const defenseStat = restoreStat(snapshot.defenseStat, pokemon.baseStats.defense);
+      const specialDefenseStat = restoreStat({iv: 31, ev: 0, nature: 1.0, rank: 0}, pokemon.baseStats.specialDefense); // snapshotにないためデフォルト値で補完
       const speedStat = restoreStat(snapshot.speedStat, pokemon.baseStats.speed);
       const actualMaxHp = calculateHp(pokemon.baseStats.hp, 31, snapshot.hpEv, 50);
 
       const newAttackerState: AttackerState = {
           pokemon, move, item, ability,
-          attackStat, specialAttackStat, defenseStat, speedStat,
+          attackStat, specialAttackStat, defenseStat, specialDefenseStat, speedStat,
           attackInputValue: attackStat.final.toString(),
           specialAttackInputValue: specialAttackStat.final.toString(),
           defenseInputValue: defenseStat.final.toString(),
+          specialDefenseInputValue: specialDefenseStat.final.toString(),
           speedInputValue: speedStat.final.toString(),
           hpEv: snapshot.hpEv,
           actualMaxHp,
@@ -358,6 +396,7 @@ export const useAttackerStore = create<AttackerStore>((set, get) => ({
           loadedTeraType: snapshot.loadedTeraType,
           isStellar: snapshot.isStellar,
           isBurned: snapshot.isBurned,
+          isCritical: snapshot.isCritical || false, // ★★★ 修正点 ★★★ スナップショットからisCriticalを復元
           hasHelpingHand: snapshot.hasHelpingHand,
           hasFlowerGift: snapshot.hasFlowerGift || false,
           isEnabled: true,
@@ -371,6 +410,7 @@ export const useAttackerStore = create<AttackerStore>((set, get) => ({
           quarkDriveManualTrigger: snapshot.quarkDriveManualTrigger,
           moveUiOptionStates: snapshot.moveUiOptionStates || {},
           abilityUiFlags: snapshot.abilityUiFlags || {},
+          variableHitStates: snapshot.variableHitStates || [],
           effectiveMove: null,
           teraBlastDeterminedType: null,
           teraBlastDeterminedCategory: null,
@@ -379,127 +419,125 @@ export const useAttackerStore = create<AttackerStore>((set, get) => ({
       
       set({ attackers: [newAttackerState] });
       get().recalculateAll(0);
-  },
+    },
 
-  loadFromTeamMember: (member) => {
-    const { pokemon, item, ability, teraType, evs, ivs, nature, moves: loadedMoves } = member;
-    const natureDetails = nature || undefined;
+    loadFromTeamMember: (member) => {
+      const { pokemon, item, ability, teraType, evs, ivs, nature, moves: loadedMoves } = member;
+      const natureDetails = natures.find(n => n.nameEn === nature?.nameEn) || undefined;
 
-    const restoreStat = (base: number, ev: number, iv: number, statField: 'attack' | 'specialAttack' | 'defense' | 'specialDefense' | 'speed'): StatCalculation => {
-      const natureMod = getNatureModifierValueFromDetails(natureDetails, statField);
-      const newStat = { base, ev, iv, nature: natureMod, rank: 0, final: 0 };
-      newStat.final = calculateFinalStatWithRank(base, iv, ev, 50, natureMod, 0);
-      return newStat;
-    };
+      const restoreStat = (base: number, ev: number, iv: number, statField: 'attack' | 'specialAttack' | 'defense' | 'specialDefense' | 'speed'): StatCalculation => {
+        const natureMod = getNatureModifierValueFromDetails(natureDetails, statField);
+        const newStat = { base, ev, iv, nature: natureMod, rank: 0, final: 0 };
+        newStat.final = calculateFinalStatWithRank(base, iv, ev, 50, natureMod, 0);
+        return newStat;
+      };
     
-    const attackStat = restoreStat(pokemon.baseStats.attack, evs.attack, ivs.attack, 'attack');
-    const specialAttackStat = restoreStat(pokemon.baseStats.specialAttack, evs.specialAttack, ivs.specialAttack, 'specialAttack');
-    const defenseStat = restoreStat(pokemon.baseStats.defense, evs.defense, ivs.defense, 'defense');
-    // ▼▼▼ ここから追加/変更 ▼▼▼
-    const specialDefenseStat = restoreStat(pokemon.baseStats.specialDefense, evs.specialDefense, ivs.specialDefense, 'specialDefense'); // 特防も復元
-    // ▲▲▲ ここまで追加/変更 ▲▲▲
-    const speedStat = restoreStat(pokemon.baseStats.speed, evs.speed, ivs.speed, 'speed');
-    const actualMaxHp = calculateHp(pokemon.baseStats.hp, ivs.hp, evs.hp, 50);
+      const attackStat = restoreStat(pokemon.baseStats.attack, evs.attack, ivs.attack, 'attack');
+      const specialAttackStat = restoreStat(pokemon.baseStats.specialAttack, evs.specialAttack, ivs.specialAttack, 'specialAttack');
+      const defenseStat = restoreStat(pokemon.baseStats.defense, evs.defense, ivs.defense, 'defense');
+      const specialDefenseStat = restoreStat(pokemon.baseStats.specialDefense, evs.specialDefense, ivs.specialDefense, 'specialDefense');
+      const speedStat = restoreStat(pokemon.baseStats.speed, evs.speed, ivs.speed, 'speed');
+      const actualMaxHp = calculateHp(pokemon.baseStats.hp, ivs.hp, evs.hp, 50);
 
-    const newState: Partial<AttackerState> = {
-        pokemon,
-        item,
-        ability,
-        loadedMoves: loadedMoves || [null, null, null, null],
-        move: loadedMoves?.[0] || null,
-        teraType,
-        loadedTeraType: teraType,
-        isStellar: false,
-        hpEv: evs.hp,
-        actualMaxHp,
-        currentHp: actualMaxHp,
-        attackStat,
-        specialAttackStat,
-        defenseStat,
-        specialDefenseStat, // 特防も追加
-        speedStat,
-        attackInputValue: attackStat.final.toString(),
-        specialAttackInputValue: specialAttackStat.final.toString(),
-        defenseInputValue: defenseStat.final.toString(),
-        specialDefenseInputValue: specialDefenseStat.final.toString(), // 特防入力値も追加
-        speedInputValue: speedStat.final.toString(),
-        isBurned: false,
-        hasHelpingHand: false,
-        selectedHitCount: null,
-        moveUiOptionStates: {},
-        abilityUiFlags: {},
-    };
+      const newState: Partial<AttackerState> = {
+          pokemon,
+          item,
+          ability,
+          loadedMoves: loadedMoves || [null, null, null, null],
+          move: loadedMoves?.[0] || null,
+          teraType,
+          loadedTeraType: teraType,
+          isStellar: false,
+          hpEv: evs.hp,
+          actualMaxHp,
+          currentHp: actualMaxHp,
+          attackStat,
+          specialAttackStat,
+          defenseStat,
+          specialDefenseStat,
+          speedStat,
+          attackInputValue: attackStat.final.toString(),
+          specialAttackInputValue: specialAttackStat.final.toString(),
+          defenseInputValue: defenseStat.final.toString(),
+          specialDefenseInputValue: specialDefenseStat.final.toString(),
+          speedInputValue: speedStat.final.toString(),
+          isBurned: false,
+          isCritical: false, // ★★★ 修正点 ★★★ チームロード時はfalseにリセット
+          hasHelpingHand: false,
+          selectedHitCount: null,
+          moveUiOptionStates: {},
+          abilityUiFlags: {},
+          variableHitStates: [],
+      };
 
-    set(state => {
-      const newAttackers = [...state.attackers];
-      newAttackers[0] = { ...state.attackers[0], ...newState };
-      return { attackers: newAttackers };
-    });
-    get().recalculateAll(0);
-  },
-
-  // ▼▼▼ この関数を全面的に修正 ▼▼▼
-  swapWithDefender: (defenderState) => {
-    if (!defenderState.pokemon) return;
-
-    // 防御側の状態をまるごと攻撃側の状態として設定
-    const { 
-      pokemon, item, ability, teraType, isStellar, isBurned, hpStat,
-      attackStat, specialAttackStat, defenseStat, specialDefenseStat, speedStat,
-      attackInputValue, specialAttackInputValue, defenseInputValue, specialDefenseInputValue, speedInputValue, // InputValueも取得
-      hasFlowerGift, protosynthesisBoostedStat, protosynthesisManualTrigger,
-      quarkDriveBoostedStat, quarkDriveManualTrigger
-    } = defenderState;
-    
-    const attackerIndex = 0;
-    const currentAttacker = get().attackers[attackerIndex];
-    const actualMaxHp = calculateHp(pokemon.baseStats.hp, hpStat.iv, hpStat.ev, 50);
-
-    const updatedAttacker: AttackerState = {
-        ...currentAttacker,
-        pokemon, item, ability, teraType, isStellar, isBurned, hasFlowerGift,
-        move: null,
-        loadedMoves: null,
-        effectiveMove: null,
-        hpEv: hpStat.ev,
-        actualMaxHp,
-        currentHp: actualMaxHp,
-
-        // ▼▼▼ ここからInputValueを直接引き継ぐように修正 ▼▼▼
-        attackStat,
-        attackInputValue,
-        specialAttackStat,
-        specialAttackInputValue,
-        defenseStat,
-        defenseInputValue,
-        specialDefenseStat,
-        specialDefenseInputValue,
-        speedStat,
-        speedInputValue,
-        // ▲▲▲ ここまで修正 ▲▲▲
-        
-        hasHelpingHand: false,
-        protosynthesisBoostedStat,
-        protosynthesisManualTrigger,
-        quarkDriveBoostedStat,
-        quarkDriveManualTrigger,
-        moveUiOptionStates: {},
-        abilityUiFlags: {},
-        teraBlastDeterminedCategory: null,
-        teraBlastDeterminedType: null,
-        starstormDeterminedCategory: null,
-        photonGeyserDeterminedCategory: null,
-        selectedHitCount: null,
-    };
-
-    set(state => {
+      set(state => {
         const newAttackers = [...state.attackers];
-        newAttackers[attackerIndex] = updatedAttacker;
+        newAttackers[0] = { ...state.attackers[0], ...newState };
         return { attackers: newAttackers };
-    });
+      });
+      get().recalculateAll(0);
+    },
+    
+    swapWithDefender: (defenderState) => {
+      if (!defenderState.pokemon) return;
 
-    get().recalculateAll(attackerIndex);
-  },
+      const { 
+        pokemon, item, ability, teraType, isStellar, isBurned, hpStat,
+        attackStat, specialAttackStat, defenseStat, specialDefenseStat, speedStat,
+        attackInputValue, specialAttackInputValue, defenseInputValue, specialDefenseInputValue, speedInputValue,
+        hasFlowerGift, protosynthesisBoostedStat, protosynthesisManualTrigger,
+        quarkDriveBoostedStat, quarkDriveManualTrigger
+      } = defenderState;
+      
+      const attackerIndex = 0;
+      const currentAttacker = get().attackers[attackerIndex];
+      const actualMaxHp = calculateHp(pokemon.baseStats.hp, hpStat.iv, hpStat.ev, 50);
+
+      const updatedAttacker: AttackerState = {
+          ...currentAttacker,
+          pokemon, item, ability, teraType, isStellar, isBurned, hasFlowerGift,
+          move: null,
+          loadedMoves: null,
+          effectiveMove: null,
+          hpEv: hpStat.ev,
+          actualMaxHp,
+          currentHp: actualMaxHp,
+
+          attackStat,
+          attackInputValue,
+          specialAttackStat,
+          specialAttackInputValue,
+          defenseStat,
+          defenseInputValue,
+          specialDefenseStat,
+          specialDefenseInputValue,
+          speedStat,
+          speedInputValue,
+          
+          hasHelpingHand: false,
+          isCritical: false, // ★★★ 修正点 ★★★ swap時はfalseにリセット
+          protosynthesisBoostedStat,
+          protosynthesisManualTrigger,
+          quarkDriveBoostedStat,
+          quarkDriveManualTrigger,
+          moveUiOptionStates: {},
+          abilityUiFlags: {},
+          variableHitStates: [],
+          teraBlastDeterminedCategory: null,
+          teraBlastDeterminedType: null,
+          starstormDeterminedCategory: null,
+          photonGeyserDeterminedCategory: null,
+          selectedHitCount: null,
+      };
+
+      set(state => {
+          const newAttackers = [...state.attackers];
+          newAttackers[attackerIndex] = updatedAttacker;
+          return { attackers: newAttackers };
+      });
+
+      get().recalculateAll(attackerIndex);
+    },
 }));
 
 useGlobalStateStore.subscribe(() => useAttackerStore.getState().attackers.forEach((_, index) => useAttackerStore.getState().recalculateAll(index)));

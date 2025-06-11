@@ -103,62 +103,158 @@ function App() {
                 return null;
             }
             
-            let moveForCalc = attackerState.effectiveMove || attackerState.move;
-            if (!moveForCalc) return null;
+            const isVariablePowerMove = attackerState.move?.variablePowers && attackerState.move.variablePowers.length > 0;
 
-            if (attackerState.starstormDeterminedCategory) {
-                moveForCalc = { ...moveForCalc, category: attackerState.starstormDeterminedCategory };
+            if (isVariablePowerMove) {
+                // --- 威力変動連続技の計算ロジック (最終修正版) ---
+                const hitStates = attackerState.variableHitStates || [];
+                const activeHits = hitStates.map((checked, i) => checked ? i : -1).filter(i => i !== -1);
+                
+                if (activeHits.length === 0) return null;
+        
+                const hitResults: DamageCalculation[] = [];
+        
+                // 1. 各ヒットのダメージを個別に計算する
+                for (const hitIndex of activeHits) {
+                    const hitPower = attackerState.move!.variablePowers![hitIndex];
+                    let moveForThisHit = { ...attackerState.move!, power: hitPower };
+                    
+                    if (HP_DEPENDENT_MOVE_NAMES.includes(moveForThisHit.name) && attackerState.actualMaxHp > 0) {
+                      const basePower = moves.find(m => m.id === moveForThisHit.id)?.power || 0;
+                      moveForThisHit.power = Math.max(1, Math.floor((basePower * attackerState.currentHp) / attackerState.actualMaxHp));
+                    }
+                    
+                    if (attackerState.starstormDeterminedCategory) moveForThisHit.category = attackerState.starstormDeterminedCategory;
+                    if (attackerState.photonGeyserDeterminedCategory) moveForThisHit.category = attackerState.photonGeyserDeterminedCategory;
+
+                    const attackerStatsForCalc = {
+                        attack: attackerState.move.id === 'foulplay' ? defenderAttackStat : attackerState.attackStat,
+                        specialAttack: attackerState.specialAttackStat,
+                        defense: attackerState.defenseStat,
+                        speed: attackerState.speedStat,
+                        abilityUiFlags: attackerState.abilityUiFlags,
+                    };
+                    const attackerTeraBlastConfig = {
+                        actualType: attackerState.teraBlastDeterminedType,
+                        actualCategory: attackerState.teraBlastDeterminedCategory,
+                    };
+                    const currentDefenderItem = index === 1 && attackers[1]?.isEnabled ? defender2Item : defenderItem;
+                    const currentDefenderAbility = index === 1 && attackers[1]?.isEnabled ? defender2Ability : defenderAbility;
+                    const isAttackerProtosynthesisActive = attackerState.ability?.id === 'protosynthesis' && attackerState.protosynthesisBoostedStat !== null && ((attackerState.item?.name === 'ブーストエナジー') || (weather === 'sun' || weather === 'harsh_sunlight') || attackerState.protosynthesisManualTrigger);
+                    const isAttackerQuarkDriveActive = attackerState.ability?.id === 'quark_drive' && attackerState.quarkDriveBoostedStat !== null && ((attackerState.item?.name === 'ブーストエナジー') || field === 'electric' || attackerState.quarkDriveManualTrigger);
+                    const isDefenderProtosynthesisActive = currentDefenderAbility?.id === 'protosynthesis' && defenderProtosynthesisBoostedStat !== null && ((currentDefenderItem?.name === 'ブーストエナジー') || (weather === 'sun' || weather === 'harsh_sunlight') || defenderProtosynthesisManualTrigger);
+                    const isDefenderQuarkDriveActive = currentDefenderAbility?.id === 'quark_drive' && defenderQuarkDriveBoostedStat !== null && ((currentDefenderItem?.name === 'ブーストエナジー') || field === 'electric' || defenderQuarkDriveManualTrigger);
+                    
+                    const damageResultForHit = calculateDamage(
+                      attackerState.pokemon, { ...defenderPokemon, types: defenderCurrentTypes }, moveForThisHit,
+                      attackerStatsForCalc,
+                      { defense: defenderDefenseStat, specialDefense: defenderSpecialDefenseStat, hp: defenderHpStat, speed: defenderSpeedStat, attack: defenderAttackStat },
+                      field, attackerState.item, currentDefenderItem, attackerState.teraType, attackerState.isStellar, 50,
+                      isDoubleBattle, attackerState.isBurned, attackerState.hasHelpingHand, hasReflect, hasLightScreen,
+                      attackerState.ability, null, currentDefenderAbility, null, weather, disasters, hasFriendGuard,
+                      attackerTeraBlastConfig, defenderIsTerastallized,
+                      isAttackerProtosynthesisActive, attackerState.protosynthesisBoostedStat,
+                      isDefenderProtosynthesisActive, defenderProtosynthesisBoostedStat,
+                      isAttackerQuarkDriveActive, attackerState.quarkDriveBoostedStat,
+                      isDefenderQuarkDriveActive, defenderQuarkDriveBoostedStat,
+                      attackerState.moveUiOptionStates,
+                      attackerState.abilityUiFlags
+                    );
+                    hitResults.push(damageResultForHit);
+                }
+                
+                // 2. クリーンな初期オブジェクトを作成
+                const finalCombinedResult: DamageCalculation = {
+                    minDamage: 0, maxDamage: 0, critMinDamage: 0, critMaxDamage: 0,
+                    minPercentage: 0, maxPercentage: 0, critMinPercentage: 0, critMaxPercentage: 0,
+                    effectiveness: hitResults.length > 0 ? hitResults[0].effectiveness : 1,
+                    teraBoost: hitResults.length > 0 ? hitResults[0].teraBoost : 1,
+                    normalDamages: Array(16).fill(0),
+                    criticalDamages: Array(16).fill(0),
+                };
+
+                // 3. 各ヒットの結果を単純な for-of ループで合算する
+                for (const res of hitResults) {
+                    for (let i = 0; i < 16; i++) {
+                        finalCombinedResult.normalDamages[i] += res.normalDamages[i];
+                        finalCombinedResult.criticalDamages[i] += res.criticalDamages[i];
+                    }
+                }
+                
+                // 4. 合算されたダメージ配列から、最終的な最小/最大ダメージとパーセンテージを再計算する
+                if (defenderHpStat.final > 0) {
+                    finalCombinedResult.minDamage = Math.min(...finalCombinedResult.normalDamages);
+                    finalCombinedResult.maxDamage = Math.max(...finalCombinedResult.normalDamages);
+                    finalCombinedResult.critMinDamage = Math.min(...finalCombinedResult.criticalDamages);
+                    finalCombinedResult.critMaxDamage = Math.max(...finalCombinedResult.criticalDamages);
+
+                    finalCombinedResult.minPercentage = (finalCombinedResult.minDamage / defenderHpStat.final) * 100;
+                    finalCombinedResult.maxPercentage = (finalCombinedResult.maxDamage / defenderHpStat.final) * 100;
+                    finalCombinedResult.critMinPercentage = (finalCombinedResult.critMinDamage / defenderHpStat.final) * 100;
+                    finalCombinedResult.critMaxPercentage = (finalCombinedResult.critMaxDamage / defenderHpStat.final) * 100;
+                }
+        
+                return finalCombinedResult;
+
+            } else {
+                // --- 通常の技の計算ロジック ---
+                let moveForCalc = attackerState.effectiveMove || attackerState.move;
+                if (!moveForCalc) return null;
+
+                if (attackerState.starstormDeterminedCategory) {
+                    moveForCalc = { ...moveForCalc, category: attackerState.starstormDeterminedCategory };
+                }
+                if (attackerState.photonGeyserDeterminedCategory) {
+                    moveForCalc = { ...moveForCalc, category: attackerState.photonGeyserDeterminedCategory };
+                }
+    
+                if (attackerState.move?.isRankBasedPower && attackerState.moveUiOptionStates?.['rankBasedPowerValue'] !== undefined) {
+                    moveForCalc.power = attackerState.moveUiOptionStates['rankBasedPowerValue'];
+                }
+    
+                if (HP_DEPENDENT_MOVE_NAMES.includes(moveForCalc.name) && attackerState.actualMaxHp > 0) {
+                    const basePower = moves.find(m => m.id === attackerState.move?.id)?.power || 0;
+                    moveForCalc.power = Math.max(1, Math.floor((basePower * attackerState.currentHp) / attackerState.actualMaxHp));
+                }
+    
+                const attackerStatsForCalc = {
+                    attack: attackerState.move.id === 'foulplay' ? defenderAttackStat : attackerState.attackStat,
+                    specialAttack: attackerState.specialAttackStat,
+                    defense: attackerState.defenseStat,
+                    speed: attackerState.speedStat,
+                    abilityUiFlags: attackerState.abilityUiFlags,
+                };
+    
+                const attackerTeraBlastConfig = {
+                    actualType: attackerState.teraBlastDeterminedType,
+                    actualCategory: attackerState.teraBlastDeterminedCategory,
+                };
+                
+                const currentDefenderItem = index === 1 && attackers[1]?.isEnabled ? defender2Item : defenderItem;
+                const currentDefenderAbility = index === 1 && attackers[1]?.isEnabled ? defender2Ability : defenderAbility;
+                
+                const isAttackerProtosynthesisActive = attackerState.ability?.id === 'protosynthesis' && attackerState.protosynthesisBoostedStat !== null && ((attackerState.item?.name === 'ブーストエナジー') || (weather === 'sun' || weather === 'harsh_sunlight') || attackerState.protosynthesisManualTrigger);
+                const isAttackerQuarkDriveActive = attackerState.ability?.id === 'quark_drive' && attackerState.quarkDriveBoostedStat !== null && ((attackerState.item?.name === 'ブーストエナジー') || field === 'electric' || attackerState.quarkDriveManualTrigger);
+                
+                const isDefenderProtosynthesisActive = currentDefenderAbility?.id === 'protosynthesis' && defenderProtosynthesisBoostedStat !== null && ((currentDefenderItem?.name === 'ブーストエナジー') || (weather === 'sun' || weather === 'harsh_sunlight') || defenderProtosynthesisManualTrigger);
+                const isDefenderQuarkDriveActive = currentDefenderAbility?.id === 'quark_drive' && defenderQuarkDriveBoostedStat !== null && ((currentDefenderItem?.name === 'ブーストエナジー') || field === 'electric' || defenderQuarkDriveManualTrigger);
+                
+                return calculateDamage(
+                    attackerState.pokemon, { ...defenderPokemon, types: defenderCurrentTypes }, moveForCalc,
+                    attackerStatsForCalc,
+                    { defense: defenderDefenseStat, specialDefense: defenderSpecialDefenseStat, hp: defenderHpStat, speed: defenderSpeedStat, attack: defenderAttackStat },
+                    field, attackerState.item, currentDefenderItem, attackerState.teraType, attackerState.isStellar, 50,
+                    isDoubleBattle, attackerState.isBurned, attackerState.hasHelpingHand, hasReflect, hasLightScreen,
+                    attackerState.ability, null, currentDefenderAbility, null, weather, disasters, hasFriendGuard,
+                    attackerTeraBlastConfig, defenderIsTerastallized,
+                    isAttackerProtosynthesisActive, attackerState.protosynthesisBoostedStat,
+                    isDefenderProtosynthesisActive, defenderProtosynthesisBoostedStat,
+                    isAttackerQuarkDriveActive, attackerState.quarkDriveBoostedStat,
+                    isDefenderQuarkDriveActive, defenderQuarkDriveBoostedStat,
+                    attackerState.moveUiOptionStates,
+                    attackerState.abilityUiFlags
+                );
             }
-            if (attackerState.photonGeyserDeterminedCategory) {
-                moveForCalc = { ...moveForCalc, category: attackerState.photonGeyserDeterminedCategory };
-            }
-
-            if (attackerState.move?.isRankBasedPower && attackerState.moveUiOptionStates?.['rankBasedPowerValue'] !== undefined) {
-                moveForCalc.power = attackerState.moveUiOptionStates['rankBasedPowerValue'];
-            }
-
-            if (HP_DEPENDENT_MOVE_NAMES.includes(moveForCalc.name) && attackerState.actualMaxHp > 0) {
-                const basePower = moves.find(m => m.id === attackerState.move?.id)?.power || 0;
-                moveForCalc.power = Math.max(1, Math.floor((basePower * attackerState.currentHp) / attackerState.actualMaxHp));
-            }
-
-            const attackerStatsForCalc = {
-    attack: attackerState.move.id === 'foulplay' ? defenderAttackStat : attackerState.attackStat,
-    specialAttack: attackerState.specialAttackStat,
-    defense: attackerState.defenseStat,
-    speed: attackerState.speedStat,
-    abilityUiFlags: attackerState.abilityUiFlags,
-};
-
-            const attackerTeraBlastConfig = {
-                actualType: attackerState.teraBlastDeterminedType,
-                actualCategory: attackerState.teraBlastDeterminedCategory,
-            };
-            
-            const currentDefenderItem = index === 1 && attackers[1]?.isEnabled ? defender2Item : defenderItem;
-            const currentDefenderAbility = index === 1 && attackers[1]?.isEnabled ? defender2Ability : defenderAbility;
-            
-            const isAttackerProtosynthesisActive = attackerState.ability?.id === 'protosynthesis' && attackerState.protosynthesisBoostedStat !== null && ((attackerState.item?.name === 'ブーストエナジー') || (weather === 'sun' || weather === 'harsh_sunlight') || attackerState.protosynthesisManualTrigger);
-            const isAttackerQuarkDriveActive = attackerState.ability?.id === 'quark_drive' && attackerState.quarkDriveBoostedStat !== null && ((attackerState.item?.name === 'ブーストエナジー') || field === 'electric' || attackerState.quarkDriveManualTrigger);
-            
-            const isDefenderProtosynthesisActive = currentDefenderAbility?.id === 'protosynthesis' && defenderProtosynthesisBoostedStat !== null && ((currentDefenderItem?.name === 'ブーストエナジー') || (weather === 'sun' || weather === 'harsh_sunlight') || defenderProtosynthesisManualTrigger);
-            const isDefenderQuarkDriveActive = currentDefenderAbility?.id === 'quark_drive' && defenderQuarkDriveBoostedStat !== null && ((currentDefenderItem?.name === 'ブーストエナジー') || field === 'electric' || defenderQuarkDriveManualTrigger);
-            
-            return calculateDamage(
-                attackerState.pokemon, { ...defenderPokemon, types: defenderCurrentTypes }, moveForCalc,
-                attackerStatsForCalc,
-                { defense: defenderDefenseStat, specialDefense: defenderSpecialDefenseStat, hp: defenderHpStat, speed: defenderSpeedStat, attack: defenderAttackStat },
-                field, attackerState.item, currentDefenderItem, attackerState.teraType, attackerState.isStellar, 50,
-                isDoubleBattle, attackerState.isBurned, attackerState.hasHelpingHand, hasReflect, hasLightScreen,
-                attackerState.ability, null, currentDefenderAbility, null, weather, disasters, hasFriendGuard,
-                attackerTeraBlastConfig, defenderIsTerastallized,
-                isAttackerProtosynthesisActive, attackerState.protosynthesisBoostedStat,
-                isDefenderProtosynthesisActive, defenderProtosynthesisBoostedStat,
-                isAttackerQuarkDriveActive, attackerState.quarkDriveBoostedStat,
-                isDefenderQuarkDriveActive, defenderQuarkDriveBoostedStat,
-                attackerState.moveUiOptionStates,
-                attackerState.abilityUiFlags
-            );
         });
         setDamageResults(newDamageResults);
     }, [
@@ -180,7 +276,17 @@ function App() {
             return;
         }
         
+        const isVariablePowerMove = attacker.move?.variablePowers && attacker.move.variablePowers.length > 0;
+        let totalHitCount = 1;
         let moveUsedInCalc = attacker.effectiveMove || attacker.move;
+
+        if (isVariablePowerMove) {
+            totalHitCount = attacker.variableHitStates?.filter(Boolean).length || 1;
+            // 威力変動技の場合、moveUsedInCalc の威力は代表値(1ヒット目)になってしまうため、合計威力などを別途計算するか、
+            // ログでは代表値を表示する、などの割り切りが必要。ここでは代表値のままとする。
+        } else {
+            totalHitCount = attacker.selectedHitCount || (typeof attacker.move.multihit === 'number' ? attacker.move.multihit : 1);
+        }
         
         let attackerDisplayTypes: [PokemonType, PokemonType?] | ['stellar'] = attacker.pokemon.types as [PokemonType, PokemonType?];
         if (attacker.isStellar) attackerDisplayTypes = ['stellar'];
@@ -219,7 +325,7 @@ function App() {
         const defenderDetails: DefenderDetailsForModal = { pokemonId: defenderPokemon.id, pokemonName: defenderPokemon.name, maxHp: defenderHpStat.final, defensiveStatValue, defensiveStatType, defensiveStatRank, item: currentDefenderItem?.name || null, ability: currentDefenderAbility?.name || null, hasReflect: hasReflect && moveCategoryForLog === 'physical', hasLightScreen: hasLightScreen && moveCategoryForLog === 'special', hasFriendGuard, displayTypes: defenderCurrentTypes, };
         
         const createStatSnapshot = (stat: StatCalculation) => ({ iv: stat.iv, ev: stat.ev, nature: stat.nature, rank: stat.rank });
-        const attackerStateSnapshot = { pokemonId: attacker.pokemon.id, moveId: attacker.move.id, itemId: attacker.item?.id || null, abilityId: attacker.ability?.id || null, attackStat: createStatSnapshot(attacker.attackStat), specialAttackStat: createStatSnapshot(attacker.specialAttackStat), defenseStat: createStatSnapshot(attacker.defenseStat), speedStat: createStatSnapshot(attacker.speedStat), hpEv: attacker.hpEv, currentHp: attacker.currentHp, teraType: attacker.teraType, loadedTeraType: attacker.loadedTeraType, isStellar: attacker.isStellar, isBurned: attacker.isBurned, hasHelpingHand: attacker.hasHelpingHand, hasFlowerGift: attacker.hasFlowerGift, teraBlastUserSelectedCategory: attacker.teraBlastUserSelectedCategory, starstormDeterminedCategory: attacker.starstormDeterminedCategory, photonGeyserDeterminedCategory: attacker.photonGeyserDeterminedCategory, selectedHitCount: attacker.selectedHitCount, protosynthesisBoostedStat: attacker.protosynthesisBoostedStat, protosynthesisManualTrigger: attacker.protosynthesisManualTrigger, quarkDriveBoostedStat: attacker.quarkDriveBoostedStat, quarkDriveManualTrigger: attacker.quarkDriveManualTrigger, moveUiOptionStates: attacker.moveUiOptionStates, abilityUiFlags: attacker.abilityUiFlags, };
+        const attackerStateSnapshot: AttackerStateSnapshotForLog = { pokemonId: attacker.pokemon.id, moveId: attacker.move.id, itemId: attacker.item?.id || null, abilityId: attacker.ability?.id || null, attackStat: createStatSnapshot(attacker.attackStat), specialAttackStat: createStatSnapshot(attacker.specialAttackStat), defenseStat: createStatSnapshot(attacker.defenseStat), speedStat: createStatSnapshot(attacker.speedStat), hpEv: attacker.hpEv, currentHp: attacker.currentHp, teraType: attacker.teraType, loadedTeraType: attacker.loadedTeraType, isStellar: attacker.isStellar, isBurned: attacker.isBurned, hasHelpingHand: attacker.hasHelpingHand, hasFlowerGift: attacker.hasFlowerGift, teraBlastUserSelectedCategory: attacker.teraBlastUserSelectedCategory, starstormDeterminedCategory: attacker.starstormDeterminedCategory, photonGeyserDeterminedCategory: attacker.photonGeyserDeterminedCategory, selectedHitCount: attacker.selectedHitCount, protosynthesisBoostedStat: attacker.protosynthesisBoostedStat, protosynthesisManualTrigger: attacker.protosynthesisManualTrigger, quarkDriveBoostedStat: attacker.quarkDriveBoostedStat, quarkDriveManualTrigger: attacker.quarkDriveManualTrigger, moveUiOptionStates: attacker.moveUiOptionStates, abilityUiFlags: attacker.abilityUiFlags, variableHitStates: attacker.variableHitStates, isCritical: !!attacker.isCritical };
         const defenderStateSnapshot = { pokemonId: defenderPokemon.id, itemId: currentDefenderItem?.id || null, abilityId: currentDefenderAbility?.id || null, hpStat: createStatSnapshot(defenderHpStat), defenseStat: createStatSnapshot(defenderDefenseStat), specialDefenseStat: createStatSnapshot(defenderSpecialDefenseStat), attackStat: createStatSnapshot(defenderAttackStat), speedStat: createStatSnapshot(defenderSpeedStat), hpEv: defenderHpStat.ev, teraType: defenderPokemon.teraType, isStellar: defenderPokemon.isStellar, isBurned: defenderPokemon.isBurned, hasFlowerGift: defenderPokemon.hasFlowerGift, userModifiedTypes, protosynthesisBoostedStat: defenderPokemon.protosynthesisBoostedStat, protosynthesisManualTrigger: defenderPokemon.protosynthesisManualTrigger, quarkDriveBoostedStat: defenderPokemon.quarkDriveBoostedStat, quarkDriveManualTrigger: defenderPokemon.quarkDriveManualTrigger, };
         const globalStatesSnapshot = { isDoubleBattle, weather, field, disasters: JSON.parse(JSON.stringify(disasters)), hasReflect, hasLightScreen, hasFriendGuard, defenderIsTerastallized, };
 
@@ -229,7 +335,7 @@ function App() {
             attackerPokemonName: attacker.pokemon.name,
             attackerMoveName: attacker.move.name,
             defenderPokemonName: defenderPokemon.name,
-            hitCount: attacker.selectedHitCount || (typeof attacker.move.multihit === 'number' ? attacker.move.multihit : 1),
+            hitCount: totalHitCount,
             attackerStateSnapshot, defenderStateSnapshot, globalStatesSnapshot
         });
     };
@@ -240,9 +346,17 @@ function App() {
         results.forEach((result, index) => {
             const attackerState = attackers[index];
             if (!attackerState || !attackerState.move) return;
-            const hitCount = attackerState.selectedHitCount || (typeof attackerState.move.multihit === 'number' ? attackerState.move.multihit : 1);
-            combinedMin += result.minDamage * hitCount;
-            combinedMax += result.maxDamage * hitCount;
+
+            const isVariablePowerMove = attackerState.move?.variablePowers && attackerState.move.variablePowers.length > 0;
+            if (isVariablePowerMove) {
+                // 威力変動技の場合、resultは既に合算済みなので、そのまま加算
+                combinedMin += result.minDamage;
+                combinedMax += result.maxDamage;
+            } else {
+                const hitCount = attackerState.selectedHitCount || (typeof attackerState.move.multihit === 'number' ? attackerState.move.multihit : 1);
+                combinedMin += result.minDamage * hitCount;
+                combinedMax += result.maxDamage * hitCount;
+            }
         });
         const minPercentage = (combinedMin / defenderHpStat.final) * 100;
         const maxPercentage = (combinedMax / defenderHpStat.final) * 100;
@@ -319,6 +433,15 @@ function App() {
                                     const attacker = attackers[index];
                                     if (!attacker?.isEnabled || !result || !attacker.pokemon || !attacker.move || !defenderPokemon) return null;
                                     
+                                    const isVariablePowerMove = attacker.move?.variablePowers && attacker.move.variablePowers.length > 0;
+                                    let totalHitCount = 1;
+                                    
+                                    if (isVariablePowerMove) {
+                                        totalHitCount = attacker.variableHitStates?.filter(Boolean).length || 1;
+                                    } else {
+                                        totalHitCount = attacker.selectedHitCount || (typeof attacker.move.multihit === 'number' ? attacker.move.multihit : 1);
+                                    }
+
                                     let moveUsedInCalc = attacker.effectiveMove || attacker.move;
                                     let attackerDisplayTypes: [PokemonType, PokemonType?] | ['stellar'] = attacker.pokemon.types as [PokemonType, PokemonType?];
                                     if (attacker.isStellar) attackerDisplayTypes = ['stellar'];
@@ -359,6 +482,7 @@ function App() {
                                     return (
                                         <DamageResult
                                             key={`result-${index}`}
+                                            attackerIndex={index}
                                             result={result}
                                             defenderHP={defenderHpStat.final}
                                             combinedResult={index === 0 && combinedResultsForDisplay ? combinedResultsForDisplay : undefined}
@@ -366,7 +490,7 @@ function App() {
                                             attackerMoveName={attacker.move.name}
                                             attackerMoveNameForDisplay={moveUsedInCalc.name}
                                             defenderPokemonName={defenderPokemon.name}
-                                            hitCount={attacker.selectedHitCount || (typeof attacker.move.multihit === 'number' ? attacker.move.multihit : 1)}
+                                            hitCount={totalHitCount}
                                             attackerDetails={attackerDetails}
                                             defenderDetails={defenderDetails}
                                             weather={weather !== 'none' ? weather : null}
@@ -374,6 +498,7 @@ function App() {
                                             disasters={disasters}
                                             onSaveLog={() => handleSaveLogEntry(index)}
                                             resultIdSuffix={`${index}`}
+                                            isVariablePowerMove={isVariablePowerMove} // Pass this prop
                                             showIndividualAttackResults={showAllIndividualAttackResults}
                                             onToggleShowIndividualAttackResults={() => setShowAllIndividualAttackResults(p => !p)}
                                         />

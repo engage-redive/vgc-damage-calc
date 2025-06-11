@@ -2216,16 +2216,6 @@ export const moves: Move[] = [
   pp: 10
 },
 {
-  id: "electrodrift",
-  name: "エレキドライブ",
-  nameEn: "Electro Drift",
-  type: "electric",
-  category: "special",
-  power: 100,
-  accuracy: 100,
-  pp: 5
-},
-{
   id: "electroshot",
   name: "エレクトロショット",
   nameEn: "Electro Shot",
@@ -8346,16 +8336,6 @@ export const moves: Move[] = [
   hasSecondaryEffect: true
 },
 {
-  id: "tripleaxel",
-  name: "トリプルアクセル",
-  nameEn: "Triple Axel",
-  type: "ice",
-  category: "physical",
-  power: 20,
-  accuracy: 90,
-  pp: 10
-},
-{
   id: "tripledive",
   name: "トリプルダイブ",
   nameEn: "Triple Dive",
@@ -8369,13 +8349,23 @@ export const moves: Move[] = [
 {
   id: "triplekick",
   name: "トリプルキック",
-  nameEn: "Triple Kick",
   type: "fighting",
   category: "physical",
-  power: 10,
+  power: 10, // 1ヒット目の威力を代表として設定
   accuracy: 90,
   pp: 10,
   multihit: 3,
+  variablePowers: [10, 20, 30], // ★追加: 各ヒットの威力
+},
+{
+  id: "tripleaxel",
+  name: "トリプルアクセル",
+  type: "ice",
+  category: "physical",
+  power: 20, // 1ヒット目の威力を代表として設定
+  accuracy: 90,
+  pp: 10,
+  variablePowers: [20, 40, 60], // ★追加: 各ヒットの威力
 },
 {
   id: "tropkick",
