@@ -64,6 +64,25 @@ function App() {
         };
     }, []);
 
+    const handleSwap = () => {
+        // 参照問題を避けるため、ストアの最新状態をコピー
+        const attackerToSwap = JSON.parse(JSON.stringify(useAttackerStore.getState().attackers[0]));
+        const defenderToSwap = JSON.parse(JSON.stringify(useDefenderStore.getState()));
+
+        if (!attackerToSwap?.pokemon || !defenderToSwap.pokemon) {
+            alert("入れ替えを行うには、攻撃側1と防御側の両方のポケモンが設定されている必要があります。");
+            return;
+        }
+
+        // 各ストアのswap関数を呼び出す
+        useAttackerStore.getState().swapWithDefender(defenderToSwap);
+        useDefenderStore.getState().swapWithAttacker(attackerToSwap);
+
+        // グローバルなテラスタル状態を更新
+        const attackerWasTerastallized = attackerToSwap.teraType !== null || attackerToSwap.isStellar;
+        useGlobalStateStore.getState().setDefenderIsTerastallized(attackerWasTerastallized);
+    };
+
     const defenderCurrentTypes = useMemo((): [PokemonType, PokemonType?] => {
         if (defenderPokemon) {
             if (defenderIsTerastallized && defenderPokemon.teraType) return [defenderPokemon.teraType];
@@ -104,12 +123,12 @@ function App() {
             }
 
             const attackerStatsForCalc = {
-                attack: attackerState.move.id === 'foulplay' ? defenderAttackStat : attackerState.attackStat,
-                specialAttack: attackerState.specialAttackStat,
-                defense: attackerState.defenseStat,
-                speed: attackerState.speedStat,
-                abilityUiFlags: attackerState.abilityUiFlags,
-            };
+    attack: attackerState.move.id === 'foulplay' ? defenderAttackStat : attackerState.attackStat,
+    specialAttack: attackerState.specialAttackStat,
+    defense: attackerState.defenseStat,
+    speed: attackerState.speedStat,
+    abilityUiFlags: attackerState.abilityUiFlags,
+};
 
             const attackerTeraBlastConfig = {
                 actualType: attackerState.teraBlastDeterminedType,
@@ -151,10 +170,7 @@ function App() {
         defenderProtosynthesisManualTrigger,
         defenderQuarkDriveBoostedStat,
         defenderQuarkDriveManualTrigger,
-
     ]);
-    
-
     
     const handleSaveLogEntry = (attackerIdx: number) => {
         const attacker = attackers[attackerIdx];
@@ -218,8 +234,6 @@ function App() {
         });
     };
     
-
-
     const calculateCombinedDamage = (results: DamageCalculation[]): { minDamage: number; maxDamage: number; minPercentage: number; maxPercentage: number; } | null => {
         if (results.length === 0 || !defenderHpStat.final || defenderHpStat.final === 0) return null;
         let combinedMin = 0; let combinedMax = 0;
@@ -263,8 +277,8 @@ function App() {
             <header className={`w-full ${activeTab !== 'damage' ? 'pt-0' : (mobileViewMode === 'attacker' || mobileViewMode === 'defender' ? 'pt-[56px] md:pt-0' : 'pt-0')}`}>
                 <div className="max-w-7xl mx-auto py-2 md:py-4 px-2 md:px-8">
                     <div className="hidden md:flex justify-between items-center mb-6">
-                        <h1 className="text-3xl font-bold text-white">VGCダメージ計算器</h1>
-                        <button onClick={() => alert("ポケモン入れ替え機能は現在無効です。")} className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-md transition-colors text-sm"><ArrowRightLeft className="h-4 w-4" /> Swap</button>
+                        <h1 className="text-3xl font-bold text-white">VGC.calc</h1>
+                        <button onClick={handleSwap} className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-md transition-colors text-sm"><ArrowRightLeft className="h-4 w-4" /> Swap</button>
                     </div>
                     <div className="flex space-x-1 md:space-x-2">
                         <button onClick={() => { setActiveTab('damage'); setMobileViewMode('attacker'); }} className={`flex items-center gap-1 md:gap-2 px-2 py-2 md:px-4 md:py-3 rounded-lg transition-colors text-xs sm:text-sm md:text-base ${activeTab === 'damage' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}><Calculator className="h-4 w-4 md:h-5 md:w-5" /> ダメージ計算</button>

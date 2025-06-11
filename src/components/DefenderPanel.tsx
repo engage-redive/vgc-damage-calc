@@ -1,3 +1,5 @@
+// src/components/DefenderPanel.tsx
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Pokemon, StatCalculation, NatureModifier, Item, Ability, PokemonType, DefenderState, ProtosynthesisBoostTarget } from '../types';
 import PokemonSelect from './PokemonSelect';
@@ -34,14 +36,18 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
     defenderIsTerastallized, setDefenderIsTerastallized 
   } = useGlobalStateStore();
   
+  // ▼▼▼ ここを修正 ▼▼▼
+  // 個別のプロパティを分割代入するのではなく、ストアの状態を一つのオブジェクトとして取得
+  const defenderState = useDefenderStore();
   const {
     pokemon: selectedPokemon, item: selectedItem, ability: selectedAbility,
     hpStat, defenseStat, specialDefenseStat,
     hpInputValue, defenseInputValue, specialDefenseInputValue,
-    defender2Item, defender2Ability, userModifiedTypes,quarkDriveManualTrigger,quarkDriveBoostedStat,
+    defender2Item, defender2Ability, userModifiedTypes,
     setPokemon, updateStat, updateStatValue, updateStatFromInput,
     setDefenderState, setDefender2Item, setDefender2Ability, setUserModifiedTypes
-  } = useDefenderStore();
+  } = defenderState;
+  // ▲▲▲ ここまで修正 ▲▲▲
 
   const [showType1Dropdown, setShowType1Dropdown] = useState(false);
   const [showType2Dropdown, setShowType2Dropdown] = useState(false);
@@ -237,8 +243,8 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
                   type="checkbox"
                   id="proto-manual-defender"
                   className="h-4 w-4 text-yellow-500 bg-gray-700 border-gray-600 rounded focus:ring-yellow-400 focus:ring-offset-gray-800"
-                  // ▼▼▼ ストアの最新の値を参照するように修正 ▼▼▼
-                  checked={!!protosynthesisManualTrigger}
+                  // ▼▼▼ defenderState オブジェクトから参照するように修正 ▼▼▼
+                  checked={!!defenderState.protosynthesisManualTrigger}
                   onChange={(e) => setDefenderState({ protosynthesisManualTrigger: e.target.checked })}
                   disabled={!selectedPokemon}
                 />
@@ -249,8 +255,8 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
               <label htmlFor="proto-stat-defender" className="block text-sm font-medium text-white mb-1">上昇させる能力:</label>
               <select
                 id="proto-stat-defender"
-                // ▼▼▼ ストアの最新の値を参照するように修正 ▼▼▼
-                value={protosynthesisBoostedStat || ''}
+                // ▼▼▼ defenderState オブジェクトから参照するように修正 ▼▼▼
+                value={defenderState.protosynthesisBoostedStat || ''}
                 onChange={(e) => setDefenderState({ protosynthesisBoostedStat: e.target.value as ProtosynthesisBoostTarget | null })}
                 disabled={!selectedPokemon}
                 className="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm pl-3 pr-10 py-2 text-left focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm text-white"
@@ -273,8 +279,8 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
                   type="checkbox"
                   id="quark-manual-defender"
                   className="h-4 w-4 text-purple-500 bg-gray-700 border-gray-600 rounded focus:ring-purple-400 focus:ring-offset-gray-800"
-                  // ▼▼▼ ストアの最新の値を参照するように修正 ▼▼▼
-                  checked={!!quarkDriveManualTrigger}
+                  // ▼▼▼ defenderState オブジェクトから参照するように修正 ▼▼▼
+                  checked={!!defenderState.quarkDriveManualTrigger}
                   onChange={(e) => setDefenderState({ quarkDriveManualTrigger: e.target.checked })}
                   disabled={!selectedPokemon}
                 />
@@ -285,8 +291,8 @@ const DefenderPanel: React.FC<DefenderPanelProps> = ({
               <label htmlFor="quark-stat-defender" className="block text-sm font-medium text-white mb-1">上昇させる能力:</label>
               <select
                 id="quark-stat-defender"
-                // ▼▼▼ ストアの最新の値を参照するように修正 ▼▼▼
-                value={quarkDriveBoostedStat || ''}
+                // ▼▼▼ defenderState オブジェクトから参照するように修正 ▼▼▼
+                value={defenderState.quarkDriveBoostedStat || ''}
                 onChange={(e) => setDefenderState({ quarkDriveBoostedStat: e.target.value as ProtosynthesisBoostTarget | null })}
                 disabled={!selectedPokemon}
                 className="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm pl-3 pr-10 py-2 text-left focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 sm:text-sm text-white"

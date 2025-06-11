@@ -1,8 +1,9 @@
 // src/stores/defenderStore.ts
+
 import { create } from 'zustand';
 import {
   DefenderState, Pokemon, Item, Ability, StatCalculation, NatureModifier,
-  PokemonType, ProtosynthesisBoostTarget, DefenderStateSnapshotForLog, StatCalculationSnapshot, Nature, TeamMember,
+  PokemonType, ProtosynthesisBoostTarget, DefenderStateSnapshotForLog, StatCalculationSnapshot, Nature, TeamMember, AttackerState,
 } from '../types';
 import { pokedex } from '../data/pokedex';
 import { items } from '../data/items';
@@ -10,7 +11,12 @@ import { abilities } from '../data/abilities';
 import { natures } from '../data/natures';
 import { useGlobalStateStore } from './globalStateStore';
 
-// (ユーティリティ関数は変更なしのため省略)
+// ユーティリティ関数 (変更なし)
+const calculateHp = (base: number, iv: number, ev: number, level: number): number => {
+  if (base <= 0) return 0;
+  if (base === 1) return 1;
+  return Math.floor(((2 * base + iv + Math.floor(ev / 4)) * level) / 100) + level + 10;
+};
 const calculateStat = (base: number, iv: number, ev: number, level: number, nature: NatureModifier, isHp: boolean, rank: number = 0): number => {
     let finalStat: number;
     if (isHp) {
@@ -46,13 +52,14 @@ const findClosestEv = (target: number, base: number, iv: number, nature: NatureM
     }
     return closestEv;
 };
-const getNatureModifierValueFromDetails = (natureDetails: Nature | undefined, statField: 'attack' | 'defense' | 'specialDefense' | 'speed'): NatureModifier => {
+const getNatureModifierValueFromDetails = (natureDetails: Nature | undefined, statField: 'attack' | 'defense' | 'specialAttack'| 'specialDefense' | 'speed'): NatureModifier => {
     if (!natureDetails) return 1.0;
     if (natureDetails.increasedStat === statField) return 1.1;
     if (natureDetails.decreasedStat === statField) return 0.9;
     return 1.0;
 };
 // (ここまでユーティリティ関数)
+
 
 const createInitialDefenderState = (): DefenderState => {
   const initialPokemon = pokedex.find(p => p.name === "カイリュー") || pokedex[0];
@@ -67,15 +74,20 @@ const createInitialDefenderState = (): DefenderState => {
   const defenseStat = createStat(initialPokemon.baseStats.defense);
   const specialDefenseStat = createStat(initialPokemon.baseStats.specialDefense);
   const attackStat = createStat(initialPokemon.baseStats.attack);
+  const specialAttackStat = createStat(initialPokemon.baseStats.specialAttack);
   const speedStat = createStat(initialPokemon.baseStats.speed);
 
   return {
     pokemon: initialPokemon,
     item: null, ability: initialAbility,
-    hpStat, defenseStat, specialDefenseStat, attackStat, speedStat,
+    hpStat, defenseStat, specialDefenseStat, attackStat, specialAttackStat, speedStat,
     hpInputValue: hpStat.final.toString(),
     defenseInputValue: defenseStat.final.toString(),
     specialDefenseInputValue: specialDefenseStat.final.toString(),
+    // ▼▼▼ ここを削除/変更 ▼▼▼
+    // specialAttackInputValue: specialAttackStat.final.toString(), // 特攻入力値も初期化
+    specialAttackInputValue: '0', // 0で初期化
+    // ▲▲▲ ここまで削除/変更 ▲▲▲
     speedInputValue: speedStat.final.toString(),
     hpEv: 0, actualMaxHp: hpStat.final,
     teraType: null, isStellar: false, isBurned: false, hasFlowerGift: false, isEnabled: true,
@@ -92,14 +104,17 @@ interface DefenderStore extends DefenderState {
   userModifiedTypes: [PokemonType, PokemonType?] | null;
   setDefenderState: (updates: Partial<DefenderState>) => void;
   setPokemon: (pokemon: Pokemon | null) => void;
-  updateStat: (statField: 'hp' | 'defense' | 'specialDefense' | 'attack' | 'speed', updates: Partial<StatCalculation>) => void;
-  updateStatValue: (statField: 'hp' | 'defense' | 'specialDefense' | 'speed', value: string) => void;
-  updateStatFromInput: (statField: 'hp' | 'defense' | 'specialDefense' | 'speed') => void;
+  // ▼▼▼ statFieldの型に 'specialAttack' を追加 ▼▼▼
+  updateStat: (statField: 'hp' | 'defense' | 'specialDefense' | 'attack' | 'specialAttack' | 'speed', updates: Partial<StatCalculation>) => void;
+  updateStatValue: (statField: 'hp' | 'defense' | 'specialDefense' | 'attack' | 'specialAttack' | 'speed', value: string) => void;
+  updateStatFromInput: (statField: 'hp' | 'defense' | 'specialDefense' | 'attack' | 'specialAttack' | 'speed') => void;
+  // ▲▲▲ ここまで修正 ▲▲▲
   setDefender2Item: (item: Item | null) => void;
   setDefender2Ability: (ability: Ability | null) => void;
   setUserModifiedTypes: (types: [PokemonType, PokemonType?] | null) => void;
   loadFromSnapshot: (snapshot: DefenderStateSnapshotForLog) => void;
   loadFromTeamMember: (member: TeamMember) => void;
+  swapWithAttacker: (attackerState: AttackerState) => void;
 }
 
 export const useDefenderStore = create<DefenderStore>((set, get) => ({
@@ -112,7 +127,6 @@ export const useDefenderStore = create<DefenderStore>((set, get) => ({
     const currentState = { ...state };
     const newState = { ...currentState, ...updates };
 
-    // 特性が変更された場合の処理
     if (updates.ability !== undefined && updates.ability?.id !== currentState.ability?.id) {
         const newAbilityId = updates.ability?.id;
         
@@ -149,14 +163,16 @@ export const useDefenderStore = create<DefenderStore>((set, get) => ({
     const defenseStat = createStat(pokemon.baseStats.defense);
     const specialDefenseStat = createStat(pokemon.baseStats.specialDefense);
     const attackStat = createStat(pokemon.baseStats.attack);
+    const specialAttackStat = createStat(pokemon.baseStats.specialAttack);
     const speedStat = createStat(pokemon.baseStats.speed);
     
     set({
       pokemon, ability: initialAbility, item: null, teraType: null,
-      hpStat, defenseStat, specialDefenseStat, attackStat, speedStat,
+      hpStat, defenseStat, specialDefenseStat, attackStat, specialAttackStat, speedStat,
       hpInputValue: hpStat.final.toString(),
       defenseInputValue: defenseStat.final.toString(),
       specialDefenseInputValue: specialDefenseStat.final.toString(),
+      specialAttackInputValue: specialAttackStat.final.toString(),
       speedInputValue: speedStat.final.toString(),
       hpEv: 0, actualMaxHp: hpStat.final, userModifiedTypes: null,
       protosynthesisBoostedStat: initialAbility?.id === 'protosynthesis' ? 'defense' : null,
@@ -234,12 +250,17 @@ export const useDefenderStore = create<DefenderStore>((set, get) => ({
     const attackStat = restoreStat(snapshot.attackStat, pokemon.baseStats.attack);
     const speedStat = restoreStat(snapshot.speedStat, pokemon.baseStats.speed);
 
+    // loadFromSnapshotは特攻情報を持たないため、デフォルトで初期化
+    const specialAttackStat = createInitialDefenderState().specialAttackStat;
+
+
     set({
         pokemon, item, ability,
-        hpStat, defenseStat, specialDefenseStat, attackStat, speedStat,
+        hpStat, defenseStat, specialDefenseStat, attackStat, specialAttackStat, speedStat,
         hpInputValue: hpStat.final.toString(),
         defenseInputValue: defenseStat.final.toString(),
         specialDefenseInputValue: specialDefenseStat.final.toString(),
+        specialAttackInputValue: specialAttackStat.final.toString(),
         speedInputValue: speedStat.final.toString(),
         hpEv: snapshot.hpEv,
         actualMaxHp: hpStat.final,
@@ -259,7 +280,7 @@ export const useDefenderStore = create<DefenderStore>((set, get) => ({
     const { pokemon, item, ability, teraType, evs, ivs, nature } = member;
     const natureDetails = nature || undefined;
 
-    const restoreStat = (base: number, ev: number, iv: number, statField: 'attack' | 'defense' | 'specialDefense' | 'speed' | 'hp', isHp = false): StatCalculation => {
+    const restoreStat = (base: number, ev: number, iv: number, statField: 'attack' | 'defense' | 'specialAttack'| 'specialDefense' | 'speed' | 'hp', isHp = false): StatCalculation => {
       const natureMod = isHp ? 1.0 : getNatureModifierValueFromDetails(natureDetails, statField as any);
       const newStat = { base, ev, iv, nature: natureMod, rank: 0, final: 0 };
       newStat.final = calculateStat(base, iv, ev, 50, natureMod, isHp, 0);
@@ -267,16 +288,19 @@ export const useDefenderStore = create<DefenderStore>((set, get) => ({
     };
 
     const hpStat = restoreStat(pokemon.baseStats.hp, evs.hp, ivs.hp, 'hp', true);
-    const defenseStat = restoreStat(pokemon.baseStats.defense, evs.defense, ivs.defense, 'defense');
-    const specialDefenseStat = restoreStat(pokemon.baseStats.specialDefense, evs.specialDefense, ivs.specialDefense, 'specialDefense');
     const attackStat = restoreStat(pokemon.baseStats.attack, evs.attack, ivs.attack, 'attack');
+    const defenseStat = restoreStat(pokemon.baseStats.defense, evs.defense, ivs.defense, 'defense');
+    const specialAttackStat = restoreStat(pokemon.baseStats.specialAttack, evs.specialAttack, ivs.specialAttack, 'specialAttack');
+    const specialDefenseStat = restoreStat(pokemon.baseStats.specialDefense, evs.specialDefense, ivs.specialDefense, 'specialDefense');
     const speedStat = restoreStat(pokemon.baseStats.speed, evs.speed, ivs.speed, 'speed');
 
     const newState: Partial<DefenderState> = {
         pokemon, item, ability, teraType,
-        hpStat, defenseStat, specialDefenseStat, attackStat, speedStat,
+        hpStat, attackStat, defenseStat, specialAttackStat, specialDefenseStat, speedStat,
         hpInputValue: hpStat.final.toString(),
+        // attackInputValue: attackStat.final.toString(),
         defenseInputValue: defenseStat.final.toString(),
+        specialAttackInputValue: specialAttackStat.final.toString(),
         specialDefenseInputValue: specialDefenseStat.final.toString(),
         speedInputValue: speedStat.final.toString(),
         hpEv: evs.hp,
@@ -287,5 +311,50 @@ export const useDefenderStore = create<DefenderStore>((set, get) => ({
     get().setUserModifiedTypes(null);
     useGlobalStateStore.getState().setHasReflect(false);
     useGlobalStateStore.getState().setHasLightScreen(false);
+  },
+
+  swapWithAttacker: (attackerState) => {
+    if (!attackerState.pokemon) return;
+
+    // Create default stat objects to prevent undefined errors
+    const defaultStat: StatCalculation = { base: 0, iv: 31, ev: 0, nature: 1.0, rank: 0, final: 0 };
+
+    const { 
+      pokemon, item, ability, teraType, isStellar, isBurned, hpEv,
+      attackStat = defaultStat,
+      specialAttackStat = defaultStat,
+      defenseStat = defaultStat,
+      specialDefenseStat = defaultStat,
+      speedStat = defaultStat,
+      hasFlowerGift, protosynthesisBoostedStat, protosynthesisManualTrigger,
+      quarkDriveBoostedStat, quarkDriveManualTrigger
+    } = attackerState;
+    
+    const hp = calculateHp(pokemon.baseStats.hp, 31, hpEv, 50);
+
+    set({
+        pokemon, item, ability, teraType, isStellar, isBurned,
+        userModifiedTypes: null,
+        hasFlowerGift,
+        hpStat: { ...get().hpStat, base: pokemon.baseStats.hp, ev: hpEv, iv: 31, final: hp },
+        hpInputValue: hp.toString(),
+        hpEv: hpEv,
+        actualMaxHp: hp,
+        
+        attackStat,
+        attackInputValue: attackStat.final.toString(),
+        defenseStat,
+        defenseInputValue: defenseStat.final.toString(),
+        specialAttackStat,
+        specialAttackInputValue: specialAttackStat.final.toString(),
+        specialDefenseStat,
+        specialDefenseInputValue: specialDefenseStat.final.toString(),
+        speedStat,
+        speedInputValue: speedStat.final.toString(),
+        protosynthesisBoostedStat,
+        protosynthesisManualTrigger,
+        quarkDriveBoostedStat,
+        quarkDriveManualTrigger,
+    });
   },
 }));

@@ -239,17 +239,23 @@ export interface GlobalStatesSnapshotForLog {
 export interface AttackerState {
   pokemon: Pokemon | null;
   move: Move | null;
-  effectiveMove: Move | null; // 計算時に動的に決定される技情報
+  effectiveMove: Move | null;
   item: Item | null;
   ability: Ability | null;
   attackStat: StatCalculation;
   specialAttackStat: StatCalculation;
   defenseStat: StatCalculation;
+  // ▼▼▼ ここから追加/変更 ▼▼▼
+  specialDefenseStat: StatCalculation; // 特防情報を追加
+  // ▲▲▲ ここまで追加/変更 ▲▲▲
   speedStat: StatCalculation;
-  attackInputValue: string; // UI表示用
-  specialAttackInputValue: string; // UI表示用
-  defenseInputValue: string; // UI表示用
-  speedInputValue: string; // UI表示用
+  attackInputValue: string;
+  specialAttackInputValue: string;
+  defenseInputValue: string;
+  // ▼▼▼ ここから追加/変更 ▼▼▼
+  specialDefenseInputValue: string; // 特防入力値も追加
+  // ▲▲▲ ここまで追加/変更 ▲▲▲
+  speedInputValue: string;
   hpEv: number;
   actualMaxHp: number;
   currentHp: number;
@@ -282,12 +288,18 @@ export interface DefenderState {
   hpStat: StatCalculation;
   defenseStat: StatCalculation;
   specialDefenseStat: StatCalculation;
-  attackStat: StatCalculation; // イカサマ用
+  attackStat: StatCalculation;
+  // ▼▼▼ ここから追加/変更 ▼▼▼
+  specialAttackStat: StatCalculation; // 特攻情報を追加
+  // ▲▲▲ ここまで追加/変更 ▲▲▲
   speedStat: StatCalculation;
-  hpInputValue: string; // UI表示用
-  defenseInputValue: string; // UI表示用
-  specialDefenseInputValue: string; // UI表示用
-  speedInputValue: string; // UI表示用
+  hpInputValue: string;
+  defenseInputValue: string;
+  specialDefenseInputValue: string;
+  // ▼▼▼ ここから追加/変更 ▼▼▼
+  specialAttackInputValue: string; // 特攻入力値も追加
+  // ▲▲▲ ここまで追加/変更 ▲▲▲
+  speedInputValue: string;
   hpEv: number; // HP努力値 (hpStat.evと同期)
   actualMaxHp: number; // 実際の最大HP (hpStat.finalと同期)
   teraType: PokemonType | null;
