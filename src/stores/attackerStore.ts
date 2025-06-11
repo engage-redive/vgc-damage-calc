@@ -122,7 +122,7 @@ interface AttackerStore {
   setAttackers: (attackers: AttackerState[]) => void;
   addAttacker: () => void;
   removeAttacker: (index: number) => void;
-  setIsCritical: (index: number, isCritical: boolean) => void; // ★★★ 修正点 ★★★ アクションを追加
+  setIsCritical: (index: number, isCritical: boolean) => void;
   updateStat: (index: number, statField: 'attack' | 'specialAttack' | 'defense' | 'specialDefense' | 'speed', updates: Partial<StatCalculation>) => void;
   updateStatValue: (index: number, statField: 'attack' | 'specialAttack' | 'defense' | 'specialDefense' | 'speed', value: string) => void;
   updateStatFromInput: (index: number, statField: 'attack' | 'specialAttack' | 'defense' | 'specialDefense' | 'speed') => void;
@@ -190,7 +190,6 @@ export const useAttackerStore = create<AttackerStore>((set, get) => ({
       }));
     },
 
-    // ★★★ 修正点 ★★★ setIsCriticalアクションを実装
     setIsCritical: (index, isCritical) => {
       set(state => {
         const newAttackers = [...state.attackers];
@@ -289,13 +288,26 @@ export const useAttackerStore = create<AttackerStore>((set, get) => ({
       const attacker = get().attackers[index];
       if (!attacker) return;
       const newMoveUiOptionStates = { ...attacker.moveUiOptionStates };
-      if (move?.isRankBasedPower && newMoveUiOptionStates['rankBasedPowerValue'] === undefined) {
+
+  // ▼▼▼ ここから変更 ▼▼▼
+  if (move?.isRankBasedPower) {
+    // 既存の威力が設定されていない場合のみ、初期値を設定する
+    if (newMoveUiOptionStates['rankBasedPowerValue'] === undefined) {
+      // 技IDによって初期値を変更
+      if (move.id === 'lastrespects' || move.id === 'ragefist') {
+        newMoveUiOptionStates['rankBasedPowerValue'] = 50;
+      } else {
+        // デフォルト（アシストパワーなど）
         newMoveUiOptionStates['rankBasedPowerValue'] = 20;
-      } else if (!move?.isRankBasedPower) {
-        delete newMoveUiOptionStates['rankBasedPowerValue'];
       }
-      
-      let newSelectedHitCount: number | null = null;
+    }
+  } else {
+    // isRankBasedPowerでなくなった場合はキーを削除
+    delete newMoveUiOptionStates['rankBasedPowerValue'];
+  }
+  // ▲▲▲ ここまで変更 ▲▲▲
+
+  let newSelectedHitCount: number | null = null;
       let newVariableHitStates: boolean[] = [];
 
       if (move?.variablePowers && move.variablePowers.length > 0) {
@@ -307,12 +319,20 @@ export const useAttackerStore = create<AttackerStore>((set, get) => ({
         newSelectedHitCount = 2;
       }
       
+      // ★★★ ここからが修正箇所 ★★★
+      // 技が確定急所技(alwaysCrit: true)なら、isCriticalをtrueにする。
+      // これにより、UIのチェックボックスが自動的にONになります。
+      // ユーザーは必要に応じて手動でOFFにすることも可能です。
+      const newIsCritical = move?.alwaysCrit === true;
+
       get().updateAttacker(index, { 
         move, 
         moveUiOptionStates: newMoveUiOptionStates, 
         selectedHitCount: newSelectedHitCount,
         variableHitStates: newVariableHitStates,
+        isCritical: newIsCritical, // ★★★ 確定急所技に応じてisCriticalを更新 ★★★
       });
+      // ★★★ ここまでが修正箇所 ★★★
     },
     
     recalculateAll: (index) => {
@@ -377,7 +397,7 @@ export const useAttackerStore = create<AttackerStore>((set, get) => ({
       const attackStat = restoreStat(snapshot.attackStat, pokemon.baseStats.attack);
       const specialAttackStat = restoreStat(snapshot.specialAttackStat, pokemon.baseStats.specialAttack);
       const defenseStat = restoreStat(snapshot.defenseStat, pokemon.baseStats.defense);
-      const specialDefenseStat = restoreStat({iv: 31, ev: 0, nature: 1.0, rank: 0}, pokemon.baseStats.specialDefense); // snapshotにないためデフォルト値で補完
+      const specialDefenseStat = restoreStat({iv: 31, ev: 0, nature: 1.0, rank: 0}, pokemon.baseStats.specialDefense);
       const speedStat = restoreStat(snapshot.speedStat, pokemon.baseStats.speed);
       const actualMaxHp = calculateHp(pokemon.baseStats.hp, 31, snapshot.hpEv, 50);
 
@@ -396,7 +416,7 @@ export const useAttackerStore = create<AttackerStore>((set, get) => ({
           loadedTeraType: snapshot.loadedTeraType,
           isStellar: snapshot.isStellar,
           isBurned: snapshot.isBurned,
-          isCritical: snapshot.isCritical || false, // ★★★ 修正点 ★★★ スナップショットからisCriticalを復元
+          isCritical: snapshot.isCritical || false,
           hasHelpingHand: snapshot.hasHelpingHand,
           hasFlowerGift: snapshot.hasFlowerGift || false,
           isEnabled: true,
@@ -439,12 +459,14 @@ export const useAttackerStore = create<AttackerStore>((set, get) => ({
       const speedStat = restoreStat(pokemon.baseStats.speed, evs.speed, ivs.speed, 'speed');
       const actualMaxHp = calculateHp(pokemon.baseStats.hp, ivs.hp, evs.hp, 50);
 
+      const firstMove = loadedMoves?.[0] || null;
+
       const newState: Partial<AttackerState> = {
           pokemon,
           item,
           ability,
           loadedMoves: loadedMoves || [null, null, null, null],
-          move: loadedMoves?.[0] || null,
+          move: firstMove,
           teraType,
           loadedTeraType: teraType,
           isStellar: false,
@@ -462,7 +484,7 @@ export const useAttackerStore = create<AttackerStore>((set, get) => ({
           specialDefenseInputValue: specialDefenseStat.final.toString(),
           speedInputValue: speedStat.final.toString(),
           isBurned: false,
-          isCritical: false, // ★★★ 修正点 ★★★ チームロード時はfalseにリセット
+          isCritical: firstMove?.alwaysCrit === true, // ★★★ チームロード時も確定急所を反映 ★★★
           hasHelpingHand: false,
           selectedHitCount: null,
           moveUiOptionStates: {},
@@ -515,7 +537,7 @@ export const useAttackerStore = create<AttackerStore>((set, get) => ({
           speedInputValue,
           
           hasHelpingHand: false,
-          isCritical: false, // ★★★ 修正点 ★★★ swap時はfalseにリセット
+          isCritical: false, // ★★★ ポケモンが入れ替わるので急所状態はリセット ★★★
           protosynthesisBoostedStat,
           protosynthesisManualTrigger,
           quarkDriveBoostedStat,

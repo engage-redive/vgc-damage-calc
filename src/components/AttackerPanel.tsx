@@ -125,14 +125,6 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
     updateAttacker(index, { moveUiOptionStates: { ...attackers[index].moveUiOptionStates, 'rankBasedPowerValue': power }});
   };
 
-  const rankBasedPowerOptions = useMemo(() => {
-    const options = [];
-    for (let i = 20; i <= 860; i += 20) {
-      options.push(i);
-    }
-    return options;
-  }, []);
-
   const calculateBaseStatValue = (base: number, iv: number, ev: number, level: number, nature: NatureModifier): number => {
     if (!base || base <= 0) return 0;
     let stat = Math.floor(((2 * base + iv + Math.floor(ev / 4)) * level) / 100) + 5;
@@ -147,6 +139,26 @@ const AttackerPanel: React.FC<AttackerPanelProps> = ({
   ];
 
   const renderAttackerSection = (attacker: AttackerState, index: number) => {
+    const rankBasedPowerOptions = useMemo(() => {
+        const selectedMoveId = attacker.move?.id;
+
+        if (selectedMoveId === 'lastrespects' || selectedMoveId === 'ragefist') {
+            // おはかまいり / ふんどのこぶし の選択肢
+            const options = [];
+            for (let i = 50; i <= 350; i += 50) {
+            options.push(i);
+            }
+            return options;
+        }
+
+        // デフォルト（アシストパワーなど）の選択肢
+        const options = [];
+        for (let i = 20; i <= 860; i += 20) {
+            options.push(i);
+        }
+        return options;
+    }, [attacker.move?.id]);
+
     const attackBaseValueForDisplay = attacker.attackStat && attacker.pokemon ? calculateBaseStatValue(attacker.pokemon.baseStats.attack, attacker.attackStat.iv, attacker.attackStat.ev || 0, 50, attacker.attackStat.nature) : 0;
     const specialAttackBaseValueForDisplay = attacker.specialAttackStat && attacker.pokemon ? calculateBaseStatValue(attacker.pokemon.baseStats.specialAttack, attacker.specialAttackStat.iv, attacker.specialAttackStat.ev || 0, 50, attacker.specialAttackStat.nature) : 0;
     const defenseBaseValueForDisplay = attacker.defenseStat && attacker.pokemon ? calculateBaseStatValue(attacker.pokemon.baseStats.defense, attacker.defenseStat.iv, attacker.defenseStat.ev || 0, 50, attacker.defenseStat.nature) : 0;

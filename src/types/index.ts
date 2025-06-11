@@ -109,6 +109,7 @@ export interface Move {
   dynamicEffectId?: string;
   isRankBasedPower?: boolean; // ★ 追加: アシストパワー/つけあがるのような威力変動技かを示すフラグ
   variablePowers?: number[]; // ★★★ 変更点 ★★★
+  alwaysCrit?: boolean; 
 }
 
 export interface Item {

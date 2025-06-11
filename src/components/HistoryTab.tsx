@@ -24,7 +24,7 @@ const HistoryTab: React.FC = () => {
   return (
     <div className="p-2 md:p-4">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold text-white">履歴(詳細を押すと自動保存)</h2>
+        <h5 className="text-2xl font-semibold text-white">履歴(詳細を押すと自動保存)</h5>
         {loggedEntries.length > 0 && (
             <button
                 // ▼ ストアのアクションを直接呼び出す
@@ -33,7 +33,7 @@ const HistoryTab: React.FC = () => {
                 aria-label="すべてのログを削除"
             >
                 <Trash size={16} className="mr-1.5" />
-                すべて削除
+                全て削除
             </button>
         )}
       </div>

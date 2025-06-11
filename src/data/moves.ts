@@ -2801,7 +2801,8 @@ export const moves: Move[] = [
   category: "physical",
   power: 70,
   accuracy: true,
-  pp: 10
+  pp: 10,
+  alwaysCrit: true,
 },
 {
   id: "fly",
@@ -2947,7 +2948,8 @@ export const moves: Move[] = [
   category: "special",
   power: 60,
   accuracy: 90,
-  pp: 10
+  pp: 10,
+  alwaysCrit: true,
 },
 {
   id: "frustration",
@@ -4264,9 +4266,10 @@ export const moves: Move[] = [
   nameEn: "Last Respects",
   type: "ghost",
   category: "physical",
-  power: 50,
+  power: 50, 
   accuracy: 100,
-  pp: 10
+  pp: 10,
+  isRankBasedPower: true, 
 },
 {
   id: "lavaplume",
@@ -6045,7 +6048,7 @@ export const moves: Move[] = [
   power: 50,
   accuracy: 100,
   pp: 10,
-  isPunch: true,
+  isRankBasedPower: true, 
 },
 {
   id: "ragepowder",
@@ -7548,7 +7551,8 @@ export const moves: Move[] = [
   category: "physical",
   power: 60,
   accuracy: 100,
-  pp: 10
+  pp: 10,
+  alwaysCrit: true,
 },
 {
   id: "strangesteam",
@@ -7748,6 +7752,7 @@ export const moves: Move[] = [
   pp: 5,
   multihit: 3,
   isPunch: true,
+  alwaysCrit: true,
 },
 {
   id: "swagger",
@@ -8722,6 +8727,8 @@ export const moves: Move[] = [
   accuracy: 100,
   pp: 5,
   isPunch: true,
+  makesContact: true, // 接触技であるため追加を推奨
+  alwaysCrit: true,   // ★★★ このプロパティを追加 ★★
 },
 {
   id: "wickedtorque",
