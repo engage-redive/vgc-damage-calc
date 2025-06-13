@@ -1,3 +1,5 @@
+// App.tsx の修正版（全文）
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { pokedex } from './data/pokedex';
 import { moves } from './data/moves';
@@ -19,7 +21,7 @@ import DamageResult from './components/DamageResult';
 import WeatherField from './components/WeatherField';
 import TeamManager from './components/TeamManager';
 import HistoryTab from './components/HistoryTab';
-import { ArrowRightLeft, Calculator, Users, Shield, History as HistoryIcon } from 'lucide-react';
+import { ArrowRightLeft, Calculator, Users, Shield, History as HistoryIcon, Info, X } from 'lucide-react';
 
 import { useGlobalStateStore } from './stores/globalStateStore';
 import { useAttackerStore } from './stores/attackerStore';
@@ -31,9 +33,42 @@ const HP_DEPENDENT_MOVE_NAMES = ["ふんか", "しおふき"];
 type TabType = 'damage' | 'team' | 'history';
 type MobileViewMode = 'attacker' | 'defender';
 
+const InfoModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void; }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div 
+            className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50"
+            onClick={onClose}
+        >
+            <div 
+                className="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md mx-4 relative"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <button 
+                    onClick={onClose}
+                    className="absolute top-3 right-3 text-gray-400 hover:text-white transition-colors"
+                >
+                    <X size={24} />
+                </button>
+                <div className="flex flex-col items-center space-y-4 text-center">
+                    <a href="https://forms.gle/pwUHbegaWsiKbcgs6" target="_blank" rel="noopener noreferrer" className="text-lg text-blue-400 hover:text-blue-300 transition-colors">要望・バグ報告</a>
+                    <div className="border-t border-gray-600 w-full pt-4 mt-2">
+                         <p className="text-sm text-gray-300">
+                             管理者: <a href="https://x.com/voiceroid_g_c" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">@voiceroid_g_c</a>
+                         </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 function App() {
     const [activeTab, setActiveTab] = useState<TabType>('damage');
     const [mobileViewMode, setMobileViewMode] = useState<MobileViewMode>('attacker');
+    const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
 
     const { isDoubleBattle, weather, field, disasters, hasReflect, hasLightScreen, hasFriendGuard, defenderIsTerastallized } = useGlobalStateStore();
     const { attackers } = useAttackerStore();
@@ -52,7 +87,6 @@ function App() {
     const [damageResults, setDamageResults] = useState<(DamageCalculation | null)[]>([]);
     const [showAllIndividualAttackResults, setShowAllIndividualAttackResults] = useState(true);
 
-    // 履歴からの復元時にダメージ計算タブに切り替える
     useEffect(() => {
         const handleSwitchToDamageTab = () => {
             setActiveTab('damage');
@@ -65,7 +99,6 @@ function App() {
     }, []);
 
     const handleSwap = () => {
-        // 参照問題を避けるため、ストアの最新状態をコピー
         const attackerToSwap = JSON.parse(JSON.stringify(useAttackerStore.getState().attackers[0]));
         const defenderToSwap = JSON.parse(JSON.stringify(useDefenderStore.getState()));
 
@@ -74,11 +107,9 @@ function App() {
             return;
         }
 
-        // 各ストアのswap関数を呼び出す
         useAttackerStore.getState().swapWithDefender(defenderToSwap);
         useDefenderStore.getState().swapWithAttacker(attackerToSwap);
 
-        // グローバルなテラスタル状態を更新
         const attackerWasTerastallized = attackerToSwap.teraType !== null || attackerToSwap.isStellar;
         useGlobalStateStore.getState().setDefenderIsTerastallized(attackerWasTerastallized);
     };
@@ -92,7 +123,6 @@ function App() {
         return [PokemonType.Normal];
     }, [defenderPokemon, defenderIsTerastallized, userModifiedTypes]);
 
-    // ダメージ計算useEffect
     useEffect(() => {
         if (!defenderPokemon) {
             setDamageResults([]);
@@ -106,7 +136,6 @@ function App() {
             const isVariablePowerMove = attackerState.move?.variablePowers && attackerState.move.variablePowers.length > 0;
 
             if (isVariablePowerMove) {
-                // --- 威力変動連続技の計算ロジック (最終修正版) ---
                 const hitStates = attackerState.variableHitStates || [];
                 const activeHits = hitStates.map((checked, i) => checked ? i : -1).filter(i => i !== -1);
                 
@@ -114,7 +143,6 @@ function App() {
         
                 const hitResults: DamageCalculation[] = [];
         
-                // 1. 各ヒットのダメージを個別に計算する
                 for (const hitIndex of activeHits) {
                     const hitPower = attackerState.move!.variablePowers![hitIndex];
                     let moveForThisHit = { ...attackerState.move!, power: hitPower };
@@ -163,7 +191,6 @@ function App() {
                     hitResults.push(damageResultForHit);
                 }
                 
-                // 2. クリーンな初期オブジェクトを作成
                 const finalCombinedResult: DamageCalculation = {
                     minDamage: 0, maxDamage: 0, critMinDamage: 0, critMaxDamage: 0,
                     minPercentage: 0, maxPercentage: 0, critMinPercentage: 0, critMaxPercentage: 0,
@@ -173,7 +200,6 @@ function App() {
                     criticalDamages: Array(16).fill(0),
                 };
 
-                // 3. 各ヒットの結果を単純な for-of ループで合算する
                 for (const res of hitResults) {
                     for (let i = 0; i < 16; i++) {
                         finalCombinedResult.normalDamages[i] += res.normalDamages[i];
@@ -181,7 +207,6 @@ function App() {
                     }
                 }
                 
-                // 4. 合算されたダメージ配列から、最終的な最小/最大ダメージとパーセンテージを再計算する
                 if (defenderHpStat.final > 0) {
                     finalCombinedResult.minDamage = Math.min(...finalCombinedResult.normalDamages);
                     finalCombinedResult.maxDamage = Math.max(...finalCombinedResult.normalDamages);
@@ -197,7 +222,6 @@ function App() {
                 return finalCombinedResult;
 
             } else {
-                // --- 通常の技の計算ロジック ---
                 let moveForCalc = attackerState.effectiveMove || attackerState.move;
                 if (!moveForCalc) return null;
 
@@ -282,8 +306,6 @@ function App() {
 
         if (isVariablePowerMove) {
             totalHitCount = attacker.variableHitStates?.filter(Boolean).length || 1;
-            // 威力変動技の場合、moveUsedInCalc の威力は代表値(1ヒット目)になってしまうため、合計威力などを別途計算するか、
-            // ログでは代表値を表示する、などの割り切りが必要。ここでは代表値のままとする。
         } else {
             totalHitCount = attacker.selectedHitCount || (typeof attacker.move.multihit === 'number' ? attacker.move.multihit : 1);
         }
@@ -349,7 +371,6 @@ function App() {
 
             const isVariablePowerMove = attackerState.move?.variablePowers && attackerState.move.variablePowers.length > 0;
             if (isVariablePowerMove) {
-                // 威力変動技の場合、resultは既に合算済みなので、そのまま加算
                 combinedMin += result.minDamage;
                 combinedMax += result.maxDamage;
             } else {
@@ -365,7 +386,7 @@ function App() {
 
     return (
         <div className="min-h-screen bg-gray-900 text-white flex flex-col">
-                      {activeTab === 'damage' && (
+            {activeTab === 'damage' && (
                 <div
                     className="md:hidden fixed top-0 left-0 w-full bg-gray-900 shadow-md z-20 flex items-stretch border-b border-gray-700"
                     style={{ height: '56px' }}
@@ -392,12 +413,20 @@ function App() {
                 <div className="max-w-7xl mx-auto py-2 md:py-4 px-2 md:px-8">
                     <div className="hidden md:flex justify-between items-center mb-6">
                         <h1 className="text-3xl font-bold text-white">VGC.calc</h1>
-                        <button onClick={handleSwap} className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-md transition-colors text-sm"><ArrowRightLeft className="h-4 w-4" /> Swap</button>
                     </div>
-                    <div className="flex space-x-1 md:space-x-2">
-                        <button onClick={() => { setActiveTab('damage'); setMobileViewMode('attacker'); }} className={`flex items-center gap-1 md:gap-2 px-2 py-2 md:px-4 md:py-3 rounded-lg transition-colors text-xs sm:text-sm md:text-base ${activeTab === 'damage' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}><Calculator className="h-4 w-4 md:h-5 md:w-5" /> ダメージ計算</button>
-                        <button onClick={() => setActiveTab('team')} className={`flex items-center gap-1 md:gap-2 px-2 py-2 md:px-4 md:py-3 rounded-lg transition-colors text-xs sm:text-sm md:text-base ${activeTab === 'team' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}><Users className="h-4 w-4 md:h-5 md:w-5" /> チーム管理</button>
-                        <button onClick={() => setActiveTab('history')} className={`flex items-center gap-1 md:gap-2 px-2 py-2 md:px-4 md:py-3 rounded-lg transition-colors text-xs sm:text-sm md:text-base ${activeTab === 'history' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}><HistoryIcon className="h-4 w-4 md:h-5 md:w-5" /> 履歴</button>
+                    <div className="flex justify-between items-center">
+                        <div className="flex space-x-1 md:space-x-2">
+                            <button onClick={() => { setActiveTab('damage'); setMobileViewMode('attacker'); }} className={`flex items-center gap-1 md:gap-2 px-2 py-2 md:px-4 md:py-3 rounded-lg transition-colors text-xs sm:text-sm md:text-base ${activeTab === 'damage' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}><Calculator className="h-4 w-4 md:h-5 md:w-5" /> ダメージ計算</button>
+                            <button onClick={() => setActiveTab('team')} className={`flex items-center gap-1 md:gap-2 px-2 py-2 md:px-4 md:py-3 rounded-lg transition-colors text-xs sm:text-sm md:text-base ${activeTab === 'team' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}><Users className="h-4 w-4 md:h-5 md:w-5" /> チーム管理</button>
+                            <button onClick={() => setActiveTab('history')} className={`flex items-center gap-1 md:gap-2 px-2 py-2 md:px-4 md:py-3 rounded-lg transition-colors text-xs sm:text-sm md:text-base ${activeTab === 'history' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}><HistoryIcon className="h-4 w-4 md:h-5 md:w-5" /> 履歴</button>
+                        </div>
+                        <button 
+                            onClick={() => setIsInfoModalOpen(true)} 
+                            className="p-2 bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white rounded-full transition-colors"
+                            aria-label="Information"
+                        >
+                            <Info className="h-5 w-5" />
+                        </button>
                     </div>
                 </div>
             </header>
@@ -407,10 +436,22 @@ function App() {
                         {mobileViewMode === 'attacker' && <AttackerPanel pokemon={pokedex} moves={moves} items={items} abilities={abilities} />}
                         {mobileViewMode === 'defender' && <DefenderPanel pokemonList={pokedex} items={items} abilities={abilities} showDefender2={attackers.length > 1 && !!attackers[1]?.isEnabled} />}
                     </div>
-                    <div className="hidden md:grid md:grid-cols-2 md:gap-6">
-                        <AttackerPanel pokemon={pokedex} moves={moves} items={items} abilities={abilities} />
-                        <DefenderPanel pokemonList={pokedex} items={items} abilities={abilities} showDefender2={attackers.length > 1 && !!attackers[1]?.isEnabled} />
+
+                    {/* ★★★★★ Swapボタンのレイアウトを修正 ★★★★★ */}
+                    <div className="hidden md:block relative">
+                        <div className="grid md:grid-cols-2 md:gap-6">
+                            <AttackerPanel pokemon={pokedex} moves={moves} items={items} abilities={abilities} />
+                            <DefenderPanel pokemonList={pokedex} items={items} abilities={abilities} showDefender2={attackers.length > 1 && !!attackers[1]?.isEnabled} />
+                        </div>
+<button 
+  onClick={handleSwap} 
+  className="absolute top-4 left-1/2 -translate-x-1/2 z-10 p-2 bg-gray-700 hover:bg-gray-600 rounded-full transition-all text-gray-300 hover:text-white hover:scale-110 shadow-lg"
+  aria-label="Swap Attacker and Defender"
+>
+    <ArrowRightLeft className="h-5 w-5" />
+</button>
                     </div>
+                    
                     <div className="mt-6"><WeatherField /></div>
                 </div>
                 <div style={{ display: activeTab === 'team' ? 'block' : 'none' }}><TeamManager pokemon={pokedex} moves={moves} items={items} abilities={abilities} natures={natures}　/></div>
@@ -498,7 +539,7 @@ function App() {
                                             disasters={disasters}
                                             onSaveLog={() => handleSaveLogEntry(index)}
                                             resultIdSuffix={`${index}`}
-                                            isVariablePowerMove={isVariablePowerMove} // Pass this prop
+                                            isVariablePowerMove={isVariablePowerMove}
                                             showIndividualAttackResults={showAllIndividualAttackResults}
                                             onToggleShowIndividualAttackResults={() => setShowAllIndividualAttackResults(p => !p)}
                                         />
@@ -509,6 +550,7 @@ function App() {
                     </div>
                 </footer>
             </div>
+            <InfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} />
         </div>
     );
 }

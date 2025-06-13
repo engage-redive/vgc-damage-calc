@@ -29,6 +29,7 @@ interface EffectContext {
     // もしスキン特性などで技タイプが変わる前に参照したいなどのケースがあれば別途必要
     isTeraAndMoveTypeMatch: boolean; // ダミーまたはスキン特性等で使う可能性を考慮して残す
     hasHelpingHand: boolean;
+    moveUiOptions?: { [key: string]: boolean }; // ★ calculator.tsからの引数に対応
 }
 
 // powerCorrectionEffects は前回提示いただいたものをそのまま使用すると仮定します。
@@ -318,7 +319,7 @@ export function calculateFinalMovePower(
 
     // 例: もふもふ (炎技の威力2倍) - これは防御側の特性なので、通常は防御側の補正で処理されるべきだが、
     // もし攻撃技の威力自体を変動させるルールならここに記述
-    if (defender?.abilities.some(ability => ability.id === 'fluffy') && move.type === PokemonType.Fire) { // defender.abilities が Ability[] 型と仮定
+    if (defender?.abilities.some(ability => (ability as any).id === 'fluffy') && move.type === PokemonType.Fire) { // defender.abilities が Ability[] 型と仮定, anyキャストは例
         powerMultiplierQ12 = roundHalfUp((powerMultiplierQ12 * 8192) / 4096); // 2倍
     }
 
@@ -345,14 +346,22 @@ export function calculateFinalMovePower(
         // 通常のテラスタルで、テラスタイプと技のタイプが一致する場合
         shouldApply60Rule = true;
     }
+    
+    // ======================================================================
+    // ★★★ ここからが修正箇所 ★★★
+    // ======================================================================
+    
+    // 連続技であるかどうかの判定を、multihit と variablePowers の両方で行うようにする
+    const isMultiHitMove = move.multihit !== undefined || (move.variablePowers && move.variablePowers.length > 0);
 
-    if (shouldApply60Rule && finalPower < 60 && move.multihit === undefined && !move.isTeraBlast) {
-        // 連続技でなく、テラバーストでもない場合 (テラバーストは別途威力が決まるため)
+    if (shouldApply60Rule && finalPower < 60 && !isMultiHitMove && !move.isTeraBlast) {
+        // 連続技でなく、テラバーストでもない場合
         finalPower = 60;
     }
-    // テラバースト(ステラ)は威力100、テラバースト(通常テラス)は威力80。
-    // これらは baseMovePowerOverride で calculator.ts から渡される想定のため、
-    // ここでの60化ロジックはテラバーストには適用しない。
+    
+    // ======================================================================
+    // ★★★ ここまでが修正箇所 ★★★
+    // ======================================================================
 
     // 5. 特定の技に対する最終的な威力変動 (例: しおづけ)
     //    これらの処理が威力60化ルールの後か前かは技ごとに確認が必要。
