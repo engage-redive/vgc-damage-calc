@@ -353,6 +353,7 @@ export const calculateDamage = (
         field,
         attackerItem,
         attackerAbility,
+      　defenderAbility,
         attackerTeraType, // 通常テラスタイプ
         hasHelpingHand,
         weather,

@@ -1,4 +1,4 @@
-import { Pokemon, Move, Item, Ability, PokemonType, Field, Weather } from '../types'; // パスを確認してください
+import { Pokemon, Move, Item, Ability, PokemonType, Field, Weather } from '../types';
 
 // 五捨五超入 (0.5を超える場合に切り上げ)
 function multiplyByQ12AndRound(baseValue: number, q12Multiplier: number): number {
@@ -20,10 +20,12 @@ function roundHalfUp(value: number): number {
 
 interface EffectContext {
     attacker: Pokemon & { isGrounded: boolean };
+  　defender?: Pokemon; // ★ 追加
     move: Move;
     field: Field;
     attackerItem: Item | null;
     attackerAbility: Ability | null;
+  　defenderAbility?: Ability | null; // ★ 追加
     basePowerForTechnician: number; // テクニシャン判定用の、補正前の基本威力
     // isTeraAndMoveTypeMatch は EffectContext内では直接使わない想定 (60化ルールの判定は外で行うため)
     // もしスキン特性などで技タイプが変わる前に参照したいなどのケースがあれば別途必要
@@ -203,6 +205,25 @@ const powerCorrectionEffects: {
         q12Value: 6144,
         condition: (ctx) => ctx.hasHelpingHand
     },
+  // ★★★ ここから追加 ★★★
+    {
+        id: 'rising_voltage_electric_terrain_boost',
+        name: 'ライジングボルト (エレキフィールド時威力UP)',
+        q12Value: 8192, // 2倍
+        condition: (ctx) => {
+            // 技がライジングボルト、フィールドがエレキフィールド、防御側がいるかチェック
+            if (ctx.move.id !== 'risingvoltage' || ctx.field !== Field.Electric || !ctx.defender) {
+                return false;
+            }
+            // 防御側が接地しているか判定
+            const isDefenderFlyingType = ctx.defender.types.includes(PokemonType.Flying);
+            const isDefenderLevitating = ctx.defenderAbility?.id === 'levitate';
+            // TODO: 他の非接地状態（でんじふゆう、テレキネシス）も考慮する場合はここに追加
+            const isDefenderGrounded = !isDefenderFlyingType && !isDefenderLevitating;
+
+            return isDefenderGrounded;
+        }
+    },
       {
         id: 'expanding_force_psychic_field_boost',
         name: 'ワイドフォース (サイコフィールド時威力UP)',
@@ -279,6 +300,7 @@ export function calculateFinalMovePower(
     field: Field,
     attackerItem: Item | null,
     attackerAbility: Ability | null,
+  　defenderAbility: Ability | null, // ★ 追加
     teraType: PokemonType | null,       // 通常のテラスタイプ (attackerState.teraType)
     hasHelpingHand: boolean,
     weather: Weather,  
@@ -300,10 +322,12 @@ export function calculateFinalMovePower(
 
     const effectContext: EffectContext = {
         attacker,
+      　defender, // ★ 追加
         move,
         field,
         attackerItem,
         attackerAbility,
+      　defenderAbility, // ★ 追加
         basePowerForTechnician: basePowerForTechnicianOriginal, // テクニシャン判定には補正前の威力を使う
         isTeraAndMoveTypeMatch: (teraType !== null && teraType === move.type) || // 通常テラス一致
                                 (isStellarTeraAttacker === true && attacker.types.includes(move.type)), // ステラで元タイプ一致 (スキン特性等での変化前の技タイプを見るべきか注意)

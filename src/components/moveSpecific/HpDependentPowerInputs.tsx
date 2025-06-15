@@ -1,3 +1,5 @@
+// HpDependentPowerInputs.tsx の修正版（全文）
+
 import React from 'react';
 
 interface HpDependentPowerInputsProps {
@@ -44,7 +46,7 @@ const HpDependentPowerInputs: React.FC<HpDependentPowerInputsProps> = ({
       />
       <div className="mt-2 text-sm text-white">
         <p>HP割合: {actualMaxHp > 0 ? ((currentHp / actualMaxHp) * 100).toFixed(1) : '0.0'}%</p>
-        <p>ふんか/しおふきの威力: {calculateMovePower()}</p>
+        <p>ふんか/しおふき/ドラゴンエナジーの威力: {calculateMovePower()}</p> 
       </div>
     </div>
   );

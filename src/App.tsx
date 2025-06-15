@@ -28,7 +28,7 @@ import { useAttackerStore } from './stores/attackerStore';
 import { useDefenderStore } from './stores/defenderStore';
 import { useHistoryStore } from './stores/historyStore';
 
-const HP_DEPENDENT_MOVE_NAMES = ["ふんか", "しおふき"];
+const HP_DEPENDENT_MOVE_NAMES = ["ふんか", "しおふき", "ドラゴンエナジー"]; // ★ 修正: ドラゴンエナジーを追加
 
 type TabType = 'damage' | 'team' | 'history';
 type MobileViewMode = 'attacker' | 'defender';
